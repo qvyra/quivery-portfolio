@@ -39,6 +39,15 @@ describe('App (e2e)', () => {
       .expect('Access-Control-Allow-Credentials', 'true');
   });
 
+  it('rejects a malformed project slug before touching the database', () => {
+    return request(app.getHttpServer())
+      .get('/public/projects/Not%20A%20Slug')
+      .expect(400)
+      .expect((res) => {
+        expect(res.body.code).toBe('VALIDATION_FAILURE_SLUG');
+      });
+  });
+
   // there's no public sign-up or login, so none of these may be routed
   it.each([
     ['post', '/users/register'],

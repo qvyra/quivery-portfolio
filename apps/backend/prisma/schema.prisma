@@ -1,0 +1,242 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Field-level rules (lengths, URL formats, block shapes) live in the Zod
+// schemas in @repo/shared, and every write goes through them first.
+//
+// List content shares three state fields:
+//   publishStatus  DRAFT until published
+//   visible        hides published content without unpublishing it
+//   sortOrder      manual order, ascending
+// The public API only returns PUBLISHED + visible rows
+
+enum PublishStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum ReleaseStatus {
+  RELEASED
+  IN_DEVELOPMENT
+}
+
+enum SkillTier {
+  PRIMARY
+  SECONDARY
+}
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+  FILE
+}
+
+enum ContactMessageStatus {
+  NEW
+  READ
+  ARCHIVED
+}
+
+// Every uploaded or static file. Content points at it by id: typed slots use
+// foreign keys, blocks use { mediaId } inside their JSON
+model Media {
+  id         String    @id @default(uuid())
+  kind       MediaKind
+  // object-storage URL, or a root-relative path served by the web app
+  url        String
+  // object-storage key, null for static or external files
+  storageKey String?   @unique
+  mimeType   String
+  sizeBytes  Int?
+  width      Int?
+  height     Int?
+  alt        String    @default("")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  profileAvatars     Profile[]     @relation("ProfileAvatar")
+  profileCvs         Profile[]     @relation("ProfileCv")
+  projectCovers      Project[]
+  skillIcons         Skill[]
+  serviceIcons       Service[]
+  testimonialAvatars Testimonial[]
+}
+
+// singleton, always id 1 (a CHECK constraint in the migration enforces it)
+model Profile {
+  id          Int      @id @default(1)
+  brandName   String
+  displayName String
+  headline    String
+  tagline     String
+  avatarId    String?
+  avatar      Media?   @relation("ProfileAvatar", fields: [avatarId], references: [id], onDelete: SetNull)
+  cvId        String?
+  cv          Media?   @relation("ProfileCv", fields: [cvId], references: [id], onDelete: SetNull)
+  updatedAt   DateTime @updatedAt
+}
+
+// The homepage, in sortOrder. `type` is checked by Zod rather than a database
+// enum, so a new section type needs no migration
+model Section {
+  id             String        @id @default(uuid())
+  // also the in-page anchor, e.g. /#works
+  slug           String        @unique
+  type           String
+  title          String
+  // title phrase shown in the accent gradient (Zod checks it's in the title)
+  titleHighlight String?
+  eyebrow        String?
+  // short label for the site nav, null falls back to the title
+  navLabel       String?
+  // Zod-validated array of content blocks
+  blocks         Json          @default("[]")
+  publishStatus  PublishStatus @default(DRAFT)
+  visible        Boolean       @default(true)
+  sortOrder      Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([publishStatus, visible, sortOrder])
+}
+
+model Project {
+  id               String        @id @default(uuid())
+  slug             String        @unique
+  title            String
+  summary          String
+  // Zod-validated array of content blocks (the project page)
+  body             Json          @default("[]")
+  tags             String[]      @default([])
+  // Zod-validated array of { label, url, type }
+  links            Json          @default("[]")
+  releaseStatus    ReleaseStatus
+  version          String?
+  featured         Boolean       @default(false)
+  openSource       Boolean       @default(false)
+  // development-only filler, never served in production
+  isPlaceholder    Boolean       @default(false)
+  benchmarkUrl     String?
+  // TODO: live Roblox stats, these are reserved for it
+  robloxPlaceId    String?
+  robloxUniverseId String?
+  coverId          String?
+  cover            Media?        @relation(fields: [coverId], references: [id], onDelete: SetNull)
+  publishStatus    PublishStatus @default(DRAFT)
+  visible          Boolean       @default(true)
+  sortOrder        Int           @default(0)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  testimonials Testimonial[]
+
+  @@index([publishStatus, visible, sortOrder])
+}
+
+model Stat {
+  id            String        @id @default(uuid())
+  value         String
+  label         String
+  publishStatus PublishStatus @default(DRAFT)
+  visible       Boolean       @default(true)
+  sortOrder     Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([publishStatus, visible, sortOrder])
+}
+
+model Skill {
+  id            String        @id @default(uuid())
+  name          String
+  category      String?
+  tier          SkillTier     @default(PRIMARY)
+  description   String?
+  iconId        String?
+  icon          Media?        @relation(fields: [iconId], references: [id], onDelete: SetNull)
+  publishStatus PublishStatus @default(DRAFT)
+  visible       Boolean       @default(true)
+  sortOrder     Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([publishStatus, visible, sortOrder])
+}
+
+model Service {
+  id            String        @id @default(uuid())
+  title         String
+  summary       String
+  highlights    String[]      @default([])
+  iconId        String?
+  icon          Media?        @relation(fields: [iconId], references: [id], onDelete: SetNull)
+  publishStatus PublishStatus @default(DRAFT)
+  visible       Boolean       @default(true)
+  sortOrder     Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([publishStatus, visible, sortOrder])
+}
+
+// Real testimonials only. The Ratings section hides itself when none are
+// published
+model Testimonial {
+  id            String        @id @default(uuid())
+  authorName    String
+  authorRole    String?
+  authorUrl     String?
+  avatarId      String?
+  avatar        Media?        @relation(fields: [avatarId], references: [id], onDelete: SetNull)
+  quote         String
+  rating        Int?
+  source        String?
+  givenAt       DateTime?     @db.Date
+  projectId     String?
+  project       Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  publishStatus PublishStatus @default(DRAFT)
+  visible       Boolean       @default(true)
+  sortOrder     Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([publishStatus, visible, sortOrder])
+  @@index([projectId])
+}
+
+model ContactLink {
+  id            String        @id @default(uuid())
+  // Zod-validated, e.g. discord, email, github, roblox-talent-hub, kofi
+  type          String
+  label         String
+  // what visitors see, e.g. the Discord handle
+  value         String
+  url           String?
+  featured      Boolean       @default(false)
+  publishStatus PublishStatus @default(DRAFT)
+  visible       Boolean       @default(true)
+  sortOrder     Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([publishStatus, visible, sortOrder])
+}
+
+// Written by the contact form, never touched by the seed
+model ContactMessage {
+  id        String               @id @default(uuid())
+  name      String
+  email     String
+  discord   String?
+  message   String
+  status    ContactMessageStatus @default(NEW)
+  createdAt DateTime             @default(now())
+
+  @@index([status, createdAt])
+}

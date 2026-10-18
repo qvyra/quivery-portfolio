@@ -13,7 +13,8 @@
     "db:down": "docker compose -f apps/backend/compose.yaml down",
     "db:status": "docker compose -f apps/backend/compose.yaml ps",
     "db:logs": "docker compose -f apps/backend/compose.yaml logs -f",
-    "db:migrate": "npm run db:migrate -w backend"
+    "db:migrate": "npm run db:migrate -w backend",
+    "db:seed": "turbo run db:seed"
   },
   "devDependencies": {
     "prettier": "3.9.6",

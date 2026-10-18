@@ -1,0 +1,797 @@
+@import "tailwindcss";
+
+/* `scrolled:` applies once the page has scrolled, see ScrollWatcher */
+@custom-variant scrolled (&:where(html[data-scrolled="true"] *));
+
+/* Quivery design tokens. The site is dark only */
+@theme {
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+
+  /* surfaces */
+  --color-ink: #0a001d; /* page background */
+  --color-ink-raised: #14042e; /* panels, menu drawer */
+
+  /* brand gradient, for primary buttons */
+  --color-plum: #79018c;
+  --color-wine: #8c013b;
+
+  /* accent gradient for highlighted text, underlines and focus. The end stop
+     is #b6004c brightened a little to hold 3:1 contrast over the glows */
+  --color-orchid: #dc00ff;
+  --color-rose: #c2005a;
+  --color-focus: #f5b8ff;
+
+  /* radius scale */
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+
+  /* UI feedback uses out-quart, entrances use out-expo */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+  /* for the menu icon. A ~3° overshoot reads crisp without bouncing */
+  --ease-snap: cubic-bezier(0.3, 1.35, 0.55, 1);
+
+  /* fluid type, each size scales from a 320px phone up to desktop */
+  --text-display: clamp(2.25rem, 1.6rem + 3.25vw, 4.5rem);
+  --text-display--line-height: 1.08;
+  --text-display--letter-spacing: -0.035em;
+  --text-h2: clamp(1.75rem, 1.35rem + 2vw, 2.75rem);
+  --text-h2--line-height: 1.15;
+  --text-h2--letter-spacing: -0.025em;
+  --text-h3: clamp(1.1875rem, 1.05rem + 0.6vw, 1.5rem);
+  --text-h3--line-height: 1.3;
+  --text-h3--letter-spacing: -0.01em;
+  --text-lead: clamp(1.0625rem, 0.98rem + 0.4vw, 1.25rem);
+  --text-lead--line-height: 1.65;
+  --text-stat: clamp(2.5rem, 1.8rem + 3vw, 4.25rem);
+  --text-stat--line-height: 1.05;
+  --text-stat--letter-spacing: -0.04em;
+  --text-eyebrow: 0.8125rem;
+  --text-eyebrow--line-height: 1.4;
+  --text-eyebrow--letter-spacing: 0.14em;
+
+  /* fluid spacing */
+  --spacing-gutter: clamp(1rem, 0.4rem + 3vw, 2.5rem);
+  --spacing-section: clamp(4.5rem, 2.5rem + 8vw, 9rem);
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+
+    /* feedback (hover, press, menu) is fast, entrances are slow */
+    --motion-fast: 150ms;
+    --motion-base: 200ms;
+    --motion-slow: 250ms;
+    --motion-enter: 650ms;
+
+    /* notched phones add the safe-area inset on top of the bar */
+    --header-h: 4rem;
+    --header-total: calc(var(--header-h) + env(safe-area-inset-top));
+
+    /* anchors and focused elements land below the sticky header */
+    scroll-padding-top: calc(var(--header-total) + 1rem);
+    /* keeps the scrollbar's space so locking scroll doesn't shift layout */
+    scrollbar-gutter: stable;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+
+    @media (width >= 48rem) {
+      --header-h: 4.5rem;
+    }
+    /* landscape phones get a slimmer header and smaller display type so the
+       headline and its intro both fit the short screen */
+    @media (orientation: landscape) and (height < 32rem) {
+      --header-h: 3.5rem;
+      --text-display: clamp(2rem, 1.25rem + 2.5vw, 2.75rem);
+    }
+    /* the header doesn't stick on very short viewports, like 400% zoom */
+    @media (height < 20rem) {
+      scroll-padding-top: 1rem;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      scroll-behavior: smooth;
+    }
+  }
+
+  body {
+    background-color: var(--color-ink);
+    color: white;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+    overflow-wrap: break-word;
+  }
+  p,
+  li,
+  dd,
+  dt {
+    text-wrap: pretty;
+    overflow-wrap: break-word;
+  }
+
+  ::selection {
+    background-color: var(--color-plum);
+    color: white;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 3px;
+  }
+}
+
+/* fluid gutter, or the safe-area inset on landscape notched phones if larger */
+@utility px-gutter-safe {
+  padding-left: max(var(--spacing-gutter), env(safe-area-inset-left));
+  padding-right: max(var(--spacing-gutter), env(safe-area-inset-right));
+}
+
+@utility bg-brand-gradient {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-plum),
+    var(--color-wine)
+  );
+}
+
+/* stand-in poster for videos without a thumbnail */
+@utility bg-poster {
+  background-image:
+    radial-gradient(circle at 30% 20%, rgb(121 1 140 / 0.45), transparent 60%),
+    radial-gradient(circle at 80% 90%, rgb(140 1 59 / 0.4), transparent 55%);
+}
+
+/* Gradient text. background-clip: text only paints inside the box and
+   Poppins' descenders hang below a tight line box, so padding (cancelled by a
+   negative margin) keeps g/y/p whole. box-decoration-break repeats it on
+   every wrapped line */
+@utility text-gradient {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-orchid),
+    var(--color-rose)
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  padding-block: 0.12em;
+  margin-block: -0.12em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+
+  /* forced colors drop background images, so the text would vanish */
+  @media (forced-colors: active) {
+    color: CanvasText;
+    -webkit-text-fill-color: CanvasText;
+  }
+}
+
+/* Page-load entrance, staggered with [--i:n] in 80ms steps. Reduced motion
+   gets a short fade with no movement */
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@utility animate-enter {
+  animation: enter var(--motion-enter) var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * 80ms + 80ms);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation-name: fade-in;
+    animation-duration: 300ms;
+  }
+}
+
+@layer components {
+  /* Buttons: .btn + a variant (.btn-primary, .btn-secondary) + a size
+     (.btn-sm, .btn-md, .btn-lg). Hover and press only animate transform and
+     the opacity of two layers: ::after is a light hover overlay, ::before the
+     glow (primary) or gradient ring (secondary) */
+  .btn {
+    --btn-h: 2.75rem;
+    --btn-px: 1.25rem;
+    --btn-fs: 0.9375rem;
+
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    min-height: var(--btn-h);
+    max-width: 100%;
+    padding: 0.5em var(--btn-px);
+    border-radius: 9999px;
+    font-size: var(--btn-fs);
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.005em;
+    text-align: center;
+    text-decoration: none;
+    color: white;
+    cursor: pointer;
+    user-select: none;
+    transition: transform var(--motion-base) var(--ease-out-quart);
+
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: inherit;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--motion-base) var(--ease-out-quart);
+    }
+    &::after {
+      background-color: rgb(255 255 255 / 0.1);
+    }
+
+    & svg {
+      width: 1.125em;
+      height: 1.125em;
+      flex-shrink: 0;
+      transition: transform var(--motion-base) var(--ease-out-quart);
+    }
+
+    @media (hover: hover) {
+      &:hover {
+        transform: translateY(-1px);
+      }
+      &:hover::before,
+      &:hover::after {
+        opacity: 1;
+      }
+      &:hover [data-icon="end"] {
+        transform: translateX(2px);
+      }
+    }
+    &:focus-visible::before {
+      opacity: 1;
+    }
+    &:active {
+      transform: scale(0.97);
+      transition-duration: var(--motion-fast);
+    }
+    &:active::after {
+      opacity: 1;
+    }
+
+    &:disabled,
+    &[aria-disabled="true"] {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+      transform: none;
+    }
+  }
+
+  .btn-sm {
+    --btn-h: 2.25rem;
+    --btn-px: 1rem;
+    --btn-fs: 0.875rem;
+
+    /* touch targets never go below 44px */
+    @media (pointer: coarse) {
+      --btn-h: 2.75rem;
+    }
+  }
+  .btn-lg {
+    --btn-h: 3.25rem;
+    --btn-px: 1.75rem;
+    --btn-fs: 1rem;
+  }
+
+  .btn-primary {
+    background-image: linear-gradient(
+      100deg,
+      var(--color-plum),
+      var(--color-wine)
+    );
+    /* top highlight and a faint ring so the edge reads over dark glows */
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.18),
+      inset 0 0 0 1px rgb(255 255 255 / 0.08);
+
+    &::before {
+      box-shadow:
+        0 10px 28px -10px rgb(194 0 90 / 0.7),
+        0 6px 20px -8px rgb(121 1 140 / 0.8);
+    }
+  }
+
+  .btn-secondary {
+    background-color: rgb(255 255 255 / 0.04);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.2);
+
+    /* gradient hairline that fades in on hover and focus */
+    &::before {
+      padding: 1px;
+      background-image: linear-gradient(
+        100deg,
+        var(--color-orchid),
+        var(--color-rose)
+      );
+      mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      mask-composite: exclude;
+      -webkit-mask-composite: xor;
+    }
+    &::after {
+      background-color: rgb(255 255 255 / 0.07);
+    }
+  }
+
+  @media (forced-colors: active) {
+    .btn {
+      border: 1px solid ButtonText;
+    }
+  }
+
+  /* Navigation link */
+  .nav-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding-inline: 0.75rem;
+    font-weight: 500;
+    color: white;
+    text-decoration: none;
+    opacity: 0.75;
+    transition: opacity var(--motion-base) var(--ease-out-quart);
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset-inline: 0.75rem;
+      bottom: 0.45rem;
+      height: 2px;
+      border-radius: 9999px;
+      background-image: linear-gradient(
+        90deg,
+        var(--color-orchid),
+        var(--color-rose)
+      );
+      transform: scaleX(0);
+      transform-origin: right;
+      transition: transform var(--motion-slow) var(--ease-out-quart);
+    }
+
+    @media (hover: hover) {
+      &:hover {
+        opacity: 1;
+      }
+      &:hover::after {
+        transform: scaleX(1);
+        transform-origin: left;
+      }
+    }
+    &:focus-visible,
+    &[aria-current="page"],
+    &[aria-current="true"] {
+      opacity: 1;
+    }
+    &[aria-current="page"]::after,
+    &[aria-current="true"]::after {
+      transform: scaleX(1);
+    }
+  }
+
+  /* Mobile menu, see <SiteNav>. Below 768px the nav is an off-canvas drawer
+     over a scrim. Opening shows it at once so it can take focus, then slides
+     it in. Closing slides it out, then hides it so its links can't be tabbed
+     into */
+  @media (width < 48rem) {
+    .nav-scrim {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      background-color: rgb(10 0 29 / 0.6);
+      opacity: 0;
+      visibility: hidden;
+      transition:
+        opacity var(--motion-base) var(--ease-out-quart),
+        visibility 0s linear var(--motion-base);
+
+      &[data-open="true"] {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity var(--motion-slow) var(--ease-out-quart);
+      }
+    }
+
+    .nav-drawer {
+      position: fixed;
+      inset-block: 0;
+      right: 0;
+      z-index: 40;
+      display: flex;
+      flex-direction: column;
+      width: min(85vw, 22rem);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: calc(var(--header-total) + 0.75rem)
+        max(1rem, env(safe-area-inset-right))
+        max(1.5rem, env(safe-area-inset-bottom)) 1rem;
+      border-left: 1px solid rgb(255 255 255 / 0.1);
+      background-color: var(--color-ink-raised);
+      background-image: radial-gradient(
+        120% 60% at 100% 0%,
+        rgb(121 1 140 / 0.22),
+        transparent 70%
+      );
+      box-shadow: -24px 0 48px -24px rgb(0 0 0 / 0.6);
+      visibility: hidden;
+      transform: translateX(100%);
+      transition:
+        transform var(--motion-base) var(--ease-in-out-quart),
+        visibility 0s linear var(--motion-base);
+
+      &[data-open="true"] {
+        visibility: visible;
+        transform: none;
+        transition: transform var(--motion-slow) var(--ease-out-expo);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        &,
+        &[data-open="true"] {
+          transition: none;
+        }
+      }
+    }
+
+    /* items slide in one after another as the drawer opens, and fade out
+       together, quickly, as it closes */
+    .drawer-item {
+      opacity: 0;
+      transition:
+        opacity 150ms var(--ease-out-quart),
+        transform 150ms var(--ease-out-quart);
+
+      @media (prefers-reduced-motion: no-preference) {
+        transform: translateX(0.75rem);
+      }
+    }
+    .nav-drawer[data-open="true"] .drawer-item {
+      opacity: 1;
+      transform: none;
+      transition-duration: 320ms;
+      transition-timing-function: var(--ease-out-expo);
+      transition-delay: calc(var(--i, 0) * 45ms + 80ms);
+    }
+
+    /* full-width 56px rows: icon tile, label and a dot for the section in
+       view. ::before takes the hover/press tint and the active highlight */
+    .nav-drawer .nav-link {
+      gap: 0.875rem;
+      width: 100%;
+      min-height: 3.5rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: var(--radius-lg);
+      font-size: 1.125rem;
+      opacity: 1;
+      isolation: isolate;
+      transition: transform var(--motion-fast) var(--ease-out-quart);
+
+      &::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        border-radius: inherit;
+        background-color: rgb(255 255 255 / 0.06);
+        opacity: 0;
+        transition: opacity var(--motion-base) var(--ease-out-quart);
+      }
+      &::after {
+        display: none;
+      }
+
+      @media (hover: hover) {
+        &:hover::before {
+          opacity: 1;
+        }
+      }
+      &:active {
+        transform: scale(0.98);
+      }
+      &:active::before {
+        opacity: 1;
+      }
+
+      &[aria-current="true"]::before {
+        background-color: transparent;
+        background-image: linear-gradient(
+          100deg,
+          rgb(121 1 140 / 0.38),
+          rgb(140 1 59 / 0.2)
+        );
+        box-shadow: inset 0 0 0 1px rgb(220 0 255 / 0.22);
+        opacity: 1;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        &:active {
+          transform: none;
+        }
+      }
+    }
+
+    .nav-link-icon {
+      display: grid;
+      place-items: center;
+      width: 2.5rem;
+      height: 2.5rem;
+      flex-shrink: 0;
+      border-radius: var(--radius-md);
+      background-color: rgb(255 255 255 / 0.05);
+      box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+      color: rgb(255 255 255 / 0.85);
+
+      & svg {
+        width: 1.25rem;
+        height: 1.25rem;
+      }
+    }
+    [aria-current="true"] > .nav-link-icon {
+      background-image: linear-gradient(
+        100deg,
+        var(--color-plum),
+        var(--color-wine)
+      );
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18);
+      color: white;
+    }
+
+    .nav-link-dot {
+      width: 0.375rem;
+      height: 0.375rem;
+      margin-left: auto;
+      border-radius: 9999px;
+      background-image: linear-gradient(
+        135deg,
+        var(--color-orchid),
+        var(--color-rose)
+      );
+      opacity: 0;
+      transform: scale(0);
+      transition:
+        opacity var(--motion-base) var(--ease-out-quart),
+        transform var(--motion-slow) var(--ease-out-quart);
+    }
+    [aria-current="true"] > .nav-link-dot {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (width >= 48rem) {
+    .nav-scrim,
+    .nav-link-icon,
+    .nav-link-dot {
+      display: none;
+    }
+  }
+
+  /* Menu toggle, hamburger to X in two steps, transforms only. Opening slides
+     the outer lines to the centre as the middle one shrinks away, then
+     rotates them into an X. Closing reverses it. About 350ms either way */
+  .menu-icon {
+    position: relative;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .menu-icon-line {
+    position: absolute;
+    top: calc(50% - 1px);
+    left: 0;
+    width: 100%;
+    height: 2px;
+    border-radius: 9999px;
+    background-color: currentColor;
+    /* closing: un-rotate first, then slide apart */
+    transition:
+      rotate 180ms var(--ease-out-quart),
+      translate 170ms var(--ease-in-out-quart) 150ms,
+      scale 170ms var(--ease-out-quart) 150ms,
+      opacity 120ms var(--ease-out-quart) 170ms;
+
+    &:nth-child(1) {
+      translate: 0 -6px;
+    }
+    &:nth-child(3) {
+      translate: 0 6px;
+    }
+  }
+  [aria-expanded="true"] > .menu-icon > .menu-icon-line {
+    translate: 0 0;
+    /* opening: slide together, then rotate */
+    transition:
+      translate 170ms var(--ease-in-out-quart),
+      scale 170ms var(--ease-out-quart),
+      opacity 120ms var(--ease-out-quart),
+      rotate 220ms var(--ease-snap) 140ms;
+
+    &:nth-child(1) {
+      rotate: 45deg;
+    }
+    &:nth-child(2) {
+      opacity: 0;
+      scale: 0 1;
+    }
+    &:nth-child(3) {
+      rotate: -45deg;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .menu-icon-line,
+    [aria-expanded="true"] > .menu-icon > .menu-icon-line {
+      transition: none;
+    }
+  }
+
+  /* Scroll reveal, see <Reveal>. Elements below the fold start hidden once JS
+     runs and transition in as they enter the viewport. A group reveals its
+     children in turn */
+  [data-reveal="out"]:not([data-reveal-group]),
+  [data-reveal-group][data-reveal="out"] > * {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+  [data-reveal="in"]:not([data-reveal-group]),
+  [data-reveal-group][data-reveal="in"] > * {
+    transition:
+      opacity var(--motion-enter) var(--ease-out-quart),
+      transform var(--motion-enter) var(--ease-out-expo);
+  }
+  [data-reveal-group][data-reveal="in"] > * {
+    transition-delay: calc(var(--i, 0) * 70ms);
+  }
+  [data-reveal-group] > :nth-child(2) {
+    --i: 1;
+  }
+  [data-reveal-group] > :nth-child(3) {
+    --i: 2;
+  }
+  [data-reveal-group] > :nth-child(4) {
+    --i: 3;
+  }
+  [data-reveal-group] > :nth-child(5) {
+    --i: 4;
+  }
+  [data-reveal-group] > :nth-child(6) {
+    --i: 5;
+  }
+  [data-reveal-group] > :nth-child(n + 7) {
+    --i: 6;
+  }
+
+  /* Hero mark, the highlighted Q (see <HeroMark>). Layers bottom to top:
+     glow, halo and outline (static), the logo art, then the light sweep, a
+     rotating conic gradient masked to the outline */
+  .hero-mark {
+    position: relative;
+    aspect-ratio: 1;
+    animation: hero-mark-enter 900ms var(--ease-out-expo) 150ms both;
+  }
+
+  .hero-mark-glow {
+    position: absolute;
+    inset: 0;
+    overflow: visible;
+    filter: blur(clamp(8px, 1.6vw, 18px));
+    opacity: 0.55;
+  }
+  .hero-mark-outline {
+    position: absolute;
+    inset: 0;
+    overflow: visible;
+  }
+
+  /* a blurred copy of the logo, so the halo follows the Q's shape */
+  .hero-mark-halo {
+    position: absolute;
+    inset: 9%;
+    filter: blur(clamp(14px, 2.6vw, 32px)) saturate(1.2);
+    opacity: 0.5;
+  }
+
+  .hero-mark-art {
+    position: absolute;
+    inset: 9%;
+    will-change: transform;
+  }
+
+  .hero-mark-sweep {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    mask: var(--hero-mark-mask) center / 100% 100% no-repeat;
+    -webkit-mask: var(--hero-mark-mask) center / 100% 100% no-repeat;
+    animation: fade-in 1.2s var(--ease-out-quart) 900ms both;
+  }
+  .hero-mark-beam {
+    position: absolute;
+    /* big enough to cover the corners while it rotates */
+    inset: -22%;
+    background-image: conic-gradient(
+      from 0turn,
+      transparent 0turn 0.52turn,
+      rgb(220 0 255 / 0.35) 0.62turn,
+      rgb(255 79 216 / 0.95) 0.73turn,
+      rgb(255 214 245) 0.75turn,
+      transparent 0.765turn 1turn
+    );
+    animation: orbit 7s linear infinite;
+    will-change: transform;
+  }
+  /* paused until the mark is on screen and the tab is visible */
+  .hero-mark:not([data-active="true"]) .hero-mark-beam {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes hero-mark-enter {
+  from {
+    transform: scale(0.96);
+  }
+}
+@keyframes orbit {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* Reduced motion: no movement anywhere. Fades stay and the logo is static */
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .btn svg,
+  .nav-link::after {
+    transition-property: opacity;
+  }
+  .btn:hover,
+  .btn:active,
+  .btn:hover [data-icon="end"] {
+    transform: none;
+  }
+  [data-reveal="out"]:not([data-reveal-group]),
+  [data-reveal-group][data-reveal="out"] > * {
+    transform: none;
+  }
+  [data-reveal="in"]:not([data-reveal-group]),
+  [data-reveal-group][data-reveal="in"] > * {
+    transition: opacity 300ms var(--ease-out-quart);
+  }
+  .hero-mark {
+    animation-name: fade-in;
+    animation-duration: 300ms;
+  }
+  .nav-link-dot {
+    transform: none;
+  }
+  .hero-mark-sweep {
+    display: none;
+  }
+}

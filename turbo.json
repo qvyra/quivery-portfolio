@@ -26,6 +26,11 @@
       "cache": false,
       "persistent": true
     },
+    "dev:lan": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
+    },
     "db:seed": {
       "dependsOn": ["^build"],
       "cache": false

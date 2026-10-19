@@ -4,6 +4,7 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "npm run db:up && turbo run dev",
+    "dev:lan": "npm run db:up && turbo run dev:lan",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e",

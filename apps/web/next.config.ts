@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
 import { loadEnv } from "./lib/env";
+import { lanAddresses } from "./scripts/lan.mjs";
 
 const pageExtensions = ["tsx", "ts", "jsx", "js"];
 
@@ -20,6 +21,11 @@ export default function nextConfig(phase: string): NextConfig {
 
     // no AGENTS.md written by next dev
     agentRules: false,
+
+    // lets a phone on the local network load the dev server (npm run dev:lan)
+    allowedDevOrigins: dev
+      ? lanAddresses().map(({ address }) => address)
+      : undefined,
 
     images: {
       remotePatterns: [

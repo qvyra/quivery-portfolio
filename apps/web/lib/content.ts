@@ -73,7 +73,13 @@ export async function getSite(): Promise<Site> {
 
   const { status, json } = await request("/public/site");
   if (status !== 200) throw unexpected("/public/site", status, json);
-  return parsed(() => parseSite(json, reportSkip));
+  const site = parsed(() => parseSite(json, reportSkip));
+  // an empty homepage means an empty or wrong database, never real content.
+  // Refusing it fails the build, or keeps the last good page
+  if (site.sections.length === 0) {
+    throw unexpected("/public/site", status, "no published sections");
+  }
+  return site;
 }
 
 export async function getProjects(): Promise<ProjectSummary[]> {

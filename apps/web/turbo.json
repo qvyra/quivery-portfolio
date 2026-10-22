@@ -1,0 +1,12 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      // The build prerenders pages from the API's current content, which
+      // Turbo can't see as an input. Never replay a cached build.
+      "cache": false,
+      "passThroughEnv": ["WAIT_FOR_API_TIMEOUT_MS"]
+    }
+  }
+}

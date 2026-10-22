@@ -31,6 +31,20 @@ describe('App (e2e)', () => {
       });
   });
 
+  // the database is stubbed out, so readiness has to report it unreachable
+  it('GET /health/ready reports an unreachable database as 503', () => {
+    return request(app.getHttpServer())
+      .get('/health/ready')
+      .expect(503)
+      .expect((res) => {
+        expect(res.body).toEqual({
+          status: 503,
+          message: 'The database is not reachable.',
+          code: 'HEALTH_DATABASE_UNAVAILABLE',
+        });
+      });
+  });
+
   it('allows CORS from the web origin only, with credentials', () => {
     return request(app.getHttpServer())
       .get('/health')

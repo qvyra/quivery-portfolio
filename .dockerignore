@@ -1,0 +1,16 @@
+# source only, and nothing secret can end up in an image layer
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/coverage
+**/*.tsbuildinfo
+**/src/generated
+**/.env
+**/.env.*
+!**/.env.example
+.deploy
+.git
+.github
+.vercel
+assets

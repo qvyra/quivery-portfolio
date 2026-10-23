@@ -19,9 +19,7 @@ const checks = [
   { url: `${api}/health`, status: 200, code: "HEALTH_OK" },
 ];
 
-let failures = 0;
-for (const check of checks) {
-  let outcome;
+async function run(check) {
   try {
     // the API might be asleep, and takes about a minute to wake
     const response = await fetch(check.url, {
@@ -31,22 +29,40 @@ for (const check of checks) {
     const body = await response.text();
     const found = (check.absent ?? []).filter((text) => body.includes(text));
     if (response.status !== check.status) {
-      outcome = `expected ${check.status}, got ${response.status}`;
-    } else if (check.code && !body.includes(`"code":"${check.code}"`)) {
-      outcome = `no ${check.code} in the answer`;
-    } else if (found.length > 0) {
-      outcome = `contains ${found.map((text) => JSON.stringify(text)).join(", ")}`;
+      return `expected ${check.status}, got ${response.status}`;
     }
+    if (check.code && !body.includes(`"code":"${check.code}"`)) {
+      return `no ${check.code} in the answer`;
+    }
+    if (found.length > 0) {
+      return `contains ${found.map((text) => JSON.stringify(text)).join(", ")}`;
+    }
+    return null;
   } catch (error) {
-    outcome = error instanceof Error ? error.message : String(error);
+    return error instanceof Error ? error.message : String(error);
   }
-  if (outcome) failures++;
-  console.log(
-    `${outcome ? "FAIL" : "ok  "} ${check.url}${outcome ? ` (${outcome})` : ""}`,
-  );
 }
 
-if (failures > 0) {
-  console.error(`::error::${failures} smoke check(s) failed`);
-  process.exit(1);
+// a domain that was just aliased to a new deployment can answer 404 for a few
+// seconds, so failed checks get a couple more tries before the job fails
+const ATTEMPTS = 4;
+const RETRY_MS = 15_000;
+let pending = checks;
+for (let attempt = 1; pending.length > 0; attempt++) {
+  const failed = [];
+  for (const check of pending) {
+    const outcome = await run(check);
+    if (outcome) failed.push(check);
+    console.log(
+      `${outcome ? "FAIL" : "ok  "} ${check.url}${outcome ? ` (${outcome})` : ""}`,
+    );
+  }
+  pending = failed;
+  if (pending.length === 0) break;
+  if (attempt === ATTEMPTS) {
+    console.error(`::error::${pending.length} smoke check(s) failed`);
+    process.exit(1);
+  }
+  console.log(`retrying ${pending.length} in ${RETRY_MS / 1000}s`);
+  await new Promise((resolve) => setTimeout(resolve, RETRY_MS));
 }

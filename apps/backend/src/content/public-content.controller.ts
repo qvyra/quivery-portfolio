@@ -1,5 +1,4 @@
 import { Controller, Get, Param } from '@nestjs/common';
-import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import {
   slugSchema,
@@ -8,6 +7,7 @@ import {
   type ProjectSummary,
   type Site,
 } from '@repo/shared';
+import { createZodDto } from '../validation/zod-dto.js';
 import { PublicContentService } from './public-content.service.js';
 
 class SlugParamsDto extends createZodDto(z.object({ slug: slugSchema })) {}

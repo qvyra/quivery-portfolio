@@ -111,6 +111,7 @@ TablePlus, DBeaver and psql take the plain URL, `postgresql://USER:PASSWORD@loca
 ## Code
 
 - Every response and write is validated with the schemas in `@repo/shared`. Request bodies never go straight to Prisma
+- **API input:** the global `ZodValidationPipe` (`apps/backend/src/validation/`) parses every parameter that has a schema, either a `createZodDto(schema)` class or `@Body(new ZodValidationPipe(schema))`. Handlers only get the parsed output, so keys a schema doesn't list never arrive. A body parameter without a schema is refused, and failures answer 400 with a `VALIDATION_FAILURE_<FIELD>` code
 - `apps/web/lib/content.ts` is the only place the site reads the API
 - No public page waits on the API during a visit
 - If you aren't sure how an API or a service behaves, don't guess. Leave a `TODO(verify)` comment saying what's unknown
@@ -141,5 +142,4 @@ Commits follow Conventional Commits:
 To revisit once upstream catches up:
 
 - **ESLint is pinned to 9:** `eslint-plugin-react`, `eslint-plugin-jsx-a11y` and `eslint-plugin-import` don't support ESLint 10 yet
-- **`nestjs-zod` doesn't declare Nest 12 support:** its peer range stops at Nest 11, so `npm ls` reports an invalid peer. It works fine with Nest 12
 - **`tsconfck` (through `vite-tsconfig-paths`) declares TypeScript ^5 as a peer:** same kind of warning, harmless

@@ -37,7 +37,6 @@
     "@prisma/client": "^7.10.1",
     "@repo/shared": "*",
     "dotenv": "^16.0.3",
-    "nestjs-zod": "^5.5.0",
     "prisma": "^7.10.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",

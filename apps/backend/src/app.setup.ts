@@ -1,8 +1,8 @@
 import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ZodValidationPipe } from 'nestjs-zod';
 import { PrismaClientExceptionFilter } from './filters/prisma-client.filter.js';
 import { ZodValidationExceptionFilter } from './filters/zod-validation.filter.js';
+import { ZodValidationPipe } from './validation/zod-validation.pipe.js';
 import type { Env } from './config/env.js';
 
 // shared by main.ts and the e2e tests, so tests run the real app setup

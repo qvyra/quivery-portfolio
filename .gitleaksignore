@@ -1,0 +1,5 @@
+# Findings checked by hand and known not to be secrets. One fingerprint per
+# line: commit:file:rule:line
+
+# a made-up UUID in a test, flagged because its field is called idempotencyKey
+ad412a5d99ddfcbc4e79448adbe7cd45ad0db430:packages/shared/src/contact.test.ts:generic-api-key:111

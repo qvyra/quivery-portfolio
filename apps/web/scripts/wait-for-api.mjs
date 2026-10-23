@@ -1,6 +1,7 @@
-// Runs before next build. The API and its database sleep when idle, so this
-// wakes them through /health/ready with backoff before prerendering starts.
-// If it never gets ready the build fails and the last deploy stays live
+// Runs before next build. The API and its database sleep when idle (a cold API
+// takes about a minute), so this wakes them through /health/ready with backoff
+// before prerendering starts. If it never gets ready the build fails and the
+// last deploy stays live
 import process from "node:process";
 
 // API_URL can come from .env files too, in Next's order for a production
@@ -27,9 +28,10 @@ if (!apiUrl) {
 }
 
 const url = `${apiUrl}/health/ready`;
-// WAIT_FOR_API_TIMEOUT_MS overrides the 4 minute budget
-const budgetMs = Number(process.env.WAIT_FOR_API_TIMEOUT_MS ?? 240_000);
-const attemptTimeoutMs = 30_000;
+// WAIT_FOR_API_TIMEOUT_MS overrides the 5 minute budget
+const budgetMs = Number(process.env.WAIT_FOR_API_TIMEOUT_MS ?? 300_000);
+// long enough for a request held while the API spins up
+const attemptTimeoutMs = 60_000;
 const started = Date.now();
 const elapsed = () => `${((Date.now() - started) / 1000).toFixed(1)}s`;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -44,13 +46,15 @@ for (let attempt = 1; ; attempt++) {
       signal: AbortSignal.timeout(attemptTimeoutMs),
       headers: { accept: "application/json" },
     });
-    if (response.ok) {
+    // only the API's own answer counts, not a host's "waking up" page
+    const json = await response.json().catch(() => null);
+    if (response.ok && json?.code === "HEALTH_READY") {
       console.log(
         `[wait-for-api] Ready after ${elapsed()} (attempt ${attempt})`,
       );
       process.exit(0);
     }
-    outcome = `answered ${response.status}`;
+    outcome = `answered ${response.status}${json ? "" : " (not JSON)"}`;
   } catch (error) {
     outcome =
       error instanceof Error

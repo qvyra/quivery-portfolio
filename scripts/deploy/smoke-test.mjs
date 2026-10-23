@@ -16,22 +16,24 @@ const checks = [
   { url: `${site}/projects/placeholder-one`, status: 404 },
   { url: `${site}/projects/no-such-project-${Date.now()}`, status: 404 },
   { url: `${site}/dev/design`, status: 404 },
-  { url: `${api}/health`, status: 200 },
+  { url: `${api}/health`, status: 200, code: "HEALTH_OK" },
 ];
 
 let failures = 0;
 for (const check of checks) {
   let outcome;
   try {
-    // the API might be asleep
+    // the API might be asleep, and takes about a minute to wake
     const response = await fetch(check.url, {
       redirect: "manual",
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(120_000),
     });
     const body = await response.text();
     const found = (check.absent ?? []).filter((text) => body.includes(text));
     if (response.status !== check.status) {
       outcome = `expected ${check.status}, got ${response.status}`;
+    } else if (check.code && !body.includes(`"code":"${check.code}"`)) {
+      outcome = `no ${check.code} in the answer`;
     } else if (found.length > 0) {
       outcome = `contains ${found.map((text) => JSON.stringify(text)).join(", ")}`;
     }

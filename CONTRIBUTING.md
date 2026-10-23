@@ -55,7 +55,7 @@ Run from the repo root.
 
 CI runs lint, types, unit and end-to-end tests, a production build against a seeded API and a Docker build of the API, so run the same before pushing.
 
-- The site's build prerenders every page from the API, so start the API first. It waits up to 4 minutes for `/health/ready` and fails if it never answers
+- The site's build prerenders every page from the API, so start the API first. It waits up to 5 minutes for `/health/ready` and fails if it never answers
 - Don't run `npm run build` while `npm run dev` is running. The API build replaces the folder the dev API runs from, and the dev API crashes
 - Pages named `page.dev.tsx` only exist under `next dev`, so dev tools never reach production
 

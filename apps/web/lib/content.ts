@@ -39,7 +39,9 @@ async function request(
   const url = `${env().apiUrl}${path}`;
   let response: Response;
   try {
-    response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    // a background refresh can find the API asleep, and waking takes about a
+    // minute. Visitors get the cached page meanwhile, so waiting costs nothing
+    response = await fetch(url, { signal: AbortSignal.timeout(90_000) });
   } catch (error) {
     const message = `[content] Couldn't reach the API at ${url}. Is it running? (npm run dev starts it.)`;
     console.error(message, error);

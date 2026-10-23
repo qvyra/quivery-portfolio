@@ -1,0 +1,138 @@
+# Everything a change has to pass. Pushes to main run it through deploy.yml,
+# which only deploys once it's green
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_call' }}
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+  NEXT_TELEMETRY_DISABLED: 1
+
+jobs:
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      # the whole history, not just this change, since the repo is public
+      - run: >-
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1
+          git /repo --redact --no-banner --verbose
+
+  check:
+    name: Lint, types, tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      # devEngines pins npm, and npm refuses to run as any other version
+      - run: npm install --global npm@11.13.0
+
+      - run: npm ci
+
+      - run: npx turbo run lint check-types test test:e2e
+
+      # the site is prerendered from the API, so it needs a production one
+      # running first (the seed skips placeholders in production)
+      - name: Build and start the API
+        run: |
+          npx turbo run build --filter=backend
+          npm run db:deploy --workspace backend
+          NODE_ENV=production npm run db:seed --workspace backend
+          NODE_ENV=production PORT=5005 WEB_ORIGIN=http://localhost:3000 \
+            REVALIDATE_SECRET=ci-only-secret-0123456789abcdef0123456789 \
+            nohup node apps/backend/dist/main.js > api.log 2>&1 &
+
+      - name: Build the site
+        env:
+          API_URL: http://localhost:5005
+          SITE_URL: https://ci.invalid
+          WAIT_FOR_API_TIMEOUT_MS: 60000
+        run: npx turbo run build --filter=web
+
+      - name: Check the build has no dev-only or placeholder pages
+        run: |
+          routes=$(node -e "const m=require('./apps/web/.next/prerender-manifest.json');console.log(Object.keys(m.routes).join('\n'))")
+          echo "$routes"
+          if echo "$routes" | grep -E '^/dev|placeholder'; then
+            echo "::error::A dev-only or placeholder page was built for production"
+            exit 1
+          fi
+
+      - name: API log
+        if: always()
+        run: cat api.log || true
+
+  docker:
+    name: API Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: apps/backend/Dockerfile
+          push: false
+          load: true
+          tags: portfolio-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # the image has to start, migrate and report ready
+      - name: Smoke test the image
+        run: |
+          docker network create smoke
+          docker run -d --name db --network smoke \
+            -e POSTGRES_USER=ci -e POSTGRES_PASSWORD=ci -e POSTGRES_DB=ci postgres:16-alpine
+          until docker exec db pg_isready -U ci -d ci; do sleep 1; done
+          docker run -d --name api --network smoke -p 8000:8000 \
+            -e PORT=8000 -e DATABASE_URL=postgresql://ci:ci@db:5432/ci \
+            -e WEB_ORIGIN=https://ci.invalid \
+            -e REVALIDATE_SECRET=ci-only-secret-0123456789abcdef0123456789 \
+            portfolio-api:ci
+          for _ in $(seq 1 30); do
+            if curl -fsS localhost:8000/health/ready; then exit 0; fi
+            sleep 2
+          done
+          docker logs api
+          exit 1

@@ -1,0 +1,51 @@
+# Replaces the production content with prisma/seed/content.ts. Manual only,
+# never on deploy: once the admin panel exists the database owns the content
+# and this would overwrite edits. Media and contact messages are never touched
+name: Seed production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "seed production" to replace the live content'
+        required: true
+      refresh_site:
+        description: Refresh the live site's cached pages afterwards
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    if: inputs.confirm == 'seed production'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      TURBO_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm install --global npm@11.13.0
+      - run: npm ci
+      - run: npx turbo run build --filter=@repo/shared
+      # the API migrates as it starts, but the seed can't wait for that
+      - run: npm run db:deploy --workspace backend
+      - run: npm run db:seed --workspace backend
+        env:
+          NODE_ENV: production
+      - if: inputs.refresh_site
+        run: node scripts/deploy/revalidate.mjs site projects
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}

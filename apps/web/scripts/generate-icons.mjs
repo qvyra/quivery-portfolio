@@ -13,7 +13,10 @@ const BACKGROUND = "#0A001D";
 const DROP = 0.035;
 
 function load(name) {
-  const svg = readFileSync(new URL(`../icons/${name}`, import.meta.url), "utf8");
+  const svg = readFileSync(
+    new URL(`../icons/${name}`, import.meta.url),
+    "utf8",
+  );
   const [x, y, width, height] = svg
     .match(/viewBox="([^"]+)"/)[1]
     .split(/\s+/)
@@ -36,7 +39,9 @@ function compose({ q = full, size, height, background }) {
   const y = (size - q.height * scale) / 2 - q.y * scale + DROP * size * height;
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`,
-    background ? `<rect width="${size}" height="${size}" fill="${background}"/>` : "",
+    background
+      ? `<rect width="${size}" height="${size}" fill="${background}"/>`
+      : "",
     `<g transform="translate(${x} ${y}) scale(${scale})">${q.shape}</g>`,
     "</svg>",
   ].join("");
@@ -71,10 +76,10 @@ const out = (path, data) => {
 };
 
 // Tab icons on transparent, as large as the square allows. The Q gives up the
-// drop at both ends so the tail stays inside after it moves down. No SVG icon
-// is served: browsers would pick it at every size over the tuned 16px one
-const tab = (size, q = full) =>
-  png(compose({ q, size, height: 1 - 2 * DROP }));
+// drop at both ends so the tail stays inside after it moves down. The .ico is
+// the only tab icon: Chrome picks a separate PNG or SVG over it at every
+// density, and then the tuned 16px frame is never shown
+const tab = (size, q = full) => png(compose({ q, size, height: 1 - 2 * DROP }));
 out(
   "app/favicon.ico",
   ico([
@@ -83,7 +88,6 @@ out(
     { size: 48, data: tab(48) },
   ]),
 );
-out("app/icon1.png", tab(32));
 
 // iOS draws no transparency and rounds the corners itself
 out(

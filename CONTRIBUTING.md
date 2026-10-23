@@ -87,9 +87,9 @@ The brand (dark `#0A001D`, purple to pink gradients, Poppins, the highlighted Q)
 The tab, Apple and installed app icons are rendered from the vectors in `apps/web/icons/` by `npm run icons --workspace web`. Never edit the outputs by hand: change the source or the script and run it again, then commit both.
 
 - **Sources:** `q-logo.png` is the original artwork, `q.svg` is traced from it and is the master. `q-small.svg` leaves out the shaft inside the bowl, and only the 16px tab icon uses it, since the full Q turns to mush at that size
-- **Outputs:** `app/favicon.ico` (16, 32 and 48), `app/icon1.png` (32), `app/apple-icon.png` (180 on the site's dark background), and `public/icons/` for the web manifest in `app/manifest.ts` (192, 512, and a 512 maskable with the Q inside the safe circle)
+- **Outputs:** `app/favicon.ico` (16, 32 and 48), `app/apple-icon.png` (180 on the site's dark background), and `public/icons/` for the web manifest in `app/manifest.ts` (192, 512, and a 512 maskable with the Q inside the safe circle)
 - **Placement:** `DROP` in `apps/web/scripts/generate-icons.mjs` sets how far the Q sits below centre in every icon, so the bowl doesn't look high above the tail
-- No SVG icon is served on purpose. Browsers would pick it at every size, over the tuned 16px one
+- **The .ico is the only tab icon, on purpose.** With a PNG or SVG icon next to it, Chrome fetches that one at every density and never shows the tuned 16px frame. Don't add `app/icon.*` files
 
 ## Testing on a phone
 

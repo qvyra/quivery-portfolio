@@ -12,8 +12,6 @@
 ARG NODE_VERSION=24
 
 FROM node:${NODE_VERSION}-slim AS base
-# same npm the repo pins in devEngines
-RUN npm install --global npm@11.13.0 && npm cache clean --force
 WORKDIR /repo
 
 # only the API and the workspace packages it depends on
@@ -44,6 +42,5 @@ USER node
 WORKDIR /repo/apps/backend
 # Render's default web service port
 EXPOSE 10000
-# calls the Prisma CLI directly since npx would enforce the repo's pinned npm,
-# which this runtime image doesn't have
+# the Prisma CLI directly, so startup never waits on an npx lookup
 CMD ["sh", "-c", "../../node_modules/.bin/prisma migrate deploy && exec node dist/main.js"]

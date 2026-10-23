@@ -36,7 +36,6 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm install --global npm@11.13.0
       - run: npm ci
       - run: npx turbo run build --filter=@repo/shared
       # the API migrates as it starts, but the seed can't wait for that

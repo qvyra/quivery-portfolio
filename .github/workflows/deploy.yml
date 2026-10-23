@@ -54,8 +54,6 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-      # devEngines pins npm, and npx refuses to run as any other version
-      - run: npm install --global npm@11.13.0
       # Vercel builds remotely and never promotes a failed build
       - name: Deploy
         run: |

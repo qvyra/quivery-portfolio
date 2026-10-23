@@ -8,7 +8,8 @@
     "build": "node scripts/build.mjs",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
-    "check-types": "next typegen && tsc --noEmit"
+    "check-types": "next typegen && tsc --noEmit",
+    "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@repo/shared": "*",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@repo/eslint-config": "*",
+    "@resvg/resvg-js": "2.6.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24",
     "@types/react": "^19",

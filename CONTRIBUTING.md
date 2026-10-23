@@ -82,6 +82,15 @@ The brand (dark `#0A001D`, purple to pink gradients, Poppins, the highlighted Q)
 - **Motion:** only `transform` and `opacity` animate, hover effects only apply on devices that can hover, content is visible without JavaScript, and `prefers-reduced-motion` gets plain fades
 - The sample social links preview at `/dev/design?links=sample`
 
+### Site icons
+
+The tab, Apple and installed app icons are rendered from the vectors in `apps/web/icons/` by `npm run icons --workspace web`. Never edit the outputs by hand: change the source or the script and run it again, then commit both.
+
+- **Sources:** `q-logo.png` is the original artwork, `q.svg` is traced from it and is the master. `q-small.svg` leaves out the shaft inside the bowl, and only the 16px tab icon uses it, since the full Q turns to mush at that size
+- **Outputs:** `app/favicon.ico` (16, 32 and 48), `app/icon1.png` (32), `app/apple-icon.png` (180 on the site's dark background), and `public/icons/` for the web manifest in `app/manifest.ts` (192, 512, and a 512 maskable with the Q inside the safe circle)
+- **Placement:** `DROP` in `apps/web/scripts/generate-icons.mjs` sets how far the Q sits below centre in every icon, so the bowl doesn't look high above the tail
+- No SVG icon is served on purpose. Browsers would pick it at every size, over the tuned 16px one
+
 ## Testing on a phone
 
 `npm run dev:lan` is `npm run dev` with the site reachable from other devices on the network. It prints the URLs to open. Ignore the "Network" URL Next prints: on Windows it's often a Hyper-V, WSL or Docker adapter (like `172.19.x.x`) that a phone can't reach.

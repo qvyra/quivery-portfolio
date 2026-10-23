@@ -23,7 +23,7 @@ jobs:
   api:
     name: Deploy API (Render)
     needs: ci
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     environment: production
     steps:
@@ -42,7 +42,7 @@ jobs:
   web:
     name: Deploy site (Vercel)
     needs: api
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     environment: production
     env:

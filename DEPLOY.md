@@ -21,6 +21,10 @@ Every push to `main` runs `.github/workflows/deploy.yml`:
 
 Deploys run one at a time in push order, and a running deploy is never cancelled. To redeploy without a new commit, run the Deploy workflow from the Actions tab.
 
+### Runner image
+
+Every workflow runs on `ubuntu-24.04`, not `ubuntu-latest`, so GitHub moving `latest` to a new Ubuntu can't change the build under a deploy without warning. Bump it on purpose: change `runs-on` in all four workflows in one commit, and let CI and a deploy go green before relying on it. GitHub announces image deprecations in the actions/runner-images repository and as warnings on workflow runs.
+
 ## Environment variables
 
 Production secrets are generated fresh, never copied from a local setup. `REVALIDATE_SECRET` has to be the same in Vercel, Render and GitHub.

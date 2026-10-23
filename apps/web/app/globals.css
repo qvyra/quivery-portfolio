@@ -21,6 +21,9 @@
   --color-rose: #c2005a;
   --color-focus: #f5b8ff;
 
+  /* form errors, about 11:1 on ink */
+  --color-error: #ffa3c8;
+
   /* radius scale */
   --radius-xs: 0.375rem;
   --radius-sm: 0.5rem;
@@ -345,6 +348,61 @@
   @media (forced-colors: active) {
     .btn {
       border: 1px solid ButtonText;
+    }
+  }
+
+  /* Form fields: inputs, selects and textareas share one look. 16px text so
+     iOS doesn't zoom in on focus, 44px tall for touch */
+  .field-input {
+    display: block;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.625rem 0.875rem;
+    border-radius: var(--radius-md);
+    background-color: rgb(255 255 255 / 0.04);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
+    font-size: 1rem;
+    line-height: 1.5;
+    color: white;
+    transition: box-shadow var(--motion-fast) var(--ease-out-quart);
+
+    &::placeholder {
+      color: rgb(255 255 255 / 0.45);
+    }
+    @media (hover: hover) {
+      &:hover {
+        box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.28);
+      }
+    }
+    &:focus-visible {
+      outline-offset: 2px;
+      box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.4);
+    }
+    &[aria-invalid="true"] {
+      box-shadow: inset 0 0 0 1px var(--color-error);
+    }
+    &[readonly] {
+      color: rgb(255 255 255 / 0.7);
+    }
+  }
+  textarea.field-input {
+    min-height: 9rem;
+    resize: vertical;
+  }
+  select.field-input {
+    appearance: none;
+    padding-right: 2.5rem;
+    cursor: pointer;
+
+    & option {
+      background-color: var(--color-ink-raised);
+      color: white;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .field-input {
+      border: 1px solid CanvasText;
     }
   }
 

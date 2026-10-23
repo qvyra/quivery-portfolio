@@ -1,5 +1,7 @@
 import type { Site, SiteSection } from "@repo/shared";
 import type { ReactNode } from "react";
+import { ContactForm } from "@/components/site/contact-form";
+import { contactFormProps } from "@/lib/contact-form";
 import { ContactSection } from "./contact-section";
 import { HeroSection } from "./hero-section";
 import { ProjectsSection } from "./projects-section";
@@ -27,7 +29,13 @@ const registry: { [T in SiteSection["type"]]: Renderer<T> } = {
   projects: (section) => <ProjectsSection section={section} />,
   skills: (section) => <SkillsSection section={section} />,
   testimonials: (section) => <TestimonialsSection section={section} />,
-  contact: (section, site) => <ContactSection section={section} site={site} />,
+  contact: (section, site) => (
+    <ContactSection
+      section={section}
+      site={site}
+      form={<ContactForm {...contactFormProps(site.contactLinks)} />}
+    />
+  ),
   // a custom section is just its heading and blocks
   custom: (section) => <SectionShell section={section} />,
 };

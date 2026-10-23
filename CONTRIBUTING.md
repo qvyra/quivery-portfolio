@@ -142,4 +142,5 @@ Commits follow Conventional Commits:
 To revisit once upstream catches up:
 
 - **ESLint is pinned to 9:** `eslint-plugin-react`, `eslint-plugin-jsx-a11y` and `eslint-plugin-import` don't support ESLint 10 yet
-- **`tsconfck` (through `vite-tsconfig-paths`) declares TypeScript ^5 as a peer:** same kind of warning, harmless
+- **`typescript-eslint` stays on 8.68:** 8.72 lets npm hoist `ts-api-utils` to the root, where it loads TypeScript 7 instead of the TS 6 alias and ESLint crashes ("reading 'Intrinsic'")
+- **`tsconfck` (through `vite-tsconfig-paths`) declares TypeScript ^5 as a peer:** npm reports a peer warning for it, which is harmless

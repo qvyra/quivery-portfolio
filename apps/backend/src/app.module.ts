@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { validateEnv } from './config/env.js';
+import { ContactModule } from './contact/contact.module.js';
 import { ContentModule } from './content/content.module.js';
 import { HealthController } from './health/health.controller.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -15,6 +16,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     }),
     PrismaModule,
     ContentModule,
+    ContactModule,
   ],
   controllers: [HealthController],
 })

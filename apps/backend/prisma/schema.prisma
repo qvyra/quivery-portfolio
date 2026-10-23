@@ -228,15 +228,28 @@ model ContactLink {
   @@index([publishStatus, visible, sortOrder])
 }
 
-// Written by the contact form, never touched by the seed
+enum ContactTopic {
+  JOB_OPPORTUNITY
+  COMMISSION
+  GEODE_OR_LOUPE
+  OTHER
+}
+
+// Written by the contact form, never touched by the seed. Only what a reply
+// needs, plus a keyed hash of the sender's IP for spotting abuse, never the IP.
+// status is the inbox's read flag: NEW is unread
 model ContactMessage {
-  id        String               @id @default(uuid())
-  name      String
-  email     String
-  discord   String?
-  message   String
-  status    ContactMessageStatus @default(NEW)
-  createdAt DateTime             @default(now())
+  id             String               @id @default(uuid())
+  // one per form draft, so a retried submit can't store the message twice
+  idempotencyKey String               @unique
+  name           String
+  email          String
+  topic          ContactTopic?
+  message        String
+  ipHash         String
+  status         ContactMessageStatus @default(NEW)
+  createdAt      DateTime             @default(now())
 
   @@index([status, createdAt])
+  @@index([ipHash, createdAt])
 }

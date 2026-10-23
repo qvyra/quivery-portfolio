@@ -1,0 +1,70 @@
+# Production deploys: CI, then the API, then the site, which is prerendered
+# from the API that just went out. Deploy on push is off on both hosts, so
+# this is the only way in. See DEPLOY.md
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# one at a time in push order, never cancelled halfway
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  api:
+    name: Deploy API (Koyeb)
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      # refuses anything but the free instance type
+      - run: node scripts/deploy/koyeb-deploy.mjs
+        env:
+          KOYEB_TOKEN: ${{ secrets.KOYEB_TOKEN }}
+          KOYEB_SERVICE_ID: ${{ vars.KOYEB_SERVICE_ID }}
+          API_URL: ${{ vars.API_URL }}
+          DEPLOY_SHA: ${{ github.sha }}
+
+  web:
+    name: Deploy site (Vercel)
+    needs: api
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: production
+    env:
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      # devEngines pins npm, and npx refuses to run as any other version
+      - run: npm install --global npm@11.13.0
+      # Vercel builds remotely and never promotes a failed build
+      - name: Deploy
+        run: |
+          url=$(npx --yes vercel@63.1.0 deploy --prod --yes --token "$VERCEL_TOKEN")
+          echo "Deployed $url"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - name: Smoke test the live site
+        run: node scripts/deploy/smoke-test.mjs
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          API_URL: ${{ vars.API_URL }}

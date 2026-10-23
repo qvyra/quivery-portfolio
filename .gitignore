@@ -40,5 +40,8 @@ yarn-error.log*
 .DS_Store
 *.pem
 
+# production secrets
+.deploy/
+
 # the old static site, kept locally for reference
 assets/

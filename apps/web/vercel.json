@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "regions": ["fra1"],
+  "installCommand": "npm install --global npm@11.13.0 && cd ../.. && npm ci",
+  "buildCommand": "cd ../.. && npx turbo run build --filter=web",
+  "git": { "deploymentEnabled": false }
+}

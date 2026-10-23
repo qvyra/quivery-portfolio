@@ -14,7 +14,7 @@ It isn't a static page. A NestJS API owns the content in Postgres, and a Next.js
 | API     | NestJS 12, Prisma 7, PostgreSQL                                            |
 | Shared  | Zod 4 schemas for every request, response and content block                |
 | Tooling | TypeScript, Turborepo, npm workspaces, Vitest, ESLint, oxlint, Prettier    |
-| Hosting | Vercel (site), Koyeb (API, Docker), Neon (Postgres), all in Frankfurt      |
+| Hosting | Vercel (site), Render (API, Docker), Neon (Postgres), all in Frankfurt     |
 | CI/CD   | GitHub Actions: lint, types, tests and builds on every change, then deploy |
 
 ## How it works
@@ -22,7 +22,7 @@ It isn't a static page. A NestJS API owns the content in Postgres, and a Next.js
 ```mermaid
 flowchart LR
   visitor([Visitor]) -->|cached static pages| web["Next.js site<br/>Vercel"]
-  web -->|"build and background refresh<br/>(never during a visit)"| api["NestJS API<br/>Koyeb"]
+  web -->|"build and background refresh<br/>(never during a visit)"| api["NestJS API<br/>Render"]
   api --> db[("Postgres<br/>Neon")]
   api -. "POST /api/revalidate<br/>after content edits" .-> web
   ci["GitHub Actions"] -->|"1. CI  2. API  3. site"| api

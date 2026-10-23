@@ -2,11 +2,11 @@
 
 Production runs on three free tiers, all in Frankfurt.
 
-| Part     | Host   | Plan          | URL                       |
-| -------- | ------ | ------------- | ------------------------- |
-| Site     | Vercel | Hobby         | LIVE_SITE_URL             |
-| API      | Koyeb  | Free instance | LIVE_API_URL              |
-| Database | Neon   | Free          | private, AWS eu-central-1 |
+| Part     | Host   | Plan  | URL                       |
+| -------- | ------ | ----- | ------------------------- |
+| Site     | Vercel | Hobby | LIVE_SITE_URL             |
+| API      | Render | Free  | LIVE_API_URL              |
+| Database | Neon   | Free  | private, AWS eu-central-1 |
 
 GitHub Actions deploys both apps. The hosts' own deploy on push is off, so nothing reaches production without passing CI first.
 
@@ -15,26 +15,26 @@ GitHub Actions deploys both apps. The hosts' own deploy on push is off, so nothi
 Every push to `main` runs `.github/workflows/deploy.yml`:
 
 1. **CI** (`ci.yml`): secret scan, lint, types, unit and end-to-end tests, a production build of the site against a seeded API, a check that no dev or placeholder page got built, and a build and smoke test of the API's Docker image. Pull requests and other branches run it too, without deploying
-2. **API** (`scripts/deploy/koyeb-deploy.mjs`): refuses to go on unless the Koyeb service only uses the free instance type, redeploys it at the commit CI tested and waits until it's healthy. The container runs `prisma migrate deploy` before the server starts. Koyeb only sends traffic to the new version once its health check passes, so if the build, a migration or startup fails, the old version keeps serving
-3. **Site** (`vercel deploy --prod`): Vercel builds remotely. The build waits for the API's `/health/ready` first (up to 4 minutes, which wakes a sleeping API and database), then prerenders every page. If the API never answers or the homepage comes back empty, the build fails and the previous deployment stays live
-4. **Smoke test** (`scripts/deploy/smoke-test.mjs`): the homepage and a project page answer 200, fake and placeholder project URLs and `/dev` answer 404, and the API answers `/health`
+2. **API** (`scripts/deploy/render-deploy.mjs`): refuses to go on unless the Render service is on the free plan, in Frankfurt, with auto deploy off. Then it deploys the commit CI tested and waits until it's live. The container runs `prisma migrate deploy` before the server starts. Render only moves traffic to the new version once its health check passes, so if the build, a migration or startup fails, the old version keeps serving
+3. **Site** (`vercel deploy --prod`): Vercel builds remotely. The build waits for the API's `/health/ready` first (up to 5 minutes, which wakes a sleeping API and database), then prerenders every page. If the API never answers or the homepage comes back empty, the build fails and the previous deployment stays live
+4. **Smoke test** (`scripts/deploy/smoke-test.mjs`): the homepage and a project page answer 200, fake and placeholder project URLs and `/dev` answer 404, and the API answers `/health` with its own JSON
 
 Deploys run one at a time in push order, and a running deploy is never cancelled. To redeploy without a new commit, run the Deploy workflow from the Actions tab.
 
 ## Environment variables
 
-Production secrets are generated fresh, never copied from a local setup. `REVALIDATE_SECRET` has to be the same in Vercel, Koyeb and GitHub.
+Production secrets are generated fresh, never copied from a local setup. `REVALIDATE_SECRET` has to be the same in Vercel, Render and GitHub.
 
-| Variable            | Where                        | Value                                               |
-| ------------------- | ---------------------------- | --------------------------------------------------- |
-| `API_URL`           | Vercel                       | The Koyeb URL, no trailing slash                    |
-| `SITE_URL`          | Vercel                       | The site's public origin, for canonical and OG URLs |
-| `REVALIDATE_SECRET` | Vercel, Koyeb, GitHub secret | At least 32 random characters                       |
-| `MEDIA_ORIGIN`      | Vercel, later                | The object storage origin, once uploads exist       |
-| `DATABASE_URL`      | Koyeb, GitHub secret         | Neon's direct connection string, pooling off        |
-| `WEB_ORIGIN`        | Koyeb                        | Same as `SITE_URL`, the only origin CORS allows     |
-| `NODE_ENV`          | set by the Dockerfile        | `production`                                        |
-| `PORT`              | Koyeb                        | `8000`                                              |
+| Variable            | Where                         | Value                                               |
+| ------------------- | ----------------------------- | --------------------------------------------------- |
+| `API_URL`           | Vercel                        | The Render URL, no trailing slash                   |
+| `SITE_URL`          | Vercel                        | The site's public origin, for canonical and OG URLs |
+| `REVALIDATE_SECRET` | Vercel, Render, GitHub secret | At least 32 random characters                       |
+| `MEDIA_ORIGIN`      | Vercel, later                 | The object storage origin, once uploads exist       |
+| `DATABASE_URL`      | Render, GitHub secret         | Neon's direct connection string, pooling off        |
+| `WEB_ORIGIN`        | Render                        | Same as `SITE_URL`, the only origin CORS allows     |
+| `NODE_ENV`          | set by the Dockerfile         | `production`                                        |
+| `PORT`              | Render                        | `10000`, Render's default                           |
 
 Vercel doesn't get `DATABASE_URL`: the site only talks to the API.
 
@@ -42,11 +42,11 @@ GitHub keeps these in the `production` environment:
 
 | Name                | Kind     | Used by                                 |
 | ------------------- | -------- | --------------------------------------- |
-| `KOYEB_TOKEN`       | secret   | API deploys                             |
+| `RENDER_API_KEY`    | secret   | API deploys                             |
 | `VERCEL_TOKEN`      | secret   | Site deploys (a project scoped token)   |
 | `DATABASE_URL`      | secret   | The seed workflow only                  |
 | `REVALIDATE_SECRET` | secret   | The seed workflow's cache refresh       |
-| `KOYEB_SERVICE_ID`  | variable | API deploys                             |
+| `RENDER_SERVICE_ID` | variable | API deploys                             |
 | `VERCEL_ORG_ID`     | variable | Site deploys                            |
 | `VERCEL_PROJECT_ID` | variable | Site deploys                            |
 | `API_URL`           | variable | Checks after a deploy                   |
@@ -63,7 +63,7 @@ node -e "process.loadEnvFile('.deploy/secrets.local');process.stdout.write(proce
   | gh secret set REVALIDATE_SECRET --env production
 ```
 
-To rotate `REVALIDATE_SECRET`, generate a new one, set it in Vercel, Koyeb and GitHub, and redeploy. Until both apps are redeployed, revalidation answers 401 and pages keep serving.
+To rotate `REVALIDATE_SECRET`, generate a new one, set it in Vercel, Render and GitHub, and redeploy. Until both apps are redeployed, revalidation answers 401 and pages keep serving.
 
 ## Migrations
 
@@ -93,31 +93,30 @@ SITE_URL=<site url> node scripts/deploy/revalidate.mjs site projects
 ## Rolling back
 
 - **Site:** in Vercel, open the project's Deployments, pick the last good one and use Instant Rollback (or `npx vercel rollback <url>`). It's immediate, with no rebuild. The next deploy from `main` replaces it, so revert the bad commit too
-- **API:** revert the bad commit on `main` and push. For an immediate rollback, redeploy the previous deployment from the Koyeb dashboard
+- **API:** revert the bad commit on `main` and push. For an immediate rollback, use Rollback on an earlier deploy in the Render dashboard (the free plan keeps the last two)
 - **Database:** migrations only go forward, so fix forward with a new one. Neon's free plan keeps 6 hours of history, and a branch can be restored to a point in time from the Neon console
 
 ## The sleeping API
 
-The free Koyeb instance scales to zero after an hour without requests and takes about 1 to 5 seconds to wake, plus the API's own startup. Neon suspends after 5 idle minutes and wakes in under a second.
+Render's free plan spins the API down after 15 minutes without requests, and waking it takes about a minute, plus `prisma migrate deploy` and the API's own startup. While it wakes, browsers get a Render loading page, so nothing treats a plain 200 as ready: the build, the deploy check and the smoke test all wait for the API's own JSON. Neon suspends after 5 idle minutes and wakes in under a second.
 
 - Visitors don't notice: pages are cached on Vercel and never call the API
-- Builds wait for it in `apps/web/scripts/wait-for-api.mjs`
-- Refreshes happen in the background. One that hits a sleeping API waits for it, and one that fails keeps the last good page
-- HTTP/2 requests can't wake a Koyeb instance. Node's `fetch` uses HTTP/1.1, so the site's requests do
-- The contact form will wake it from a server route, with a loading state, a timeout and one retry
+- Builds wait for it in `apps/web/scripts/wait-for-api.mjs`, up to 5 minutes
+- Refreshes happen in the background and wait up to 90 seconds for it. One that fails keeps the last good page
+- The contact form has to live with the wake-up time, see its design notes when it's built
 
 ## Limits and cost
 
-| Host   | Free limits (October 2026)                                                      | Past the limit                                                                                                                                           |
-| ------ | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Vercel | 100 GB transfer, 1M function calls, 4 CPU hours, 5,000 image transforms a month | The feature stops until the 30 day window resets. Hobby can't be billed                                                                                  |
-| Koyeb  | One free web service (0.1 vCPU, 512 MB), 100 GB transfer                        | The free instance is never billed. Anything else would be, so `koyeb-deploy.mjs` refuses other instance types, and the card is a low balance prepaid one |
-| Neon   | 1 GB storage, 100 compute hours a month                                         | Compute suspends or writes stop until next month. No card on file                                                                                        |
+| Host   | Free limits (October 2026)                                                                                    | Past the limit                                                                                                                                                                                                                                                                 |
+| ------ | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Vercel | 100 GB transfer, 1M function calls, 4 CPU hours, 5,000 image transforms a month                               | The feature stops until the 30 day window resets. Hobby can't be billed                                                                                                                                                                                                        |
+| Render | Free web services (0.1 CPU, 512 MB), 750 instance hours, 5 GB outbound transfer and 500 build minutes a month | No card on file: past the hours or transfer, free services are suspended until next month, and past the build minutes new builds stop while the live one keeps running. Paid plans can't be created without a card, and `render-deploy.mjs` refuses anything but the free plan |
+| Neon   | 1 GB storage, 100 compute hours a month                                                                       | Compute suspends or writes stop until next month. No card on file                                                                                                                                                                                                              |
 
 ### When to upgrade
 
 - **Vercel Pro ($20 a month):** Hobby is for non-commercial use. This is a job hunting portfolio with no services or pricing section. If a Services section advertising paid work goes live, move to Pro first and turn on Spend Management with a low on-demand budget and "Pause production deployments"
-- **Koyeb:** if the wake-up delay on the contact form gets in the way, or the free tier changes
+- **Render:** if the wake-up delay gets in the way of the contact form, or the free tier changes. The cheapest paid instance doesn't sleep
 - **Neon:** if the database outgrows 1 GB or the compute hours
 
 ## Switching to a custom domain
@@ -125,10 +124,10 @@ The free Koyeb instance scales to zero after an hour without requests and takes 
 No code changes:
 
 1. In Vercel, add the domain under the project's Settings → Domains and set the DNS records it shows
-2. Set `SITE_URL` in Vercel and the GitHub `SITE_URL` variable to `https://<domain>`, and `WEB_ORIGIN` in Koyeb to the same
+2. Set `SITE_URL` in Vercel and the GitHub `SITE_URL` variable to `https://<domain>`, and `WEB_ORIGIN` in Render to the same
 3. Redeploy. Canonical and Open Graph URLs come from `SITE_URL`, and so will robots.txt and the sitemap
 
-A custom domain for the API works the same way: add it in Koyeb, change `API_URL` in Vercel and GitHub, and redeploy.
+A custom domain for the API works the same way: add it in Render, change `API_URL` in Vercel and GitHub, and redeploy.
 
 ## First-time setup
 
@@ -137,6 +136,6 @@ What was done once, to rebuild it from scratch if needed:
 1. **Neon:** a project in AWS Europe Central 1 (Frankfurt), its direct connection string in `.deploy/secrets.local`
 2. **GitHub:** the `production` environment with the secrets and variables above
 3. **Seed:** the Seed production workflow with "Refresh the live site" unticked, since there's no site yet. It creates the schema and loads the content
-4. **Koyeb:** secrets for `DATABASE_URL` and `REVALIDATE_SECRET`, then the service: `--instance-type free`, `--regions fra`, deploy on push off, the Docker builder with `apps/backend/Dockerfile`, port 8000 and an HTTP health check on `/health`. Its id goes in `KOYEB_SERVICE_ID`
+4. **Render:** a web service from the GitHub repo, created through the API: plan `free`, region `frankfurt`, runtime `docker`, Dockerfile `apps/backend/Dockerfile`, build context the repo root, branch `main`, auto deploy `off`, health check `/health`, and the environment variables above. Its id goes in `RENDER_SERVICE_ID`
 5. **Vercel:** a project with Root Directory `apps/web`, Node.js 24.x and no Git connection, since deploys come from Actions. `apps/web/vercel.json` sets the region and the install and build commands. Then its environment variables, and a project scoped token for GitHub
 6. Push to `main`, or run the Deploy workflow

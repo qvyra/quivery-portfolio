@@ -42,7 +42,8 @@ WORKDIR /repo
 COPY --from=build --chown=node:node /repo .
 USER node
 WORKDIR /repo/apps/backend
-EXPOSE 8000
+# Render's default web service port
+EXPOSE 10000
 # calls the Prisma CLI directly since npx would enforce the repo's pinned npm,
 # which this runtime image doesn't have
 CMD ["sh", "-c", "../../node_modules/.bin/prisma migrate deploy && exec node dist/main.js"]

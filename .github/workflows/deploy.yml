@@ -21,21 +21,21 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   api:
-    name: Deploy API (Koyeb)
+    name: Deploy API (Render)
     needs: ci
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     environment: production
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-      # refuses anything but the free instance type
-      - run: node scripts/deploy/koyeb-deploy.mjs
+      # refuses anything but the free plan
+      - run: node scripts/deploy/render-deploy.mjs
         env:
-          KOYEB_TOKEN: ${{ secrets.KOYEB_TOKEN }}
-          KOYEB_SERVICE_ID: ${{ vars.KOYEB_SERVICE_ID }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ vars.RENDER_SERVICE_ID }}
           API_URL: ${{ vars.API_URL }}
           DEPLOY_SHA: ${{ github.sha }}
 

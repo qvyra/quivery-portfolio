@@ -1,4 +1,5 @@
 export * from "./api.js";
+export * from "./contact.js";
 export * from "./content/common.js";
 export * from "./content/media.js";
 export * from "./content/blocks.js";

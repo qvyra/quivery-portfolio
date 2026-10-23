@@ -2,7 +2,7 @@
 
 The portfolio of **Ether (Quivery)**, a Roblox systems engineer with 6 years of Luau, working on data layers, architecture and tooling for live games.
 
-**Live:** LIVE_SITE_URL
+**Live:** https://quivery-portfolio.vercel.app
 
 It isn't a static page. A NestJS API owns the content in Postgres, and a Next.js site prerenders every public page from it. Pages are served from cache and refreshed by tag when content changes, so visitors never wait on the API, even when it's asleep or down.
 

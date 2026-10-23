@@ -2,11 +2,11 @@
 
 Production runs on three free tiers, all in Frankfurt.
 
-| Part     | Host   | Plan  | URL                       |
-| -------- | ------ | ----- | ------------------------- |
-| Site     | Vercel | Hobby | LIVE_SITE_URL             |
-| API      | Render | Free  | LIVE_API_URL              |
-| Database | Neon   | Free  | private, AWS eu-central-1 |
+| Part     | Host   | Plan  | URL                                  |
+| -------- | ------ | ----- | ------------------------------------ |
+| Site     | Vercel | Hobby | https://quivery-portfolio.vercel.app |
+| API      | Render | Free  | https://quivery-api.onrender.com     |
+| Database | Neon   | Free  | private, AWS eu-central-1            |
 
 GitHub Actions deploys both apps. The hosts' own deploy on push is off, so nothing reaches production without passing CI first.
 

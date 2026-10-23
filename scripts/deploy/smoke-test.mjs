@@ -17,12 +17,33 @@ const checks = [
   { url: `${site}/projects/no-such-project-${Date.now()}`, status: 404 },
   { url: `${site}/dev/design`, status: 404 },
   { url: `${api}/health`, status: 200, code: "HEALTH_OK" },
+  // the contact route checks messages itself, and the API only takes them
+  // from the site. Neither stores anything
+  {
+    url: `${site}/api/contact`,
+    method: "POST",
+    body: {},
+    status: 400,
+    code: "VALIDATION_FAILURE_NAME",
+  },
+  {
+    url: `${api}/contact`,
+    method: "POST",
+    body: {},
+    status: 401,
+    code: "CONTACT_UNAUTHORIZED",
+  },
 ];
 
 async function run(check) {
   try {
     // the API might be asleep, and takes about a minute to wake
     const response = await fetch(check.url, {
+      method: check.method ?? "GET",
+      ...(check.body && {
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(check.body),
+      }),
       redirect: "manual",
       signal: AbortSignal.timeout(120_000),
     });
@@ -54,7 +75,7 @@ for (let attempt = 1; pending.length > 0; attempt++) {
     const outcome = await run(check);
     if (outcome) failed.push(check);
     console.log(
-      `${outcome ? "FAIL" : "ok  "} ${check.url}${outcome ? ` (${outcome})` : ""}`,
+      `${outcome ? "FAIL" : "ok  "} ${check.method ?? "GET"} ${check.url}${outcome ? ` (${outcome})` : ""}`,
     );
   }
   pending = failed;

@@ -22,6 +22,12 @@ export default function nextConfig(phase: string): NextConfig {
     // no AGENTS.md written by next dev
     agentRules: false,
 
+    // published project slugs, snapshot by scripts/build.mjs and inlined at
+    // build time. See app/(site)/projects/[slug]/page.tsx
+    env: process.env.PUBLISHED_PROJECT_SLUGS
+      ? { PUBLISHED_PROJECT_SLUGS: process.env.PUBLISHED_PROJECT_SLUGS }
+      : undefined,
+
     // lets a phone on the local network load the dev server (npm run dev:lan)
     allowedDevOrigins: dev
       ? lanAddresses().map(({ address }) => address)

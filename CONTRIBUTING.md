@@ -55,7 +55,7 @@ Run from the repo root.
 
 CI runs lint, types, unit and end-to-end tests, a production build against a seeded API and a Docker build of the API, so run the same before pushing.
 
-- The site's build prerenders every page from the API, so start the API first. It waits up to 5 minutes for `/health/ready` and fails if it never answers
+- The site's build (`apps/web/scripts/build.mjs`) prerenders every page from the API, so start the API first. It waits up to 5 minutes for `/health/ready` and fails if it never answers
 - Don't run `npm run build` while `npm run dev` is running. The API build replaces the folder the dev API runs from, and the dev API crashes
 - Pages named `page.dev.tsx` only exist under `next dev`, so dev tools never reach production
 
@@ -68,6 +68,7 @@ Until the admin panel exists, the content lives in `apps/backend/prisma/seed/con
 - **Blocks** are JSON checked by a Zod discriminated union in `packages/shared/src/content/blocks.ts`: rich text, image, video, gallery, link list, stats row, code snippet and embed. A new block type is one schema there and one renderer in the site, with no migration
 - **Publishing:** list items have `publishStatus` (DRAFT or PUBLISHED), `visible` and `sortOrder`. The public API only returns published, visible items
 - **Placeholders:** projects flagged `isPlaceholder` fill the layout while developing. They're never seeded or served when `NODE_ENV=production`
+- **New projects need a rebuild:** the build snapshots which project slugs are published, and any other project URL gets the static 404 without asking the API. Edits to a published project only need a refresh, but publishing, unpublishing or renaming one needs a deploy
 - **Refreshing the site:** pages stay cached until something calls `POST /api/revalidate` with the `x-revalidate-secret` header and `{"tags": [...]}`. Tags are `site`, `projects` and `project:<slug>`. The next visit gets the cached page while a fresh one renders, and the one after shows the change
 - **Brand artwork** is set in `apps/web/lib/brand.ts`, so swapping the hero Q or the logos is a change to that one file
 

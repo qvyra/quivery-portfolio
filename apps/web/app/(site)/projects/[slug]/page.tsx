@@ -12,27 +12,42 @@ import { LinkIcon } from "@/components/ui/link-icon";
 import { Reveal } from "@/components/ui/reveal";
 import { getProject, getProjects, getSite, orderProjects } from "@/lib/content";
 
-// every published project prerenders through generateStaticParams. A slug
-// published later renders on its first visit, and that visit waits for the
-// full static page instead of streaming a shell, so an unknown slug gets a
-// real 404 status. The layout's ensureStatic still requires static output
+// every published project prerenders through generateStaticParams. Any other
+// slug waits for the full page instead of streaming a shell, so it gets a real
+// 404 status. The layout's ensureStatic still requires static output
 export const instant = false;
 
+// The slugs published at build time, from scripts/build.mjs. Functions don't
+// share a cache, so checking an unknown slug against the API would wake it on
+// every miss. A project published later needs a rebuild. Unset in dev, where
+// every slug is checked live
+function publishedAtBuild(): string[] | null {
+  const value = process.env.PUBLISHED_PROJECT_SLUGS;
+  return value ? (JSON.parse(value) as string[]) : null;
+}
+
 export async function generateStaticParams() {
-  const projects = await getProjects();
+  const published = publishedAtBuild();
+  if (!published && process.env.NODE_ENV === "production") {
+    throw new Error(
+      "PUBLISHED_PROJECT_SLUGS is missing. Build with npm run build, which runs scripts/build.mjs",
+    );
+  }
+  const slugs =
+    published ?? (await getProjects()).map((project) => project.slug);
   // a fully static layout needs at least one param set. With no published
   // projects, "none" prerenders the 404 page
-  return projects.length > 0
-    ? projects.map((project) => ({ slug: project.slug }))
+  return slugs.length > 0
+    ? slugs.map((slug) => ({ slug }))
     : [{ slug: "none" }];
 }
 
-// checking the cached list first means a made-up slug never reaches the API
-// or adds a cache entry
 async function load(slug: string) {
-  const projects = await getProjects();
-  if (!projects.some((project) => project.slug === slug)) return null;
-  return getProject(slug);
+  const published = publishedAtBuild();
+  const known = published
+    ? published.includes(slug)
+    : (await getProjects()).some((project) => project.slug === slug);
+  return known ? getProject(slug) : null;
 }
 
 export async function generateMetadata({

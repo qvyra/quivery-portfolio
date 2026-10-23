@@ -100,7 +100,7 @@ SITE_URL=<site url> node scripts/deploy/revalidate.mjs site projects
 
 Render's free plan spins the API down after 15 minutes without requests, and waking it takes about a minute, plus `prisma migrate deploy` and the API's own startup. While it wakes, browsers get a Render loading page, so nothing treats a plain 200 as ready: the build, the deploy check and the smoke test all wait for the API's own JSON. Neon suspends after 5 idle minutes and wakes in under a second.
 
-- Visitors don't notice: pages are cached on Vercel and never call the API
+- Visitors don't notice: pages are cached on Vercel and never call the API. Unknown project URLs don't either, `apps/web/proxy.ts` sends them to the static 404 page using the slugs published at build time
 - Builds wait for it in `apps/web/scripts/wait-for-api.mjs`, up to 5 minutes
 - Refreshes happen in the background and wait up to 90 seconds for it. One that fails keeps the last good page
 - The contact form has to live with the wake-up time, see its design notes when it's built

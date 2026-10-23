@@ -1,0 +1,32 @@
+# Warns before the Vercel deploy token runs out. GitHub emails the owner when
+# a scheduled run fails, so this fails every week from 30 days out. Rotation
+# steps are in DEPLOY.md
+name: Token expiry
+
+on:
+  schedule:
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  vercel-token:
+    name: Vercel token
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check VERCEL_TOKEN_EXPIRES
+        env:
+          EXPIRES: ${{ vars.VERCEL_TOKEN_EXPIRES }}
+        run: |
+          if [ -z "$EXPIRES" ]; then
+            echo "::error::The VERCEL_TOKEN_EXPIRES variable isn't set"
+            exit 1
+          fi
+          days=$(( ($(date -ud "$EXPIRES" +%s) - $(date -u +%s)) / 86400 ))
+          if [ "$days" -le 30 ]; then
+            echo "::error::VERCEL_TOKEN expires on $EXPIRES, in $days days. Rotate it, see DEPLOY.md"
+            exit 1
+          fi
+          echo "VERCEL_TOKEN expires on $EXPIRES, in $days days"

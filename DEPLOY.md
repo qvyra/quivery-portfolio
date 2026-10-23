@@ -52,6 +52,8 @@ GitHub keeps these in the `production` environment:
 | `API_URL`           | variable | Checks after a deploy                   |
 | `SITE_URL`          | variable | Checks after a deploy, the seed refresh |
 
+The repository itself, outside the environment, has one variable: `VERCEL_TOKEN_EXPIRES`, the token's expiry date for the Token expiry workflow.
+
 ### Setting secrets without exposing them
 
 The production values live in `.deploy/secrets.local`, which is gitignored. Pipe them from there so they never show up in a terminal or shell history:
@@ -64,6 +66,25 @@ node -e "process.loadEnvFile('.deploy/secrets.local');process.stdout.write(proce
 ```
 
 To rotate `REVALIDATE_SECRET`, generate a new one, set it in Vercel, Render and GitHub, and redeploy. Until both apps are redeployed, revalidation answers 401 and pages keep serving.
+
+### Rotating the Vercel token
+
+`VERCEL_TOKEN` is scoped to the quivery-portfolio project and **expires on 2027-10-24**. Once it does, site deploys fail and the live site keeps serving the last deploy. The repository variable `VERCEL_TOKEN_EXPIRES` holds that date, and the Token expiry workflow (`token-expiry.yml`) fails every Monday from 30 days before it, which sends GitHub's failed run email.
+
+1. In Vercel, with your personal account selected, open Account Settings → Tokens. Create a token, set Scope to the Quivery team and then the quivery-portfolio project (not All Projects), and pick an expiration
+2. Put it in `VERCEL_TOKEN` in `.deploy/secrets.local`
+3. Update GitHub, piping the value as above, and set the new date:
+
+   ```sh
+   node -e "process.loadEnvFile('.deploy/secrets.local');process.stdout.write(process.env.VERCEL_TOKEN)" \
+     | gh secret set VERCEL_TOKEN --env production
+   gh variable set VERCEL_TOKEN_EXPIRES --body YYYY-MM-DD
+   ```
+
+4. Run the Deploy workflow (`gh workflow run deploy.yml`) and wait for it to go green
+5. Delete the old token on the same Tokens page
+
+GitHub turns off scheduled workflows in a public repository after 60 days without a commit. If the Actions tab says Token expiry is disabled, turn it back on there.
 
 ## Migrations
 

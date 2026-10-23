@@ -27,34 +27,37 @@ Every workflow runs on `ubuntu-24.04`, not `ubuntu-latest`, so GitHub moving `la
 
 ## Environment variables
 
-Production secrets are generated fresh, never copied from a local setup. `REVALIDATE_SECRET` has to be the same in Vercel, Render and GitHub.
+Production secrets are generated fresh, never copied from a local setup. `REVALIDATE_SECRET` and `CONTACT_API_SECRET` each have to be the same in Vercel, Render and GitHub.
 
-| Variable            | Where                         | Value                                               |
-| ------------------- | ----------------------------- | --------------------------------------------------- |
-| `API_URL`           | Vercel                        | The Render URL, no trailing slash                   |
-| `SITE_URL`          | Vercel                        | The site's public origin, for canonical and OG URLs |
-| `REVALIDATE_SECRET` | Vercel, Render, GitHub secret | At least 32 random characters                       |
-| `MEDIA_ORIGIN`      | Vercel, later                 | The object storage origin, once uploads exist       |
-| `DATABASE_URL`      | Render, GitHub secret         | Neon's direct connection string, pooling off        |
-| `WEB_ORIGIN`        | Render                        | Same as `SITE_URL`, the only origin CORS allows     |
-| `NODE_ENV`          | set by the Dockerfile         | `production`                                        |
-| `PORT`              | Render                        | `10000`, Render's default                           |
+| Variable              | Where                         | Value                                                          |
+| --------------------- | ----------------------------- | -------------------------------------------------------------- |
+| `API_URL`             | Vercel                        | The Render URL, no trailing slash                              |
+| `SITE_URL`            | Vercel                        | The site's public origin, for canonical and OG URLs            |
+| `REVALIDATE_SECRET`   | Vercel, Render, GitHub secret | At least 32 random characters                                  |
+| `CONTACT_API_SECRET`  | Vercel, Render, GitHub secret | At least 32 random characters, sent with every contact message |
+| `DISCORD_WEBHOOK_URL` | Render                        | The webhook that announces new contact messages. Optional      |
+| `MEDIA_ORIGIN`        | Vercel, later                 | The object storage origin, once uploads exist                  |
+| `DATABASE_URL`        | Render, GitHub secret         | Neon's direct connection string, pooling off                   |
+| `WEB_ORIGIN`          | Render                        | Same as `SITE_URL`, the only origin CORS allows                |
+| `NODE_ENV`            | set by the Dockerfile         | `production`                                                   |
+| `PORT`                | Render                        | `10000`, Render's default                                      |
 
 Vercel doesn't get `DATABASE_URL`: the site only talks to the API.
 
 GitHub keeps these in the `production` environment:
 
-| Name                | Kind     | Used by                                 |
-| ------------------- | -------- | --------------------------------------- |
-| `RENDER_API_KEY`    | secret   | API deploys                             |
-| `VERCEL_TOKEN`      | secret   | Site deploys (a project scoped token)   |
-| `DATABASE_URL`      | secret   | The seed workflow only                  |
-| `REVALIDATE_SECRET` | secret   | The seed workflow's cache refresh       |
-| `RENDER_SERVICE_ID` | variable | API deploys                             |
-| `VERCEL_ORG_ID`     | variable | Site deploys                            |
-| `VERCEL_PROJECT_ID` | variable | Site deploys                            |
-| `API_URL`           | variable | Checks after a deploy                   |
-| `SITE_URL`          | variable | Checks after a deploy, the seed refresh |
+| Name                 | Kind     | Used by                                                       |
+| -------------------- | -------- | ------------------------------------------------------------- |
+| `RENDER_API_KEY`     | secret   | API deploys                                                   |
+| `VERCEL_TOKEN`       | secret   | Site deploys (a project scoped token)                         |
+| `DATABASE_URL`       | secret   | The seed workflow only                                        |
+| `REVALIDATE_SECRET`  | secret   | The seed workflow's cache refresh                             |
+| `CONTACT_API_SECRET` | secret   | No workflow yet, kept with the others so a rotation covers it |
+| `RENDER_SERVICE_ID`  | variable | API deploys                                                   |
+| `VERCEL_ORG_ID`      | variable | Site deploys                                                  |
+| `VERCEL_PROJECT_ID`  | variable | Site deploys                                                  |
+| `API_URL`            | variable | Checks after a deploy                                         |
+| `SITE_URL`           | variable | Checks after a deploy, the seed refresh                       |
 
 The repository itself, outside the environment, has one variable: `VERCEL_TOKEN_EXPIRES`, the token's expiry date for the Token expiry workflow.
 
@@ -128,7 +131,21 @@ Render's free plan spins the API down after 15 minutes without requests, and wak
 - Visitors don't notice: pages are cached on Vercel and never call the API. Unknown project URLs don't either, `apps/web/proxy.ts` sends them to the static 404 page using the slugs published at build time
 - Builds wait for it in `apps/web/scripts/wait-for-api.mjs`, up to 5 minutes
 - Refreshes happen in the background and wait up to 90 seconds for it. One that fails keeps the last good page
-- The contact form has to live with the wake-up time, see its design notes when it's built
+- The contact form wakes it on the visitor's first focus and waits up to 90 seconds per attempt, see below
+
+## Contact form
+
+The browser posts to the site's `/api/contact` route, which checks the message with the shared schema and hands it to the API's `POST /contact` with the `x-contact-secret` header and the visitor's IP from Vercel's `x-real-ip`. The API refuses anything without the secret, so it never takes messages straight from browsers.
+
+- **Store first:** the API saves the message, then answers, then announces it on Discord in the background with two retries. A Discord failure is logged (`Couldn't announce contact message …`, never the webhook URL) and the message stays in the database. A successful announcement logs `Announced contact message <id> on Discord (204, mentions disabled)`
+- **Idempotency:** the form makes one key per draft and sends it with every attempt. The key is unique in the database, so a retry gets the original success and is never stored twice
+- **The sleeping API:** the form calls `/api/contact/warm` on first focus, which wakes the API and the database while the visitor types. Sending says "Waking the server, this can take up to a minute" after 3 seconds, waits up to 90 seconds, and retries once by itself. The draft stays in the browser until the API confirms the message is stored
+- **Spam:** a hidden field and a 3 second minimum since the first keystroke. Bots get the normal success and nothing is stored or announced. One visitor (by IP, IPv6 by /64) can send 5 an hour and 10 a day. The throttler counts in memory, which the free instance loses when it sleeps, so the daily limit is also counted from stored messages. At most 3 links per message
+- **Privacy:** messages keep the name, email, topic, text, time and a keyed hash of the IP, never the IP itself. `status` is the inbox's read flag (`NEW` is unread)
+- **Reading messages:** until the admin inbox exists, they're in the `ContactMessage` table and on Discord
+- **Cloudflare Turnstile, later:** render the widget in the form, send its token in the submission (one optional field in `contactSubmissionSchema`), and verify it in the site's `/api/contact` route before forwarding, or in the API next to the other checks in `apps/backend/src/contact/spam.ts`. Nothing else has to move
+
+To rotate `CONTACT_API_SECRET`, set the new value in Vercel, Render and GitHub and redeploy both. Messages sent between the two deploys fail and the form offers a retry. The IP hashes are keyed with it, so rotating also restarts the daily counts.
 
 ## Limits and cost
 

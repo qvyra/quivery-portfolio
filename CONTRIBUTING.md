@@ -68,6 +68,7 @@ Until the admin panel exists, the content lives in `apps/backend/prisma/seed/con
 - **Blocks** are JSON checked by a Zod discriminated union in `packages/shared/src/content/blocks.ts`: rich text, image, video, gallery, link list, stats row, code snippet and embed. A new block type is one schema there and one renderer in the site, with no migration
 - **Publishing:** list items have `publishStatus` (DRAFT or PUBLISHED), `visible` and `sortOrder`. The public API only returns published, visible items
 - **Placeholders:** projects flagged `isPlaceholder` fill the layout while developing. They're never seeded or served when `NODE_ENV=production`
+- **Contact form:** messages go to the `ContactMessage` table and, when `DISCORD_WEBHOOK_URL` is set, to Discord (see [DEPLOY.md](DEPLOY.md#contact-form)). To use the form locally, put the same `CONTACT_API_SECRET` in `apps/backend/.env` and `apps/web/.env.local`. Leave the webhook unset locally, or use a test webhook, never the production one. When sending fails, the form offers the published `discord` and `email` contact links, so it only shows those once they exist
 - **New projects need a rebuild:** the build snapshots which project slugs are published, and any other project URL gets the static 404 without asking the API. Edits to a published project only need a refresh, but publishing, unpublishing or renaming one needs a deploy
 - **Refreshing the site:** pages stay cached until something calls `POST /api/revalidate` with the `x-revalidate-secret` header and `{"tags": [...]}`. Tags are `site`, `projects` and `project:<slug>`. The next visit gets the cached page while a fresh one renders, and the one after shows the change
 - **Brand artwork** is set in `apps/web/lib/brand.ts`, so swapping the hero Q or the logos is a change to that one file
@@ -77,7 +78,8 @@ Until the admin panel exists, the content lives in `apps/backend/prisma/seed/con
 The brand (dark `#0A001D`, purple to pink gradients, Poppins, the highlighted Q) comes from the original static site, which isn't in this repository. Everything is previewed at `/dev/design`.
 
 - **Tokens** live in `apps/web/app/globals.css` under `@theme`: colours, radii, easing curves, motion durations, and fluid type and spacing built with `clamp()`
-- **Components** are split into `ui/` (buttons, headings, stats...), `site/` (header, nav, footer, backdrop, hero mark, project card), `sections/` (one per section type) and `blocks/` (one per block type)
+- **Components** are split into `ui/` (buttons, headings, stats...), `site/` (header, nav, footer, backdrop, hero mark, project card, contact form), `sections/` (one per section type) and `blocks/` (one per block type)
+- **Form fields** use `.field-input` from `globals.css`, with a real `<label>`, `aria-invalid` and an `aria-live` error under the field. Errors use the `--color-error` token
 - **Icons** come from `lucide-react`. Brand logos are Simple Icons paths (CC0) in `components/ui/icons.tsx`
 - **Motion:** only `transform` and `opacity` animate, hover effects only apply on devices that can hover, content is visible without JavaScript, and `prefers-reduced-motion` gets plain fades
 - The sample social links preview at `/dev/design?links=sample`

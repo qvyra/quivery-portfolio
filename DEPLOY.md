@@ -27,14 +27,14 @@ Every workflow runs on `ubuntu-24.04`, not `ubuntu-latest`, so GitHub moving `la
 
 ## Environment variables
 
-Production secrets are generated fresh, never copied from a local setup. `REVALIDATE_SECRET` and `CONTACT_API_SECRET` each have to be the same in Vercel, Render and GitHub.
+Production secrets are generated fresh, never copied from a local setup. `REVALIDATE_SECRET` has to be the same in Vercel, Render and GitHub, and `CONTACT_API_SECRET` the same in Vercel and Render.
 
 | Variable              | Where                         | Value                                                          |
 | --------------------- | ----------------------------- | -------------------------------------------------------------- |
 | `API_URL`             | Vercel                        | The Render URL, no trailing slash                              |
 | `SITE_URL`            | Vercel                        | The site's public origin, for canonical and OG URLs            |
 | `REVALIDATE_SECRET`   | Vercel, Render, GitHub secret | At least 32 random characters                                  |
-| `CONTACT_API_SECRET`  | Vercel, Render, GitHub secret | At least 32 random characters, sent with every contact message |
+| `CONTACT_API_SECRET`  | Vercel, Render                | At least 32 random characters, sent with every contact message |
 | `DISCORD_WEBHOOK_URL` | Render                        | The webhook that announces new contact messages. Optional      |
 | `MEDIA_ORIGIN`        | Vercel, later                 | The object storage origin, once uploads exist                  |
 | `DATABASE_URL`        | Render, GitHub secret         | Neon's direct connection string, pooling off                   |
@@ -46,18 +46,17 @@ Vercel doesn't get `DATABASE_URL`: the site only talks to the API.
 
 GitHub keeps these in the `production` environment:
 
-| Name                 | Kind     | Used by                                                       |
-| -------------------- | -------- | ------------------------------------------------------------- |
-| `RENDER_API_KEY`     | secret   | API deploys                                                   |
-| `VERCEL_TOKEN`       | secret   | Site deploys (a project scoped token)                         |
-| `DATABASE_URL`       | secret   | The seed workflow only                                        |
-| `REVALIDATE_SECRET`  | secret   | The seed workflow's cache refresh                             |
-| `CONTACT_API_SECRET` | secret   | No workflow yet, kept with the others so a rotation covers it |
-| `RENDER_SERVICE_ID`  | variable | API deploys                                                   |
-| `VERCEL_ORG_ID`      | variable | Site deploys                                                  |
-| `VERCEL_PROJECT_ID`  | variable | Site deploys                                                  |
-| `API_URL`            | variable | Checks after a deploy                                         |
-| `SITE_URL`           | variable | Checks after a deploy, the seed refresh                       |
+| Name                | Kind     | Used by                                 |
+| ------------------- | -------- | --------------------------------------- |
+| `RENDER_API_KEY`    | secret   | API deploys                             |
+| `VERCEL_TOKEN`      | secret   | Site deploys (a project scoped token)   |
+| `DATABASE_URL`      | secret   | The seed workflow only                  |
+| `REVALIDATE_SECRET` | secret   | The seed workflow's cache refresh       |
+| `RENDER_SERVICE_ID` | variable | API deploys                             |
+| `VERCEL_ORG_ID`     | variable | Site deploys                            |
+| `VERCEL_PROJECT_ID` | variable | Site deploys                            |
+| `API_URL`           | variable | Checks after a deploy                   |
+| `SITE_URL`          | variable | Checks after a deploy, the seed refresh |
 
 The repository itself, outside the environment, has one variable: `VERCEL_TOKEN_EXPIRES`, the token's expiry date for the Token expiry workflow.
 
@@ -145,7 +144,7 @@ The browser posts to the site's `/api/contact` route, which checks the message w
 - **Reading messages:** until the admin inbox exists, they're in the `ContactMessage` table and on Discord
 - **Cloudflare Turnstile, later:** render the widget in the form, send its token in the submission (one optional field in `contactSubmissionSchema`), and verify it in the site's `/api/contact` route before forwarding, or in the API next to the other checks in `apps/backend/src/contact/spam.ts`. Nothing else has to move
 
-To rotate `CONTACT_API_SECRET`, set the new value in Vercel, Render and GitHub and redeploy both. Messages sent between the two deploys fail and the form offers a retry. The IP hashes are keyed with it, so rotating also restarts the daily counts.
+To rotate `CONTACT_API_SECRET`, set the new value in Vercel and Render and redeploy both. No workflow needs it, so GitHub doesn't have it. Messages sent between the two deploys fail and the form offers a retry. The IP hashes are keyed with it, so rotating also restarts the daily counts.
 
 ## Limits and cost
 

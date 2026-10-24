@@ -68,6 +68,27 @@ function usePageLoaded() {
   return loaded;
 }
 
+// The animation is about 2 MB of grainy artwork that no encoding shrinks
+// much, so it's skipped for visitors who asked to save data or are on a
+// slow connection. Browsers without the Network Information API get it
+type Connection = EventTarget & { saveData?: boolean; effectiveType?: string };
+
+const connection = () =>
+  (navigator as Navigator & { connection?: Connection }).connection;
+
+function useSavesData() {
+  return useSyncExternalStore(
+    (onChange) => {
+      connection()?.addEventListener("change", onChange);
+      return () => connection()?.removeEventListener("change", onChange);
+    },
+    () =>
+      !!connection()?.saveData ||
+      /^(slow-2g|2g|3g)$/.test(connection()?.effectiveType ?? ""),
+    () => true,
+  );
+}
+
 // fades in over the still once it has loaded
 function AnimatedLogo({ src }: { src: string }) {
   const [ready, setReady] = useState(false);
@@ -96,6 +117,7 @@ export function HeroMark({ className }: { className?: string }) {
   const pageVisible = usePageVisible();
   const reducedMotion = usePrefersReducedMotion();
   const pageLoaded = usePageLoaded();
+  const savesData = useSavesData();
   // the light and animated logo only run while the mark is on screen and the
   // tab is visible. Reduced motion gets a static frame and the still logo
   const active = inView && pageVisible && !reducedMotion;
@@ -142,7 +164,7 @@ export function HeroMark({ className }: { className?: string }) {
           sizes={SIZES}
           className="object-contain"
         />
-        {heroArt.animated && active && pageLoaded && (
+        {heroArt.animated && active && pageLoaded && !savesData && (
           <AnimatedLogo src={heroArt.animated} />
         )}
       </div>

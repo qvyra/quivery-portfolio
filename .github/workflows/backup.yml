@@ -1,0 +1,57 @@
+# Weekly encrypted dump of the production database. Artifacts in a public
+# repository can be downloaded by anyone signed in to GitHub, so the dump is
+# encrypted with age to the public key before it leaves the container. Only
+# the private key, kept offline, can read it. Restore steps are in DEPLOY.md
+name: Backup
+
+on:
+  schedule:
+    - cron: "17 3 * * 0"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  dump:
+    name: Encrypted database dump
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - name: Dump and encrypt
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          AGE_RECIPIENT: ${{ vars.BACKUP_AGE_PUBLIC_KEY }}
+        run: |
+          if [ -z "$AGE_RECIPIENT" ]; then
+            echo "::error::The BACKUP_AGE_PUBLIC_KEY variable isn't set"
+            exit 1
+          fi
+          mkdir out
+          name="quivery-$(date -u +%Y%m%d-%H%M).dump.age"
+          # the major version has to match Neon's, see DEPLOY.md
+          docker run --rm -e DATABASE_URL -e AGE_RECIPIENT -e PGSSLROOTCERT=system \
+            -v "$PWD/out:/out" postgres:18-alpine sh -euc "
+              apk add --quiet age
+              set -o pipefail
+              pg_dump \"\$DATABASE_URL\" --format=custom --no-owner --no-privileges \
+                | age --recipient \"\$AGE_RECIPIENT\" --output /out/$name
+            "
+          # an age file always starts with this line, and a real dump is never tiny
+          head -c 21 "out/$name" | grep -qx "age-encryption.org/v1"
+          size=$(stat -c %s "out/$name")
+          if [ "$size" -lt 10000 ]; then
+            echo "::error::The dump is only $size bytes"
+            exit 1
+          fi
+          echo "NAME=$name" >> "$GITHUB_ENV"
+          echo "Encrypted dump: $name, $size bytes" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ env.NAME }}
+          path: out/${{ env.NAME }}
+          if-no-files-found: error
+          # already encrypted, so it won't compress
+          compression-level: 0
+          retention-days: 14

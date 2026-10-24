@@ -23,7 +23,7 @@ Deploys run one at a time in push order, and a running deploy is never cancelled
 
 ### Runner image
 
-Every workflow runs on `ubuntu-24.04`, not `ubuntu-latest`, so GitHub moving `latest` to a new Ubuntu can't change the build under a deploy without warning. Bump it on purpose: change `runs-on` in all four workflows in one commit, and let CI and a deploy go green before relying on it. GitHub announces image deprecations in the actions/runner-images repository and as warnings on workflow runs.
+Every workflow runs on `ubuntu-24.04`, not `ubuntu-latest`, so GitHub moving `latest` to a new Ubuntu can't change the build under a deploy without warning. Bump it on purpose: change `runs-on` in every workflow in one commit, and let CI and a deploy go green before relying on it. GitHub announces image deprecations in the actions/runner-images repository and as warnings on workflow runs.
 
 ## Environment variables
 
@@ -50,17 +50,18 @@ Vercel doesn't get `DATABASE_URL`: the site only talks to the API.
 
 GitHub keeps these in the `production` environment:
 
-| Name                | Kind     | Used by                                 |
-| ------------------- | -------- | --------------------------------------- |
-| `RENDER_API_KEY`    | secret   | API deploys                             |
-| `VERCEL_TOKEN`      | secret   | Site deploys (a project scoped token)   |
-| `DATABASE_URL`      | secret   | The seed workflow only                  |
-| `REVALIDATE_SECRET` | secret   | The seed workflow's cache refresh       |
-| `RENDER_SERVICE_ID` | variable | API deploys                             |
-| `VERCEL_ORG_ID`     | variable | Site deploys                            |
-| `VERCEL_PROJECT_ID` | variable | Site deploys                            |
-| `API_URL`           | variable | Checks after a deploy                   |
-| `SITE_URL`          | variable | Checks after a deploy, the seed refresh |
+| Name                    | Kind     | Used by                                 |
+| ----------------------- | -------- | --------------------------------------- |
+| `RENDER_API_KEY`        | secret   | API deploys                             |
+| `VERCEL_TOKEN`          | secret   | Site deploys (a project scoped token)   |
+| `DATABASE_URL`          | secret   | The seed and backup workflows           |
+| `REVALIDATE_SECRET`     | secret   | The seed workflow's cache refresh       |
+| `RENDER_SERVICE_ID`     | variable | API deploys                             |
+| `VERCEL_ORG_ID`         | variable | Site deploys                            |
+| `VERCEL_PROJECT_ID`     | variable | Site deploys                            |
+| `API_URL`               | variable | Checks after a deploy                   |
+| `SITE_URL`              | variable | Checks after a deploy, the seed refresh |
+| `BACKUP_AGE_PUBLIC_KEY` | variable | The backup workflow encrypts to it      |
 
 The repository itself, outside the environment, has one variable: `VERCEL_TOKEN_EXPIRES`, the token's expiry date for the Token expiry workflow.
 
@@ -188,9 +189,32 @@ Uploads go to a **Vercel Blob** store, `quivery-media` in Frankfurt (`fra1`), pu
 - **One manual snapshot** at a time, and no scheduled backups on the free plan
 - Hitting the 1 GB storage limit blocks writes but deletes nothing
 
-So anything older than 6 hours exists only in dumps you take yourself.
+So anything older than 6 hours exists only in dumps: the weekly encrypted one below, and any you take yourself.
 
-**Taking a dump** (from the repo root, with Docker running). It reads `DATABASE_URL` straight from `.deploy/secrets.local`, so the URL never shows up in a terminal, and writes to `.deploy/backups/`, which git ignores:
+**Weekly encrypted dump.** `.github/workflows/backup.yml` dumps the database every Sunday at 03:17 UTC (or when run from the Actions tab) and keeps it as a workflow artifact for 14 days, so there are always two. In a public repository any signed-in GitHub user can download artifacts, so the dump is encrypted with [age](https://github.com/FiloSottile/age) inside the container that takes it, and only ever leaves it encrypted. The public key is the `BACKUP_AGE_PUBLIC_KEY` variable in the `production` environment. The private key, `BACKUP_AGE_SECRET_KEY`, is only in `.deploy/secrets.local`, never in GitHub.
+
+**Keep a second copy of `BACKUP_AGE_SECRET_KEY` in your password manager.** Without it every backup is unreadable, and the secrets file alone is one lost disk away from gone.
+
+GitHub emails you when a scheduled run fails. It also turns scheduled workflows off after 60 days without a commit, so if the Actions tab says Backup is disabled, turn it back on there.
+
+**Restoring a weekly dump** (from the repo root, with Docker running):
+
+1. Download it: on the run's page in the Actions tab, or `gh run download <run id> --dir .deploy/backups`. The file is `quivery-<date>.dump.age`
+2. Decrypt it. The key is piped from the secrets file, so it never shows up in a terminal:
+
+   ```sh
+   docker run --rm --env-file .deploy/secrets.local -v "$(pwd)/.deploy/backups:/b" alpine:3.22 \
+     sh -c 'apk add --quiet age && printf "%s\n" "$BACKUP_AGE_SECRET_KEY" \
+       | age --decrypt --identity - --output /b/<file>.dump /b/<file>.dump.age'
+   ```
+
+   With the key in your password manager instead, save it to a file and use `age --decrypt --identity <key file>`. Delete the file afterwards
+
+3. Check it and restore it exactly like a dump you took yourself, below
+
+**To rotate the key**, generate a new pair with `age-keygen`, put the private half in `.deploy/secrets.local` and your password manager and the public half in the GitHub variable. Keep the old private key until the last artifact encrypted to it has expired.
+
+**Taking a dump yourself** (from the repo root, with Docker running). It reads `DATABASE_URL` straight from `.deploy/secrets.local`, so the URL never shows up in a terminal, and writes to `.deploy/backups/`, which git ignores:
 
 ```sh
 mkdir -p .deploy/backups
@@ -210,9 +234,7 @@ docker exec restore-test pg_restore --no-owner --no-privileges -U postgres -d po
 
 To recover production, create a new Neon branch, restore into it with `pg_restore --clean --if-exists`, check it, then point `DATABASE_URL` in Render (and `.deploy/secrets.local`, and GitHub) at that branch, or restore into the main branch once you're sure. Uploaded files live in object storage, not the database, so they need their own copy (see Media storage).
 
-**How often.** Once the admin panel holds real content: a dump before every big editing session or migration, and once a week otherwise, keeping the last 4 weekly ones. A restore test every couple of months, as above, proves they work.
-
-**Proposal, not built: a weekly dump from GitHub Actions.** A scheduled workflow in the `production` environment runs the `pg_dump` above and uploads the dump as an artifact with a 7 to 14 day retention. One catch: in a public repository any signed-in GitHub user can download workflow artifacts, and relays like nightly.link even serve them anonymously. So the job must encrypt the dump before uploading it, with [age](https://github.com/FiloSottile/age) and a public key stored as a repository variable, while the private key stays offline with you. Without the private key the artifact is useless to anyone else. The same 60 day inactivity rule as the token reminder applies to scheduled workflows. The free alternative with no encryption to manage is to upload the dump to the private media bucket instead, once it exists.
+**How often.** The weekly dump runs on its own. Take one yourself before a big editing session or a risky migration, and keep a weekly one locally now and then for anything older than two weeks. A restore test every couple of months, as above, proves they work.
 
 ## The sleeping API
 

@@ -1,7 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Suspense } from "react";
 import { preload } from "react-dom";
-import { SiteAnalytics } from "@/components/site/analytics";
 import { env } from "@/lib/env";
 import { poppinsFiles } from "@/lib/fonts";
 import { pageOpenGraph } from "@/lib/seo";
@@ -46,15 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       data-scroll-behavior="smooth"
       className="antialiased"
     >
-      <body className="flex min-h-dvh flex-col font-sans">
-        {children}
-        {env().webAnalytics && (
-          // it reads the URL, which pages can't do while they prerender
-          <Suspense fallback={null}>
-            <SiteAnalytics />
-          </Suspense>
-        )}
-      </body>
+      <body className="flex min-h-dvh flex-col font-sans">{children}</body>
     </html>
   );
 }

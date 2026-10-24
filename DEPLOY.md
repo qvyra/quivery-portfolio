@@ -189,7 +189,7 @@ Uploads go to a **Vercel Blob** store, `quivery-media` in Frankfurt (`fra1`), pu
 
 ## Analytics
 
-Vercel Web Analytics counts page views without cookies: visitors are told apart by a hash of the request that's thrown away after 24 hours. Hobby includes 50,000 events a month, can't buy more, and pauses collection past that rather than billing. `/admin` pages are never sent.
+Vercel Web Analytics counts page views without cookies: visitors are told apart by a hash of the request that's thrown away after 24 hours. Hobby includes 50,000 events a month, can't buy more, and pauses collection past that rather than billing. Only public pages load the script (it's rendered by `app/(site)/layout.tsx`), so `/admin` is never counted.
 
 It's off until the project is enabled, since the script 404s on every page before that. To turn it on:
 

@@ -33,6 +33,19 @@ const checks = [
     status: 401,
     code: "CONTACT_UNAUTHORIZED",
   },
+  // the admin stays closed: signed out it redirects, the site's admin API
+  // needs a session, and the API's needs the admin secret
+  { url: `${site}/admin`, status: 307 },
+  {
+    url: `${site}/admin/api/collections/stats`,
+    status: 401,
+    code: "ADMIN_SESSION_EXPIRED",
+  },
+  {
+    url: `${api}/admin/collections/stats`,
+    status: 401,
+    code: "ADMIN_UNAUTHORIZED",
+  },
 ];
 
 async function run(check) {

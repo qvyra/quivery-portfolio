@@ -39,7 +39,7 @@ If the Actions tab ever shows one as disabled: `gh workflow enable backup.yml`, 
 Dependabot (`.github/dependabot.yml`) checks npm and the GitHub Actions every Monday:
 
 - **Minor and patch updates come grouped by area:** nest, prisma, next-react, zod, lint-format, tests, build-tooling, site (everything else), and one group for the actions
-- **Every major update is its own pull request**
+- **Every major update is its own pull request**, except vitest and its coverage plugin, which only work at the same major and come together
 - Releases younger than 7 days wait, and security updates don't
 - **Nothing merges by itself.** CI runs on each pull request, and merging to `main` runs CI again before anything deploys
 - To skip one: comment `@dependabot ignore this major version` (or `minor`, or `dependency`) on its pull request
@@ -96,6 +96,6 @@ Hobby is for non-commercial use only. The site is a portfolio for job hunting to
 - **multer:** `npm audit` reports 4 high findings for multer below 2.5.0 (GHSA-q7qp-rjg7-q26m). Nest 12.2.0 pins multer 2.4.0. They can't be reached here, since nothing parses multipart (uploads go straight to Blob). The nest group or a security update brings the fix once Nest ships it, and the findings clear when that pull request merges
 - **ESLint stays on 9:** the React and a11y lint plugins don't support ESLint 10 yet. Dependabot ignores ESLint majors. Check the plugins now and then, and remove the ignore when they do
 - **typescript-eslint stays on 8.68:** later releases let npm hoist `ts-api-utils` next to TypeScript 7 and ESLint crashes. Dependabot opens a pull request for each new release, and a green lint step means it's fixed
-- **TypeScript 6 in two places:** the backend (for the Nest CLI) and `packages/eslint-config` (for typescript-eslint) need the TypeScript JS API, which 7 doesn't ship. Close a pull request moving them to 7 with `@dependabot ignore this major version`
+- **TypeScript 6 in two places:** the backend (for the Nest CLI) and `packages/eslint-config` (for typescript-eslint) need the TypeScript JS API, which 7 doesn't ship. Dependabot ignores TypeScript majors, so a new major (for the root too) is a manual update
 
 CONTRIBUTING.md, Known constraints, has the background.

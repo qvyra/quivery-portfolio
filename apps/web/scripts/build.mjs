@@ -2,6 +2,7 @@
 // published, then runs next build with that list baked in, so an unknown
 // project URL can 404 without asking the API (see next.config.ts)
 import { spawnSync } from "node:child_process";
+import { rmSync } from "node:fs";
 import process from "node:process";
 import { parseProjects } from "@repo/shared";
 
@@ -38,5 +39,9 @@ const slugs = parseProjects(await response.json()).map(
   (project) => project.slug,
 );
 console.log(`[build] Published projects: ${slugs.join(", ") || "none"}`);
+
+// API answers kept by an earlier build would be prerendered instead of the
+// content as it is now, so every build fetches afresh
+rmSync(".next/cache/fetch-cache", { recursive: true, force: true });
 
 run("next", ["build"], { PUBLISHED_PROJECT_SLUGS: JSON.stringify(slugs) });

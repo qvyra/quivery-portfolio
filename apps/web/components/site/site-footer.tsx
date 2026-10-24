@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { wordmark } from "@/lib/brand";
 import { socialLinks } from "@/lib/contact";
+import { hasSeparateName } from "@/lib/seo";
 import { SocialLinks } from "./social-links";
 
 // cached like the rest of the page, since a shorter lifetime would shorten
@@ -44,8 +45,11 @@ export function SiteFooter({
               className="h-8 w-auto"
             />
           </Link>
+          {/* the wordmark above already reads as the brand */}
           <p className="text-white/65">
-            {profile.displayName} · {profile.headline}
+            {hasSeparateName(profile)
+              ? `${profile.displayName} · ${profile.headline}`
+              : profile.headline}
           </p>
         </div>
         {socials.length > 0 && <SocialLinks links={socials} />}

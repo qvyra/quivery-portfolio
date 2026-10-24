@@ -2,6 +2,7 @@
 import "server-only";
 import type { ProjectDetail, Site } from "@repo/shared";
 import { env } from "./env";
+import { hasSeparateName } from "./seo";
 
 // tags that name a language, for SoftwareSourceCode.programmingLanguage
 const languages = new Set([
@@ -28,7 +29,7 @@ function person(site: Site) {
     "@type": "Person",
     "@id": personId(),
     name: profile.displayName,
-    alternateName: profile.brandName,
+    ...(hasSeparateName(profile) && { alternateName: profile.brandName }),
     jobTitle: profile.headline,
     description: profile.tagline,
     url: `${siteUrl}/`,

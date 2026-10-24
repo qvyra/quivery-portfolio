@@ -1,5 +1,6 @@
 import { getSite, orderProjects, tags } from "@/lib/content";
 import { ogCard, ogContentType, ogSize } from "@/lib/og/card";
+import { hasSeparateName } from "@/lib/seo";
 
 // static exports keep the image prerendered with the page. generateImageMetadata
 // would make it render on request, and a cold function would wake the API
@@ -14,11 +15,14 @@ export default async function Image() {
       section.type === "projects" ? section.projects : [],
     ),
   );
+  const { profile } = site;
   return ogCard(
     {
-      eyebrow: `${site.profile.brandName} · ${site.profile.displayName}`,
-      title: site.profile.headline,
-      text: site.profile.tagline,
+      eyebrow: hasSeparateName(profile)
+        ? `${profile.brandName} · ${profile.displayName}`
+        : profile.brandName,
+      title: profile.headline,
+      text: profile.tagline,
       badges: projects.slice(0, 3).map((project) => ({
         label: project.title,
         dot: project.releaseStatus === "RELEASED" ? "released" : "progress",

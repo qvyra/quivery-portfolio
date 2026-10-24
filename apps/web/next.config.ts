@@ -51,10 +51,24 @@ export default function nextConfig(phase: string): NextConfig {
             },
           ],
         },
+        // brand art and icons keep their names, so a week rather than
+        // forever. Replacing one means a new file name, see lib/brand.ts
+        ...["/brand/:file", "/icons/:file"].map((source) => ({
+          source,
+          headers: [
+            {
+              key: "Cache-Control",
+              value: "public, max-age=604800, stale-while-revalidate=2592000",
+            },
+          ],
+        })),
       ];
     },
 
     images: {
+      // browsers keep optimized images a month instead of asking again on
+      // every visit. Uploads get a new URL each, so nothing goes stale
+      minimumCacheTTL: 2_678_400,
       remotePatterns: [
         // posters for YouTube embeds
         new URL("https://i.ytimg.com/vi/**"),

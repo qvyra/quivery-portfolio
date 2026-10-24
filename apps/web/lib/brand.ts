@@ -18,7 +18,8 @@ export const fullLogo: BrandImage = {
 
 // A sharper or vector Q goes in public/brand/: point still at it with its size
 // and set animated to the new animation, or null for a still-only mark. SVGs
-// skip the image optimizer and are served as they are
+// skip the image optimizer and are served as they are. Use new file names:
+// browsers keep these for a week (see next.config.ts)
 /** The highlighted Q in the hero frame */
 export const heroArt: { still: BrandImage; animated: string | null } = {
   // first frame of the animation. Loads first and is the LCP image

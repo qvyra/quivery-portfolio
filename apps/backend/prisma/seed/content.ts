@@ -230,11 +230,26 @@ export const testimonials: (Omit<TestimonialInput, 'projectId'> & {
 // the featured link is shown prominently (meant for the Discord handle)
 export const contactLinks: ContactLinkInput[] = [
   {
+    type: 'discord',
+    label: 'Discord',
+    value: 'ultrapro',
+    url: 'https://discord.com/users/602557127399309344',
+    featured: true,
+    publishStatus: 'PUBLISHED',
+  },
+  {
+    type: 'email',
+    label: 'Email',
+    value: 'badro.zitouni.dev@gmail.com',
+    url: 'mailto:badro.zitouni.dev@gmail.com',
+    publishStatus: 'PUBLISHED',
+  },
+  {
     type: 'github',
     label: 'GitHub',
     value: 'qvyra',
     url: 'https://github.com/qvyra',
     publishStatus: 'PUBLISHED',
   },
-  // TODO: Discord (featured: true), Roblox Talent Hub, Ko-fi, email
+  // TODO: Roblox Talent Hub, Ko-fi
 ];

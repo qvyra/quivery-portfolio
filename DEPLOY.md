@@ -321,11 +321,10 @@ To rotate `CONTACT_API_SECRET`, set the new value in Vercel and Render and redep
 
 | Record | Name  | Content                               | Proxy    |
 | ------ | ----- | ------------------------------------- | -------- |
-| A      | `@`   | `216.198.79.1`                        | DNS only |
-| A      | `@`   | `64.29.17.1`                          | DNS only |
+| CNAME  | `@`   | `07c11bce688120b6.vercel-dns-017.com` | DNS only |
 | CNAME  | `www` | `07c11bce688120b6.vercel-dns-017.com` | DNS only |
 
-These come from Vercel (Settings → Domains, or `GET /v6/domains/quivery.dev/config`). **They have to stay DNS only:** Cloudflare's proxy would put a second CDN in front of Vercel's, which Vercel advises against: it can break certificate renewal, and Vercel would see Cloudflare instead of visitors. Cloudflare Email Routing owns the three `route*.mx.cloudflare.net` MX records and the SPF TXT record on `@`, which forward `hello@quivery.dev`. A records share `@` with them without conflict, and nothing else may change them.
+These come from Vercel (Settings → Domains, or `GET /v6/domains/quivery.dev/config`). Cloudflare answers the `@` CNAME with the target's A records (CNAME flattening), which is what lets it sit beside the mail records. Vercel's other option for `@` is two A records, `216.198.79.1` and `64.29.17.1`. **They have to stay DNS only:** Cloudflare's proxy would put a second CDN in front of Vercel's, which Vercel advises against: it can break certificate renewal, and Vercel would see Cloudflare instead of visitors. Cloudflare Email Routing owns the three `route*.mx.cloudflare.net` MX records and the SPF TXT record on `@`, which forward `hello@quivery.dev`. The flattened `@` record shares the name with them without conflict, and nothing else may change them.
 
 In Vercel, `quivery.dev` is the production domain, and `www.quivery.dev` and `quivery-portfolio.vercel.app` both redirect to it with a 308 that keeps the path. `SITE_URL` (Vercel, GitHub) and `WEB_ORIGIN` (Render) are `https://quivery.dev`, and `SITE_ALIASES` (GitHub) lists the two redirecting origins for the smoke test.
 

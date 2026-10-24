@@ -34,7 +34,9 @@ export function EmbedPlayer({
           ref={frameRef}
           src={src}
           title={title}
-          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+          // fullscreen comes from allowFullScreen, which older Safari needs.
+          // Listing it in allow as well makes Chromium warn
+          allow="autoplay; encrypted-media; picture-in-picture"
           allowFullScreen
           className="absolute inset-0 size-full"
         />

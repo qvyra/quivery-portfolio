@@ -2,7 +2,7 @@
 
 The portfolio of **Quivery**, a Roblox systems engineer with 6 years of Luau, working on data layers, architecture and tooling for live games.
 
-**Live: https://quivery-portfolio.vercel.app**
+**Live: https://quivery.dev**
 
 ![The homepage on a laptop](docs/screenshots/home.webp)
 

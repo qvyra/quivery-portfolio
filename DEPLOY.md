@@ -2,11 +2,11 @@
 
 Production runs on three free tiers, all in Frankfurt.
 
-| Part     | Host   | Plan  | URL                                  |
-| -------- | ------ | ----- | ------------------------------------ |
-| Site     | Vercel | Hobby | https://quivery-portfolio.vercel.app |
-| API      | Render | Free  | https://quivery-api.onrender.com     |
-| Database | Neon   | Free  | private, AWS eu-central-1            |
+| Part     | Host   | Plan  | URL                              |
+| -------- | ------ | ----- | -------------------------------- |
+| Site     | Vercel | Hobby | https://quivery.dev              |
+| API      | Render | Free  | https://quivery-api.onrender.com |
+| Database | Neon   | Free  | private, AWS eu-central-1        |
 
 GitHub Actions deploys both apps. The hosts' own deploy on push is off, so nothing reaches production without passing CI first.
 
@@ -17,7 +17,7 @@ Every push to `main` runs `.github/workflows/deploy.yml`:
 1. **CI** (`ci.yml`): secret scan, lint, types, unit and end-to-end tests, a production build of the site against a seeded API, a check that no dev or placeholder page got built, an accessibility check with axe on that build, and a build and smoke test of the API's Docker image. Pull requests and other branches run it too, without deploying
 2. **API** (`scripts/deploy/render-deploy.mjs`): refuses to go on unless the Render service is on the free plan, in Frankfurt, with auto deploy off. Then it deploys the commit CI tested and waits until it's live. The container runs `prisma migrate deploy` before the server starts. Render only moves traffic to the new version once its health check passes, so if the build, a migration or startup fails, the old version keeps serving
 3. **Site** (`vercel deploy --prod`): Vercel builds remotely. The build waits for the API's `/health/ready` first (up to 5 minutes, which wakes a sleeping API and database), then prerenders every page. If the API never answers or the homepage comes back empty, the build fails and the previous deployment stays live
-4. **Smoke test** (`scripts/deploy/smoke-test.mjs`): the homepage and a project page answer 200 with their security headers and share cards, the sitemap and robots.txt are served, fake and placeholder project URLs and `/dev` answer 404, the admin stays closed, and the API answers `/health` with its own JSON
+4. **Smoke test** (`scripts/deploy/smoke-test.mjs`): the homepage and a project page answer 200 with their security headers and share cards, the project page's canonical URL is on `SITE_URL`, the sitemap and robots.txt are served, fake and placeholder project URLs and `/dev` answer 404, the admin stays closed, the API answers `/health` with its own JSON, and every address in `SITE_ALIASES` redirects to the same page on `SITE_URL`
 
 Deploys run one at a time in push order, and a running deploy is never cancelled. To redeploy without a new commit, run the Deploy workflow from the Actions tab.
 
@@ -62,6 +62,7 @@ GitHub keeps these in the `production` environment:
 | `VERCEL_PROJECT_ID`     | variable | Site deploys                            |
 | `API_URL`               | variable | Checks after a deploy                   |
 | `SITE_URL`              | variable | Checks after a deploy, the seed refresh |
+| `SITE_ALIASES`          | variable | Checks that these origins redirect      |
 | `BACKUP_AGE_PUBLIC_KEY` | variable | The backup workflow encrypts to it      |
 
 The repository itself, outside the environment, has two variables for the Token expiry workflow: `VERCEL_TOKEN_EXPIRES` and `GH_DEPLOY_TOKEN_EXPIRES`, each token's expiry date (GitHub refuses variable names starting with `GITHUB_`).
@@ -314,13 +315,25 @@ To rotate `CONTACT_API_SECRET`, set the new value in Vercel and Render and redep
 - **Render:** if the wake-up delay gets in the way of the contact form, or the free tier changes. The cheapest paid instance doesn't sleep
 - **Neon:** if the database outgrows 1 GB or the compute hours
 
-## Switching to a custom domain
+## The domain
 
-No code changes:
+`quivery.dev` is registered with Cloudflare, which also runs its DNS. Vercel serves the site and its certificate:
 
-1. In Vercel, add the domain under the project's Settings → Domains and set the DNS records it shows
-2. Set `SITE_URL` in Vercel and the GitHub `SITE_URL` variable to `https://<domain>`, and `WEB_ORIGIN` in Render to the same
-3. Redeploy. Canonical and Open Graph URLs come from `SITE_URL`, and so will robots.txt and the sitemap
+| Record | Name  | Content                               | Proxy    |
+| ------ | ----- | ------------------------------------- | -------- |
+| A      | `@`   | `216.198.79.1`                        | DNS only |
+| A      | `@`   | `64.29.17.1`                          | DNS only |
+| CNAME  | `www` | `07c11bce688120b6.vercel-dns-017.com` | DNS only |
+
+These come from Vercel (Settings → Domains, or `GET /v6/domains/quivery.dev/config`). **They have to stay DNS only:** Cloudflare's proxy would put a second CDN in front of Vercel's, which Vercel advises against: it can break certificate renewal, and Vercel would see Cloudflare instead of visitors. Cloudflare Email Routing owns the three `route*.mx.cloudflare.net` MX records and the SPF TXT record on `@`, which forward `hello@quivery.dev`. A records share `@` with them without conflict, and nothing else may change them.
+
+In Vercel, `quivery.dev` is the production domain, and `www.quivery.dev` and `quivery-portfolio.vercel.app` both redirect to it with a 308 that keeps the path. `SITE_URL` (Vercel, GitHub) and `WEB_ORIGIN` (Render) are `https://quivery.dev`, and `SITE_ALIASES` (GitHub) lists the two redirecting origins for the smoke test.
+
+**HSTS:** the site sends `max-age` of two years, `includeSubDomains` and `preload`. Browsers already ship the whole `.dev` TLD as HTTPS-only, so there's nothing to submit to hstspreload.org, and **any subdomain ever added has to serve HTTPS**.
+
+**DNSSEC** is set in Cloudflare → DNS → Settings. Cloudflare is also the registrar, so turning it on publishes the DS record at the registry by itself. It only signs Cloudflare's answers and doesn't involve Vercel.
+
+**Changing the domain:** add the new one in Vercel and set the DNS records it shows, wait for its certificate, then change `SITE_URL` in Vercel and GitHub, `WEB_ORIGIN` in Render and `SITE_ALIASES`, and run Deploy. Canonical and Open Graph URLs, robots.txt and the sitemap all follow `SITE_URL`. Redirect the old domain to the new one last. Signed-in admin sessions don't carry over, since the cookie belongs to the old host.
 
 A custom domain for the API works the same way: add it in Render, change `API_URL` in Vercel and GitHub, and redeploy.
 

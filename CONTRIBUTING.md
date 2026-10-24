@@ -40,24 +40,26 @@ Both apps check their environment at startup and exit with a clear message if so
 
 Run from the repo root.
 
-| Script                                                | Does                                                |
-| ----------------------------------------------------- | --------------------------------------------------- |
-| `npm run dev`                                         | Postgres, then every app in watch mode              |
-| `npm run dev:lan`                                     | Same, with the site reachable from a phone          |
-| `npm run build`                                       | Production build of everything (the API must be up) |
-| `npm run lint`                                        | ESLint (web, packages) and oxlint (backend)         |
-| `npm run check-types`                                 | Type checks every workspace                         |
-| `npm test`                                            | Unit tests (Vitest)                                 |
-| `npm run test:e2e`                                    | API end-to-end tests, no database needed            |
-| `npm run db:up` / `db:down` / `db:status` / `db:logs` | The local Postgres container                        |
-| `npm run db:migrate`                                  | Create and apply migrations after a schema change   |
-| `npm run db:seed`                                     | Replace the content with `prisma/seed/content.ts`   |
+| Script                                                | Does                                                 |
+| ----------------------------------------------------- | ---------------------------------------------------- |
+| `npm run dev`                                         | Postgres, then every app in watch mode               |
+| `npm run dev:lan`                                     | Same, with the site reachable from a phone           |
+| `npm run build`                                       | Production build of everything (the API must be up)  |
+| `npm run lint`                                        | ESLint (web, packages) and oxlint (backend)          |
+| `npm run check-types`                                 | Type checks every workspace                          |
+| `npm test`                                            | Unit tests (Vitest)                                  |
+| `npm run test:e2e`                                    | API end-to-end tests, no database needed             |
+| `npm run db:up` / `db:down` / `db:status` / `db:logs` | The local Postgres container                         |
+| `npm run db:migrate`                                  | Create and apply migrations after a schema change    |
+| `npm run db:seed`                                     | Replace the content with `prisma/seed/content.ts`    |
+| `npm run test:a11y -w web`                            | axe on a running site (`SITE=http://localhost:3000`) |
 
 CI runs lint, types, unit and end-to-end tests, a production build against a seeded API and a Docker build of the API, so run the same before pushing.
 
 - The site's build (`apps/web/scripts/build.mjs`) prerenders every page from the API, so start the API first. It waits up to 5 minutes for `/health/ready` and fails if it never answers
 - Don't run `npm run build` while `npm run dev` is running. The API build replaces the folder the dev API runs from, and the dev API crashes
 - Pages named `page.dev.tsx` only exist under `next dev`, so dev tools never reach production
+- **Accessibility:** CI runs `apps/web/scripts/a11y.mjs` (axe, WCAG 2.2 A and AA) on the homepage, a project page and the admin sign-in. Locally, build and `next start` the site, run `npx playwright install chromium` once in `apps/web`, then `SITE=http://localhost:3000 npm run test:a11y -w web`
 
 ## Content
 
@@ -86,6 +88,12 @@ The brand (dark `#0A001D`, purple to pink gradients, Poppins, the highlighted Q)
 - **Icons** come from `lucide-react`. Brand logos are Simple Icons paths (CC0) in `components/ui/icons.tsx`
 - **Motion:** only `transform` and `opacity` animate, hover effects only apply on devices that can hover, content is visible without JavaScript, and `prefers-reduced-motion` gets plain fades
 - The sample social links preview at `/dev/design?links=sample`
+
+### Fonts
+
+Poppins is self-hosted from `apps/web/public/fonts`, one file per weight (400, 500, 600). It has no arrows, and a glyph missing from the page font makes Windows browsers search the system fonts mid-layout, so `apps/web/scripts/fonts.py` subsets Poppins (latin, Latin Extended-A, math signs) and merges in Inter's arrows, check marks and stars. It writes the files with hashed names, `app/fonts.css`, `lib/fonts.ts` and the TrueType copies the share cards use.
+
+To add characters or a weight, change the script and run it (`pip install fonttools brotli`, then `python scripts/fonts.py` in `apps/web`), then commit everything it wrote. Never edit the outputs by hand. Semibold is preloaded in `app/layout.tsx`; the other weights swap in over an Arial fallback sized to Poppins' metrics, so text doesn't move.
 
 ### Site icons
 

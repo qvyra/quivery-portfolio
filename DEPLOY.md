@@ -14,10 +14,10 @@ GitHub Actions deploys both apps. The hosts' own deploy on push is off, so nothi
 
 Every push to `main` runs `.github/workflows/deploy.yml`:
 
-1. **CI** (`ci.yml`): secret scan, lint, types, unit and end-to-end tests, a production build of the site against a seeded API, a check that no dev or placeholder page got built, and a build and smoke test of the API's Docker image. Pull requests and other branches run it too, without deploying
+1. **CI** (`ci.yml`): secret scan, lint, types, unit and end-to-end tests, a production build of the site against a seeded API, a check that no dev or placeholder page got built, an accessibility check with axe on that build, and a build and smoke test of the API's Docker image. Pull requests and other branches run it too, without deploying
 2. **API** (`scripts/deploy/render-deploy.mjs`): refuses to go on unless the Render service is on the free plan, in Frankfurt, with auto deploy off. Then it deploys the commit CI tested and waits until it's live. The container runs `prisma migrate deploy` before the server starts. Render only moves traffic to the new version once its health check passes, so if the build, a migration or startup fails, the old version keeps serving
 3. **Site** (`vercel deploy --prod`): Vercel builds remotely. The build waits for the API's `/health/ready` first (up to 5 minutes, which wakes a sleeping API and database), then prerenders every page. If the API never answers or the homepage comes back empty, the build fails and the previous deployment stays live
-4. **Smoke test** (`scripts/deploy/smoke-test.mjs`): the homepage and a project page answer 200, fake and placeholder project URLs and `/dev` answer 404, and the API answers `/health` with its own JSON
+4. **Smoke test** (`scripts/deploy/smoke-test.mjs`): the homepage and a project page answer 200 with their security headers and share cards, the sitemap and robots.txt are served, fake and placeholder project URLs and `/dev` answer 404, the admin stays closed, and the API answers `/health` with its own JSON
 
 Deploys run one at a time in push order, and a running deploy is never cancelled. To redeploy without a new commit, run the Deploy workflow from the Actions tab.
 
@@ -41,6 +41,7 @@ Production secrets are generated fresh, never copied from a local setup. `REVALI
 | `GITHUB_DEPLOY_REPO`    | Render                        | `owner/repo` for that token. Defaults to `qvyra/quivery-portfolio`                   |
 | `BLOB_READ_WRITE_TOKEN` | Vercel, set by the store      | Added when the Blob store was connected to the project, see Media storage            |
 | `MEDIA_ORIGIN`          | Vercel                        | The Blob store's public origin, so `next/image` serves uploads                       |
+| `WEB_ANALYTICS`         | Vercel                        | `on` once Web Analytics is enabled for the project, see Analytics                    |
 | `DATABASE_URL`          | Render, GitHub secret         | Neon's direct connection string, pooling off                                         |
 | `WEB_ORIGIN`            | Render                        | Same as `SITE_URL`, where the API sends cache refreshes                              |
 | `NODE_ENV`              | set by the Dockerfile         | `production`                                                                         |
@@ -175,6 +176,27 @@ Uploads go to a **Vercel Blob** store, `quivery-media` in Frankfurt (`fra1`), pu
 
 **Locally,** without `BLOB_READ_WRITE_TOKEN`, `next dev` saves uploads in `apps/web/public/uploads`, which git ignores. A production build without the token refuses uploads instead.
 
+## Security headers
+
+`apps/web/lib/security-headers.ts` sets them for every response, through `next.config.ts`:
+
+- **Everywhere:** `Strict-Transport-Security` (two years), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, a `Permissions-Policy` that turns off the camera, microphone, geolocation, payment, USB and Topics, and `Cross-Origin-Opener-Policy: same-origin`
+- **Public pages** can't be framed (`frame-ancestors 'none'`, `X-Frame-Options: DENY`). **The admin** may frame itself, for its preview, and can reach `https://vercel.com/api/blob/` for uploads
+
+**Why the CSP allows inline scripts.** Pages are prerendered, so a per-request nonce would turn every page into a request-time render, and hashes can't be computed ahead of time because Next writes each page's data into inline scripts that change whenever content is refreshed. So scripts are limited to this origin plus inline, with no other script origin allowed. React escapes all content and markdown is rendered without raw HTML, so content can't inject a script. Everything else is an allowlist: images and video from this origin and the media store (`MEDIA_ORIGIN`), YouTube posters, frames only from `youtube-nocookie.com`, `player.vimeo.com` and `streamable.com`, fonts and styles from this origin.
+
+**Adding a third-party service** (an embed provider, a script, a media host) means adding its origin to the right directive there. A blocked request shows up in the browser console as a Content-Security-Policy violation. The policy is built at build time, so a change needs a deploy.
+
+## Analytics
+
+Vercel Web Analytics counts page views without cookies: visitors are told apart by a hash of the request that's thrown away after 24 hours. Hobby includes 50,000 events a month, can't buy more, and pauses collection past that rather than billing. `/admin` pages are never sent.
+
+It's off until the project is enabled, since the script 404s on every page before that. To turn it on:
+
+1. Vercel dashboard → the project → **Analytics** → **Enable**
+2. Settings → Environment Variables → add `WEB_ANALYTICS` = `on` for Production
+3. Run **Deploy** from the Actions tab (or push). Visits show up under Analytics after that
+
 ## Rolling back
 
 - **Site:** in Vercel, open the project's Deployments, pick the last good one and use Instant Rollback (or `npx vercel rollback <url>`). It's immediate, with no rebuild. The next deploy from `main` replaces it, so revert the bad commit too
@@ -261,12 +283,13 @@ To rotate `CONTACT_API_SECRET`, set the new value in Vercel and Render and redep
 
 ## Limits and cost
 
-| Host        | Free limits (October 2026)                                                                                    | Past the limit                                                                                                                                                                                                                                                                 |
-| ----------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Vercel      | 100 GB transfer, 1M function calls, 4 CPU hours, 5,000 image transforms a month                               | The feature stops until the 30 day window resets. Hobby can't be billed                                                                                                                                                                                                        |
-| Render      | Free web services (0.1 CPU, 512 MB), 750 instance hours, 5 GB outbound transfer and 500 build minutes a month | No card on file: past the hours or transfer, free services are suspended until next month, and past the build minutes new builds stop while the live one keeps running. Paid plans can't be created without a card, and `render-deploy.mjs` refuses anything but the free plan |
-| Neon        | 1 GB storage, 100 compute hours a month                                                                       | Compute suspends or writes stop until next month. No card on file                                                                                                                                                                                                              |
-| Vercel Blob | 1 GB stored, 10 GB transfer, 10,000 simple and 2,000 advanced operations a month                              | Never billed on Hobby, but Blob stops for 30 days, so uploaded images and videos stop loading. See Media storage                                                                                                                                                               |
+| Host                 | Free limits (October 2026)                                                                                    | Past the limit                                                                                                                                                                                                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Vercel               | 100 GB transfer, 1M function calls, 4 CPU hours, 5,000 image transforms a month                               | The feature stops until the 30 day window resets. Hobby can't be billed                                                                                                                                                                                                        |
+| Render               | Free web services (0.1 CPU, 512 MB), 750 instance hours, 5 GB outbound transfer and 500 build minutes a month | No card on file: past the hours or transfer, free services are suspended until next month, and past the build minutes new builds stop while the live one keeps running. Paid plans can't be created without a card, and `render-deploy.mjs` refuses anything but the free plan |
+| Neon                 | 1 GB storage, 100 compute hours a month                                                                       | Compute suspends or writes stop until next month. No card on file                                                                                                                                                                                                              |
+| Vercel Web Analytics | 50,000 events a month                                                                                         | Collection pauses until the next month. Hobby can't be billed                                                                                                                                                                                                                  |
+| Vercel Blob          | 1 GB stored, 10 GB transfer, 10,000 simple and 2,000 advanced operations a month                              | Never billed on Hobby, but Blob stops for 30 days, so uploaded images and videos stop loading. See Media storage                                                                                                                                                               |
 
 ### When to upgrade
 

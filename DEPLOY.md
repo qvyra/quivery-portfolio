@@ -199,7 +199,7 @@ GitHub emails you when a scheduled run fails. It also turns scheduled workflows 
 
 **Restoring a weekly dump** (from the repo root, with Docker running):
 
-1. Download it: on the run's page in the Actions tab, or `gh run download <run id> --dir .deploy/backups`. The file is `quivery-<date>.dump.age`
+1. Download it into `.deploy/backups/`: from the run's page in the Actions tab (unzip it), or with `gh run download <run id> --dir .deploy/backups`, which puts it in a folder of the same name, so move it up a level. The file is `quivery-<date>.dump.age`
 2. Decrypt it. The key is piped from the secrets file, so it never shows up in a terminal:
 
    ```sh

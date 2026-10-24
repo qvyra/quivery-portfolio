@@ -1,5 +1,5 @@
-# Warns before the Vercel deploy token runs out. GitHub emails the owner when
-# a scheduled run fails, so this fails every week from 30 days out. Rotation
+# Warns before a deploy token runs out. GitHub emails the owner when a
+# scheduled run fails, so this fails every week from 30 days out. Rotation
 # steps are in DEPLOY.md
 name: Token expiry
 
@@ -11,22 +11,34 @@ on:
 permissions: {}
 
 jobs:
-  vercel-token:
-    name: Vercel token
+  tokens:
+    name: Deploy tokens
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Check VERCEL_TOKEN_EXPIRES
+      - name: Check the expiry dates
+        # GitHub refuses variable names starting with GITHUB_, hence GH_
         env:
-          EXPIRES: ${{ vars.VERCEL_TOKEN_EXPIRES }}
+          VERCEL_TOKEN_EXPIRES: ${{ vars.VERCEL_TOKEN_EXPIRES }}
+          GH_DEPLOY_TOKEN_EXPIRES: ${{ vars.GH_DEPLOY_TOKEN_EXPIRES }}
         run: |
-          if [ -z "$EXPIRES" ]; then
-            echo "::error::The VERCEL_TOKEN_EXPIRES variable isn't set"
-            exit 1
-          fi
-          days=$(( ($(date -ud "$EXPIRES" +%s) - $(date -u +%s)) / 86400 ))
-          if [ "$days" -le 30 ]; then
-            echo "::error::VERCEL_TOKEN expires on $EXPIRES, in $days days. Rotate it, see DEPLOY.md"
-            exit 1
-          fi
-          echo "VERCEL_TOKEN expires on $EXPIRES, in $days days"
+          status=0
+          # every token is checked before failing, so one email lists them all
+          for pair in VERCEL_TOKEN:VERCEL_TOKEN_EXPIRES GITHUB_DEPLOY_TOKEN:GH_DEPLOY_TOKEN_EXPIRES; do
+            token=${pair%%:*}
+            variable=${pair#*:}
+            expires=${!variable}
+            if [ -z "$expires" ]; then
+              echo "::error::The $variable variable isn't set"
+              status=1
+              continue
+            fi
+            days=$(( ($(date -ud "$expires" +%s) - $(date -u +%s)) / 86400 ))
+            if [ "$days" -le 30 ]; then
+              echo "::error::$token expires on $expires, in $days days. Rotate it, see DEPLOY.md"
+              status=1
+            else
+              echo "$token expires on $expires, in $days days"
+            fi
+          done
+          exit $status

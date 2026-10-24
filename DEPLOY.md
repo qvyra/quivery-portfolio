@@ -64,7 +64,7 @@ GitHub keeps these in the `production` environment:
 | `SITE_URL`              | variable | Checks after a deploy, the seed refresh |
 | `BACKUP_AGE_PUBLIC_KEY` | variable | The backup workflow encrypts to it      |
 
-The repository itself, outside the environment, has one variable: `VERCEL_TOKEN_EXPIRES`, the token's expiry date for the Token expiry workflow.
+The repository itself, outside the environment, has two variables for the Token expiry workflow: `VERCEL_TOKEN_EXPIRES` and `GH_DEPLOY_TOKEN_EXPIRES`, each token's expiry date (GitHub refuses variable names starting with `GITHUB_`).
 
 ### Setting secrets without exposing them
 
@@ -79,9 +79,16 @@ node -e "process.loadEnvFile('.deploy/secrets.local');process.stdout.write(proce
 
 To rotate `REVALIDATE_SECRET`, generate a new one, set it in Vercel, Render and GitHub, and redeploy. Until both apps are redeployed, revalidation answers 401 and pages keep serving.
 
-### Rotating the Vercel token
+### Rotating the deploy tokens
 
-`VERCEL_TOKEN` is scoped to the quivery-portfolio project and **expires on 2027-10-24**. Once it does, site deploys fail and the live site keeps serving the last deploy. The repository variable `VERCEL_TOKEN_EXPIRES` holds that date, and the Token expiry workflow (`token-expiry.yml`) fails every Monday from 30 days before it, which sends GitHub's failed run email.
+Two tokens expire, and the Token expiry workflow (`token-expiry.yml`) fails every Monday from 30 days before either date, which sends GitHub's failed run email:
+
+| Token                 | Expires              | Date kept in              | When it lapses                                                                                      |
+| --------------------- | -------------------- | ------------------------- | --------------------------------------------------------------------------------------------------- |
+| `VERCEL_TOKEN`        | 2027-10-24           | `VERCEL_TOKEN_EXPIRES`    | Site deploys fail, the live site keeps serving the last deploy                                      |
+| `GITHUB_DEPLOY_TOKEN` | 2027-10-23 23:00 UTC | `GH_DEPLOY_TOKEN_EXPIRES` | Publishing or renaming a project no longer starts a deploy, the admin asks for a manual one instead |
+
+**The Vercel token:**
 
 1. In Vercel, with your personal account selected, open Account Settings → Tokens. Create a token, set Scope to the Quivery team and then the quivery-portfolio project (not All Projects), and pick an expiration
 2. Put it in `VERCEL_TOKEN` in `.deploy/secrets.local`
@@ -96,7 +103,16 @@ To rotate `REVALIDATE_SECRET`, generate a new one, set it in Vercel, Render and 
 4. Run the Deploy workflow (`gh workflow run deploy.yml`) and wait for it to go green
 5. Delete the old token on the same Tokens page
 
-GitHub turns off scheduled workflows in a public repository after 60 days without a commit. If the Actions tab says Token expiry is disabled, turn it back on there.
+**The GitHub deploy token:** create a new one exactly as in Admin below, put it in `.deploy/secrets.local`, then push it to Render and set the date. Render's API sets one variable without touching the others, and the value is read from the secrets file:
+
+```sh
+RENDER_SERVICE_ID=$(gh variable get RENDER_SERVICE_ID --env production) \n  node -e "process.loadEnvFile('.deploy/secrets.local');fetch('https://api.render.com/v1/services/'+process.env.RENDER_SERVICE_ID+'/env-vars/GITHUB_DEPLOY_TOKEN',{method:'PUT',headers:{authorization:'Bearer '+process.env.RENDER_API_KEY,'content-type':'application/json'},body:JSON.stringify({value:process.env.GITHUB_DEPLOY_TOKEN})}).then(r=>console.log(r.status))"
+gh variable set GH_DEPLOY_TOKEN_EXPIRES --body YYYY-MM-DD
+```
+
+Then run the Deploy workflow, which redeploys the API with the new token, and delete the old token in GitHub. GitHub sends the token's exact expiry with every API answer, in the `github-authentication-token-expiration` header, if you need to check it.
+
+The schedules themselves are kept alive by the Keepalive workflow, see MAINTENANCE.md.
 
 ## Migrations
 
@@ -153,6 +169,7 @@ To change the password, change it in the secrets file and run the command again.
 2. Resource owner: `qvyra`. Repository access: **Only select repositories** → `quivery-portfolio`
 3. Permissions → Repository permissions → **Actions: Read and write**, nothing else (Metadata: read-only is added automatically). Pick an expiration, a year at most
 4. Put it in `.deploy/secrets.local` as `GITHUB_DEPLOY_TOKEN` and in Render's environment, then redeploy the API
+5. Set `GH_DEPLOY_TOKEN_EXPIRES` to its expiry date (`gh variable set GH_DEPLOY_TOKEN_EXPIRES --body YYYY-MM-DD`), so the Token expiry workflow warns before it lapses
 
 It uses `workflow_dispatch`, which only needs Actions access, rather than `repository_dispatch`, which needs Contents write and with it the power to push code.
 

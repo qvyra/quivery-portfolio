@@ -198,7 +198,8 @@ async function render({
         <img src={q} width={300} height={372} alt="" />
         <div
           style={{
-            fontSize: 24,
+            fontSize: 20,
+            whiteSpace: "nowrap",
             color: "rgba(255, 255, 255, 0.6)",
           }}
         >

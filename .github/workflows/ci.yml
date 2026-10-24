@@ -77,6 +77,7 @@ jobs:
           NODE_ENV=production PORT=5005 WEB_ORIGIN=http://localhost:3000 \
             REVALIDATE_SECRET=ci-only-secret-0123456789abcdef0123456789 \
             CONTACT_API_SECRET=ci-only-contact-secret-0123456789abcdef \
+            ADMIN_API_SECRET=ci-only-admin-secret-0123456789abcdefgh \
             nohup node apps/backend/dist/main.js > api.log 2>&1 &
 
       - name: Build the site
@@ -128,6 +129,7 @@ jobs:
             -e WEB_ORIGIN=https://ci.invalid \
             -e REVALIDATE_SECRET=ci-only-secret-0123456789abcdef0123456789 \
             -e CONTACT_API_SECRET=ci-only-contact-secret-0123456789abcdef \
+            -e ADMIN_API_SECRET=ci-only-admin-secret-0123456789abcdefgh \
             portfolio-api:ci
           for _ in $(seq 1 30); do
             if curl -fsS localhost:8000/health/ready; then exit 0; fi

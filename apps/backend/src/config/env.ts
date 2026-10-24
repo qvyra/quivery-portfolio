@@ -18,6 +18,9 @@ export const envSchema = z
     // submission. The API refuses submissions without it. At least 32
     // characters
     CONTACT_API_SECRET: z.string().min(32).optional(),
+    // shared with the web app, sent with every admin request. Its own secret,
+    // not the contact form's. At least 32 characters
+    ADMIN_API_SECRET: z.string().min(32).optional(),
     // where new contact messages are announced. Optional: without it messages
     // are still stored, just not announced. The error never echoes the value
     DISCORD_WEBHOOK_URL: z
@@ -39,6 +42,10 @@ export const envSchema = z
   .refine((env) => env.NODE_ENV !== 'production' || env.CONTACT_API_SECRET, {
     message: 'CONTACT_API_SECRET is required in production',
     path: ['CONTACT_API_SECRET'],
+  })
+  .refine((env) => env.NODE_ENV !== 'production' || env.ADMIN_API_SECRET, {
+    message: 'ADMIN_API_SECRET is required in production',
+    path: ['ADMIN_API_SECRET'],
   })
   .transform((env) => ({
     ...env,

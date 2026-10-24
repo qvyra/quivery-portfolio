@@ -10,11 +10,14 @@ datasource db {
 // Field-level rules (lengths, URL formats, block shapes) live in the Zod
 // schemas in @repo/shared, and every write goes through them first.
 //
-// List content shares three state fields:
+// List content shares four state fields:
 //   publishStatus  DRAFT until published
 //   visible        hides published content without unpublishing it
 //   sortOrder      manual order, ascending
-// The public API only returns PUBLISHED + visible rows
+//   draft          edits to a PUBLISHED item, held back until it's published
+//                  again (then applied and cleared) or discarded. Checked by
+//                  the same strict schema as the columns
+// The public API only returns PUBLISHED + visible rows, and never the draft
 
 enum PublishStatus {
   DRAFT
@@ -57,9 +60,13 @@ model Media {
   width      Int?
   height     Int?
   alt        String    @default("")
+  // a WebVTT file with the captions of a video
+  captionsId String?
+  captions   Media?    @relation("MediaCaptions", fields: [captionsId], references: [id], onDelete: SetNull)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
+  captionsFor        Media[]       @relation("MediaCaptions")
   profileAvatars     Profile[]     @relation("ProfileAvatar")
   profileCvs         Profile[]     @relation("ProfileCv")
   projectCovers      Project[]
@@ -97,6 +104,7 @@ model Section {
   navLabel       String?
   // Zod-validated array of content blocks
   blocks         Json          @default("[]")
+  draft          Json?
   publishStatus  PublishStatus @default(DRAFT)
   visible        Boolean       @default(true)
   sortOrder      Int           @default(0)
@@ -128,6 +136,7 @@ model Project {
   robloxUniverseId String?
   coverId          String?
   cover            Media?        @relation(fields: [coverId], references: [id], onDelete: SetNull)
+  draft            Json?
   publishStatus    PublishStatus @default(DRAFT)
   visible          Boolean       @default(true)
   sortOrder        Int           @default(0)
@@ -143,6 +152,7 @@ model Stat {
   id            String        @id @default(uuid())
   value         String
   label         String
+  draft         Json?
   publishStatus PublishStatus @default(DRAFT)
   visible       Boolean       @default(true)
   sortOrder     Int           @default(0)
@@ -160,6 +170,7 @@ model Skill {
   description   String?
   iconId        String?
   icon          Media?        @relation(fields: [iconId], references: [id], onDelete: SetNull)
+  draft         Json?
   publishStatus PublishStatus @default(DRAFT)
   visible       Boolean       @default(true)
   sortOrder     Int           @default(0)
@@ -176,6 +187,7 @@ model Service {
   highlights    String[]      @default([])
   iconId        String?
   icon          Media?        @relation(fields: [iconId], references: [id], onDelete: SetNull)
+  draft         Json?
   publishStatus PublishStatus @default(DRAFT)
   visible       Boolean       @default(true)
   sortOrder     Int           @default(0)
@@ -200,6 +212,7 @@ model Testimonial {
   givenAt       DateTime?     @db.Date
   projectId     String?
   project       Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  draft         Json?
   publishStatus PublishStatus @default(DRAFT)
   visible       Boolean       @default(true)
   sortOrder     Int           @default(0)
@@ -219,6 +232,7 @@ model ContactLink {
   value         String
   url           String?
   featured      Boolean       @default(false)
+  draft         Json?
   publishStatus PublishStatus @default(DRAFT)
   visible       Boolean       @default(true)
   sortOrder     Int           @default(0)
@@ -252,4 +266,32 @@ model ContactMessage {
 
   @@index([status, createdAt])
   @@index([ipHash, createdAt])
+}
+
+// The one admin account. Created or updated by npm run admin:password from
+// env vars, never by a route: there's no sign-up
+model AdminUser {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  // scrypt, with its parameters and salt in the string
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions AdminSession[]
+}
+
+// A signed-in browser. Only a hash of the token is kept, so a copy of the
+// database can't be used to sign in
+model AdminSession {
+  id         String    @id @default(uuid())
+  tokenHash  String    @unique
+  userId     String
+  user       AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime  @default(now())
+  expiresAt  DateTime
+
+  @@index([userId])
+  @@index([expiresAt])
 }

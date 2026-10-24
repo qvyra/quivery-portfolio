@@ -1,4 +1,3 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
 import {
   Injectable,
   ServiceUnavailableException,
@@ -9,15 +8,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import type { ApiError } from '@repo/shared';
+import { secretMatches } from '../common/secret.js';
 import type { Env } from '../config/env.js';
 
 export const CONTACT_SECRET_HEADER = 'x-contact-secret';
-
-// constant-time compare, hashing first makes the lengths equal
-function matches(given: string, expected: string) {
-  const digest = (value: string) => createHash('sha256').update(value).digest();
-  return timingSafeEqual(digest(given), digest(expected));
-}
 
 /**
  * Contact submissions only come from the site's server, which adds the shared
@@ -42,7 +36,7 @@ export class ContactSecretGuard implements CanActivate {
       .switchToHttp()
       .getRequest<Request>()
       .header(CONTACT_SECRET_HEADER);
-    if (!given || !matches(given, expected)) {
+    if (!secretMatches(given, expected)) {
       throw new UnauthorizedException({
         status: 401,
         message: 'Contact messages have to come through the site.',

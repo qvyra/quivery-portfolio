@@ -14,7 +14,7 @@ import type { Request } from 'express';
 import { z } from 'zod';
 import type { ApiError } from '@repo/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { clientIp } from './client-ip.js';
+import { clientIp } from '../common/client-ip.js';
 
 export const RATE_LIMITED: ApiError = {
   status: 429,

@@ -46,6 +46,7 @@ describe('validateEnv', () => {
       NODE_ENV: 'production',
       WEB_ORIGIN: 'https://quivery.dev',
       CONTACT_API_SECRET: 'c'.repeat(32),
+      ADMIN_API_SECRET: 'a'.repeat(32),
     };
     expect(() => validateEnv(production)).toThrow(/REVALIDATE_SECRET/);
     expect(() =>
@@ -63,6 +64,7 @@ describe('validateEnv', () => {
       NODE_ENV: 'production',
       WEB_ORIGIN: 'https://quivery.dev',
       REVALIDATE_SECRET: 'r'.repeat(32),
+      ADMIN_API_SECRET: 'a'.repeat(32),
     };
     expect(() => validateEnv(production)).toThrow(/CONTACT_API_SECRET/);
     expect(() =>
@@ -70,6 +72,23 @@ describe('validateEnv', () => {
     ).toThrow(/CONTACT_API_SECRET/);
     expect(() =>
       validateEnv({ ...production, CONTACT_API_SECRET: 'c'.repeat(32) }),
+    ).not.toThrow();
+  });
+
+  it('requires an ADMIN_API_SECRET of 32+ characters in production', () => {
+    const production = {
+      DATABASE_URL,
+      NODE_ENV: 'production',
+      WEB_ORIGIN: 'https://quivery.dev',
+      REVALIDATE_SECRET: 'r'.repeat(32),
+      CONTACT_API_SECRET: 'c'.repeat(32),
+    };
+    expect(() => validateEnv(production)).toThrow(/ADMIN_API_SECRET/);
+    expect(() =>
+      validateEnv({ ...production, ADMIN_API_SECRET: 'too-short' }),
+    ).toThrow(/ADMIN_API_SECRET/);
+    expect(() =>
+      validateEnv({ ...production, ADMIN_API_SECRET: 'a'.repeat(32) }),
     ).not.toThrow();
   });
 

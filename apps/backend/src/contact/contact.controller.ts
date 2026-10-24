@@ -2,7 +2,7 @@ import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { contactSubmissionSchema, type ApiSuccess } from '@repo/shared';
 import { createZodDto } from '../validation/zod-dto.js';
-import { clientIp } from './client-ip.js';
+import { clientIp } from '../common/client-ip.js';
 import { ContactSecretGuard } from './contact-secret.guard.js';
 import { ContactThrottlerGuard } from './contact-throttler.guard.js';
 import { ContactService } from './contact.service.js';

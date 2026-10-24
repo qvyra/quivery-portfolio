@@ -2,7 +2,7 @@
 
 import { LogOut } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -78,7 +78,6 @@ const nav = [
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [username, setUsername] = useState<string | null>(null);
   const [unread, setUnread] = useState(0);
   const [notices, setNotices] = useState<Notice[]>([]);
@@ -107,7 +106,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
   async function signOut() {
     if (!confirmLeave()) return;
     await fetch("/admin/api/auth/logout", { method: "POST" }).catch(() => {});
-    router.replace("/admin/login");
+    // a full load, like an expired session in api.ts. A client navigation
+    // would rerun the panel's effects first, against a session that's gone
+    window.location.replace("/admin/login");
   }
 
   return (

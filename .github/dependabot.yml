@@ -1,0 +1,103 @@
+# Weekly dependency updates. Minor and patch updates come grouped by area, the
+# way the manual passes were done, and every major comes as its own pull
+# request. CI runs on each one and nothing merges by itself. Security updates
+# (turned on in the repository settings) come as soon as a fix exists.
+# See MAINTENANCE.md
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    # skip releases younger than a week, most bad ones are pulled by then.
+    # Security updates don't wait
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      nest:
+        patterns: ["@nestjs/*", "reflect-metadata", "rxjs"]
+        update-types: [minor, patch]
+      prisma:
+        patterns: ["prisma", "@prisma/*"]
+        update-types: [minor, patch]
+      next-react:
+        patterns:
+          [
+            "next",
+            "@next/*",
+            "react",
+            "react-dom",
+            "@types/react",
+            "@types/react-dom",
+          ]
+        update-types: [minor, patch]
+      zod:
+        patterns: ["zod"]
+        update-types: [minor, patch]
+      lint-format:
+        patterns:
+          ["eslint", "@eslint/*", "eslint-*", "globals", "oxlint", "prettier"]
+        update-types: [minor, patch]
+      tests:
+        patterns:
+          [
+            "vitest",
+            "@vitest/*",
+            "vite-tsconfig-paths",
+            "playwright",
+            "@axe-core/*",
+            "supertest",
+            "@types/supertest",
+          ]
+        update-types: [minor, patch]
+      build-tooling:
+        patterns:
+          [
+            "turbo",
+            "typescript",
+            "tsx",
+            "@types/*",
+            "tailwindcss",
+            "@tailwindcss/*",
+          ]
+        update-types: [minor, patch]
+      site:
+        patterns: ["*"]
+        # typescript-eslint gets its own pull requests, see ignore below
+        exclude-patterns: ["typescript-eslint"]
+        update-types: [minor, patch]
+    ignore:
+      # the React and a11y lint plugins don't support ESLint 10 yet
+      # (CONTRIBUTING.md, Known constraints)
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
+      # the runtime is Node 24
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # typescript-eslint stays on 8.68 until a release stops crashing ESLint.
+      # It isn't ignored: each release gets its own pull request, and CI's
+      # lint step shows whether it's fixed
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]
+        update-types: [minor, patch]

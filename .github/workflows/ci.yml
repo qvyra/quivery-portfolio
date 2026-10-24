@@ -5,7 +5,8 @@ name: CI
 on:
   pull_request:
   push:
-    branches-ignore: [main]
+    # Dependabot's branches are checked through their pull requests
+    branches-ignore: [main, "dependabot/**"]
   workflow_call:
 
 permissions:

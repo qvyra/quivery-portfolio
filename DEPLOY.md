@@ -166,7 +166,7 @@ Uploads go to a **Vercel Blob** store, `quivery-media` in Frankfurt (`fra1`), pu
 
 **How an upload works.** The browser asks `/admin/api/uploads` for a token, which is only issued to a signed-in admin, lasts 10 minutes and covers one file. It uploads the file straight to Blob, then asks `/admin/api/media` to record it. That route asks the store what actually arrived and refuses anything else: images (PNG, JPEG, WebP, AVIF, GIF) up to 10 MB, MP4 or WebM videos up to 100 MB, PDFs up to 10 MB, and `.vtt` captions. No SVG, since it can carry scripts. No file passes through the site or the API and nothing parses multipart, so multer is never used.
 
-**Deleting.** Deleting a file in the media library removes it from the store. A file that's still used anywhere, a draft included, is refused with a list of where it's used.
+**Deleting.** Deleting a file in the media library removes it from the store. A file that's still used anywhere, a draft included, is refused with a list of where it's used. The store forgets a deleted file at once, but Vercel's CDN can keep serving a copy it already cached (Blob caches files for up to a month), so a deleted file's URL may keep working for a while. Don't rely on deleting to take something offline quickly.
 
 **Staying inside the free tier.** 1 GB fills up with a few videos. Keep uploaded videos short (clips, loops) and put long ones on YouTube or Vimeo with an embed block. Vercel emails as usage nears the limits. If Blob ever stops, uploaded images and videos stop loading for up to 30 days, so check the store's usage page now and then.
 

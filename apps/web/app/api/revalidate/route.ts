@@ -2,7 +2,7 @@
 // exists the API calls this after edits. Pages keep serving the cached version
 // and rebuild in the background on the next visit
 import { createHash, timingSafeEqual } from "node:crypto";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { env } from "@/lib/env";
 
@@ -52,5 +52,8 @@ export async function POST(request: Request) {
   const tags = [...new Set(body.data.tags)];
   // "max" serves the cached page while the new one renders in the background
   for (const tag of tags) revalidateTag(tag, "max");
+  // the prerendered sitemap doesn't carry the tags of the projects it lists,
+  // so it never refreshed with them
+  if (tags.includes("projects")) revalidatePath("/sitemap.xml");
   return reply(200, "REVALIDATED", "Revalidated.", { tags });
 }

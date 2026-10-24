@@ -94,7 +94,7 @@ Median of three runs each, October 2026. Every page has a cumulative layout shif
 | `packages/eslint-config`     | Shared ESLint configs                              |
 | `packages/typescript-config` | Shared `tsconfig` bases                            |
 | `scripts/deploy`             | Deploy, smoke test and revalidation scripts        |
-| `.github/workflows`          | CI, deploys, backups and the production seed       |
+| `.github/workflows`          | CI, deploys, backups, keepalive and the seed       |
 
 ## Run it locally
 
@@ -110,4 +110,4 @@ npm run db:seed
 npm run dev
 ```
 
-The site runs on http://localhost:3000 and the API on http://localhost:5005. [CONTRIBUTING.md](CONTRIBUTING.md) covers the rest: scripts, editing content, the admin, testing on a phone, code style and commits. [DEPLOY.md](DEPLOY.md) covers production.
+The site runs on http://localhost:3000 and the API on http://localhost:5005. [CONTRIBUTING.md](CONTRIBUTING.md) covers the rest: scripts, editing content, the admin, testing on a phone, code style and commits. [DEPLOY.md](DEPLOY.md) covers production, and [MAINTENANCE.md](MAINTENANCE.md) what expires, what runs on a schedule and how to rotate secrets.

@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
 import { loadEnv } from "./lib/env";
+import { securityHeaders } from "./lib/security-headers";
 import { lanAddresses } from "./scripts/lan.mjs";
 
 const pageExtensions = ["tsx", "ts", "jsx", "js"];
@@ -8,7 +9,7 @@ const pageExtensions = ["tsx", "ts", "jsx", "js"];
 export default function nextConfig(phase: string): NextConfig {
   const dev = phase === PHASE_DEVELOPMENT_SERVER;
   // format checks only, instrumentation.ts enforces what each stage needs
-  const { mediaOrigin } = loadEnv("development");
+  const { mediaOrigin, siteUrl } = loadEnv("development");
 
   return {
     // page.dev.tsx routes only exist under next dev. Production builds never
@@ -35,6 +36,11 @@ export default function nextConfig(phase: string): NextConfig {
 
     async headers() {
       return [
+        ...securityHeaders({
+          mediaOrigin,
+          https: siteUrl.startsWith("https:"),
+          dev,
+        }),
         // the file names carry a content hash, see scripts/fonts.py
         {
           source: "/fonts/:file",

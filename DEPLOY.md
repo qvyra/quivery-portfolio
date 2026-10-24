@@ -121,7 +121,41 @@ SITE_URL=<site url> node scripts/deploy/revalidate.mjs site projects
 
 - **Site:** in Vercel, open the project's Deployments, pick the last good one and use Instant Rollback (or `npx vercel rollback <url>`). It's immediate, with no rebuild. The next deploy from `main` replaces it, so revert the bad commit too
 - **API:** revert the bad commit on `main` and push. For an immediate rollback, use Rollback on an earlier deploy in the Render dashboard (the free plan keeps the last two)
-- **Database:** migrations only go forward, so fix forward with a new one. Neon's free plan keeps 6 hours of history, and a branch can be restored to a point in time from the Neon console
+- **Database:** migrations only go forward, so fix forward with a new one. For lost data, see Backups and recovery below
+
+## Backups and recovery
+
+**What Neon's free plan gives you** (checked October 2026, [plans](https://neon.com/docs/introduction/plans)):
+
+- **Instant restore, 6 hours back.** The project's root branch can be restored to any moment in the last 6 hours (and at most 1 GB-month of change history) from the Neon console, under Branches → Restore. Good for a bad edit or a broken migration noticed the same day, useless for anything older
+- **One manual snapshot** at a time, and no scheduled backups on the free plan
+- Hitting the 1 GB storage limit blocks writes but deletes nothing
+
+So anything older than 6 hours exists only in dumps you take yourself.
+
+**Taking a dump** (from the repo root, with Docker running). It reads `DATABASE_URL` straight from `.deploy/secrets.local`, so the URL never shows up in a terminal, and writes to `.deploy/backups/`, which git ignores:
+
+```sh
+mkdir -p .deploy/backups
+docker run --rm --env-file .deploy/secrets.local -e PGSSLROOTCERT=system \
+  -v "$(pwd)/.deploy/backups:/out" postgres:18-alpine \
+  sh -c 'pg_dump "$DATABASE_URL" --format=custom --no-owner --no-privileges --file=/out/quivery-$(date -u +%Y%m%d-%H%M).dump'
+```
+
+Use the image whose major version matches Neon's (18 today, `SHOW server_version` tells). `PGSSLROOTCERT=system` lets `sslmode=verify-full` check Neon's certificate against the system store. On Git Bash, write the volume as `-v "$(pwd -W)/.deploy/backups:/out"` with `MSYS_NO_PATHCONV=1` in front. The dump holds everything, contact messages included, so keep it private.
+
+**Restoring.** Check a dump first in a throwaway database:
+
+```sh
+docker run -d --name restore-test -e POSTGRES_PASSWORD=x -v "$(pwd)/.deploy/backups:/in:ro" postgres:18-alpine
+docker exec restore-test pg_restore --no-owner --no-privileges -U postgres -d postgres /in/<file>.dump
+```
+
+To recover production, create a new Neon branch, restore into it with `pg_restore --clean --if-exists`, check it, then point `DATABASE_URL` in Render (and `.deploy/secrets.local`, and GitHub) at that branch, or restore into the main branch once you're sure. Uploaded files live in object storage, not the database, so they need their own copy (see Media storage).
+
+**How often.** Once the admin panel holds real content: a dump before every big editing session or migration, and once a week otherwise, keeping the last 4 weekly ones. A restore test every couple of months, as above, proves they work.
+
+**Proposal, not built: a weekly dump from GitHub Actions.** A scheduled workflow in the `production` environment runs the `pg_dump` above and uploads the dump as an artifact with a 7 to 14 day retention. One catch: in a public repository any signed-in GitHub user can download workflow artifacts, and relays like nightly.link even serve them anonymously. So the job must encrypt the dump before uploading it, with [age](https://github.com/FiloSottile/age) and a public key stored as a repository variable, while the private key stays offline with you. Without the private key the artifact is useless to anyone else. The same 60 day inactivity rule as the token reminder applies to scheduled workflows. The free alternative with no encryption to manage is to upload the dump to the private media bucket instead, once it exists.
 
 ## The sleeping API
 

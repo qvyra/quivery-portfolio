@@ -12,6 +12,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { ZodValidationException } from '../../validation/zod-validation.exception.js';
 import { SiteUpdates, type DeployOutcome } from '../site-updates.js';
 import { toColumns } from '../../content/drafts.js';
+import { Prisma } from '../../generated/prisma/client.js';
 import { delegateFor, toContent, type ContentRow } from './collections.js';
 
 /** One item as the admin sees it: live content, state, and any draft */
@@ -98,7 +99,9 @@ export class AdminContentService {
       row.draft === null ? {} : toColumns(this.storedDraft(collection, row));
     return this.change(collection, id, {
       ...draft,
-      draft: null,
+      // DbNull, a real NULL: a plain null on a Json column is stored as JSON
+      // null, which SQL counts as a value (draft IS NOT NULL)
+      draft: Prisma.DbNull,
       publishStatus: 'PUBLISHED',
     });
   }
@@ -119,7 +122,7 @@ export class AdminContentService {
     await this.find(collection, id);
     const row = await delegateFor(this.db, collection).update({
       where: { id },
-      data: { draft: null },
+      data: { draft: Prisma.DbNull },
     });
     return { item: this.toItem(collection, row) };
   }

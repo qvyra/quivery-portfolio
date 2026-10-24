@@ -105,6 +105,10 @@ describe('admin content (database)', () => {
       'post',
       `/admin/collections/stats/${stat.id}/publish`,
     ).expect(200);
+    // cleared to a real NULL, not a JSON null that SQL counts as a value
+    const [count] = await db.$queryRaw<{ drafts: number }[]>`
+      SELECT count(*)::int AS drafts FROM "Stat" WHERE "draft" IS NOT NULL`;
+    expect(count?.drafts).toBe(0);
     expect(published.body.data.item).toMatchObject({
       content: { value: '7' },
       draft: null,

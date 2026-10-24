@@ -251,5 +251,12 @@ export const contactLinks: ContactLinkInput[] = [
     url: 'https://github.com/qvyra',
     publishStatus: 'PUBLISHED',
   },
-  // TODO: Roblox Talent Hub, Ko-fi
+  {
+    type: 'kofi',
+    label: 'Ko-fi',
+    value: 'quivery',
+    url: 'https://ko-fi.com/quivery',
+    publishStatus: 'PUBLISHED',
+  },
+  // TODO: Roblox Talent Hub
 ];

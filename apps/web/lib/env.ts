@@ -28,6 +28,9 @@ const schema = z.object({
   BLOB_READ_WRITE_TOKEN: z.preprocess(unsetIfEmpty, z.string().optional()),
   // where uploaded media is served from once it moves to object storage
   MEDIA_ORIGIN: z.preprocess(unsetIfEmpty, z.url().optional()),
+  // "on" once Web Analytics is enabled for the Vercel project. Before that
+  // its script would 404 on every page
+  WEB_ANALYTICS: z.preprocess(unsetIfEmpty, z.enum(["on", "off"]).optional()),
 });
 
 export type Stage = "development" | "build" | "server";
@@ -42,6 +45,7 @@ export type Env = {
   adminApiSecret: string | null;
   blobToken: string | null;
   mediaOrigin: string | null;
+  webAnalytics: boolean;
 };
 
 export function currentStage(): Stage {
@@ -95,6 +99,7 @@ export function loadEnv(
     adminApiSecret: env.ADMIN_API_SECRET ?? null,
     blobToken: env.BLOB_READ_WRITE_TOKEN ?? null,
     mediaOrigin: env.MEDIA_ORIGIN ? new URL(env.MEDIA_ORIGIN).origin : null,
+    webAnalytics: env.WEB_ANALYTICS === "on",
   };
 }
 

@@ -26,7 +26,3 @@ export const heroArt: { still: BrandImage; animated: string | null } = {
   // 2 MB animated WebP, fetched only after the page has loaded
   animated: "/brand/hero-logo.webp",
 };
-
-// TODO: per-page Open Graph images
-/** Default Open Graph image */
-export const ogImage = heroArt.still;

@@ -107,6 +107,37 @@ export async function getProject(slug: string): Promise<ProjectDetail | null> {
   return parsed(() => parseProject(json, reportSkip));
 }
 
+/**
+ * The project slugs published at build time, from scripts/build.mjs, or null
+ * in dev. Functions don't share a cache, so checking an unknown slug against
+ * the API would wake it on every miss. A project published later needs a
+ * rebuild
+ */
+export function publishedAtBuild(): string[] | null {
+  const value = process.env.PUBLISHED_PROJECT_SLUGS;
+  return value ? (JSON.parse(value) as string[]) : null;
+}
+
+/** A project that has a page in this build, or null */
+export async function getBuiltProject(
+  slug: string,
+): Promise<ProjectDetail | null> {
+  const published = publishedAtBuild();
+  const known = published
+    ? published.includes(slug)
+    : (await getProjects()).some((project) => project.slug === slug);
+  return known ? getProject(slug) : null;
+}
+
+/** The projects that have a page in this build */
+export async function getBuiltProjects(): Promise<ProjectSummary[]> {
+  const published = publishedAtBuild();
+  const projects = await getProjects();
+  return published
+    ? projects.filter((project) => published.includes(project.slug))
+    : projects;
+}
+
 /** Featured projects first, otherwise in stored order */
 export function orderProjects<T extends { featured: boolean }>(
   projects: T[],

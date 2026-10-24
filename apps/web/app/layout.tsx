@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { preload } from "react-dom";
-import { ogImage } from "@/lib/brand";
 import { env } from "@/lib/env";
 import { poppinsFiles } from "@/lib/fonts";
+import { pageOpenGraph } from "@/lib/seo";
 import "./fonts.css";
 import "./globals.css";
 
@@ -16,21 +16,9 @@ export const metadata: Metadata = {
   },
   description:
     "Quivery (Ether): Roblox systems engineer focused on data, architecture and tooling for live games.",
-  // TODO: per-page Open Graph images, these are placeholders
-  openGraph: {
-    type: "website",
-    siteName: "Quivery",
-    locale: "en",
-    images: [
-      {
-        url: ogImage.src,
-        width: ogImage.width,
-        height: ogImage.height,
-        alt: "The Quivery Q logo",
-      },
-    ],
-  },
-  twitter: { card: "summary" },
+  // the images are generated per page, see opengraph-image.tsx in app/(site)
+  openGraph: pageOpenGraph({}),
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {

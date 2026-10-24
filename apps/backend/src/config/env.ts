@@ -9,7 +9,7 @@ export const envSchema = z
       .default('development'),
     PORT: z.coerce.number().int().positive().default(5005),
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
-    // the Next site's origin, the only one CORS lets through
+    // the Next site's origin, which the API calls to refresh cached pages
     WEB_ORIGIN: z.url().optional(),
     // shared with the web app, sent with revalidation requests after admin
     // edits. At least 32 characters
@@ -42,7 +42,7 @@ export const envSchema = z
   })
   .transform((env) => ({
     ...env,
-    // CORS compares origins exactly, so any path or trailing slash has to go
+    // URLs are built from it, so any path or trailing slash has to go
     WEB_ORIGIN: new URL(env.WEB_ORIGIN ?? DEV_WEB_ORIGIN).origin,
   }));
 

@@ -45,12 +45,14 @@ describe('App (e2e)', () => {
       });
   });
 
-  it('allows CORS from the web origin only, with credentials', () => {
-    return request(app.getHttpServer())
+  // browsers never call the API, so no origin, not even the site's, gets CORS
+  it('sends no CORS headers', async () => {
+    const res = await request(app.getHttpServer())
       .get('/health')
       .set('Origin', 'http://localhost:3000')
-      .expect('Access-Control-Allow-Origin', 'http://localhost:3000')
-      .expect('Access-Control-Allow-Credentials', 'true');
+      .expect(200);
+    expect(res.headers['access-control-allow-origin']).toBeUndefined();
+    expect(res.headers['access-control-allow-credentials']).toBeUndefined();
   });
 
   it('rejects a malformed project slug before touching the database', () => {

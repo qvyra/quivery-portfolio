@@ -38,7 +38,7 @@ Production secrets are generated fresh, never copied from a local setup. `REVALI
 | `DISCORD_WEBHOOK_URL` | Render                        | The webhook that announces new contact messages. Optional      |
 | `MEDIA_ORIGIN`        | Vercel, later                 | The object storage origin, once uploads exist                  |
 | `DATABASE_URL`        | Render, GitHub secret         | Neon's direct connection string, pooling off                   |
-| `WEB_ORIGIN`          | Render                        | Same as `SITE_URL`, the only origin CORS allows                |
+| `WEB_ORIGIN`          | Render                        | Same as `SITE_URL`, where the API sends cache refreshes        |
 | `NODE_ENV`            | set by the Dockerfile         | `production`                                                   |
 | `PORT`                | Render                        | `10000`, Render's default                                      |
 

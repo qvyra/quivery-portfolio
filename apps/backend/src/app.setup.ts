@@ -1,18 +1,11 @@
 import { INestApplication } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { PrismaClientExceptionFilter } from './filters/prisma-client.filter.js';
 import { ZodValidationExceptionFilter } from './filters/zod-validation.filter.js';
 import { ZodValidationPipe } from './validation/zod-validation.pipe.js';
-import type { Env } from './config/env.js';
 
-// shared by main.ts and the e2e tests, so tests run the real app setup
+// Shared by main.ts and the e2e tests, so tests run the real app setup. No
+// CORS: browsers never call the API, only the site's server does
 export function configureApp(app: INestApplication) {
-  const config = app.get<ConfigService<Env, true>>(ConfigService);
-
-  app.enableCors({
-    origin: config.get('WEB_ORIGIN', { infer: true }),
-    credentials: true,
-  });
   app.enableShutdownHooks();
   app.useGlobalPipes(new ZodValidationPipe());
   app.useGlobalFilters(

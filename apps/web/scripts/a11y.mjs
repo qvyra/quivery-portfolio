@@ -40,6 +40,11 @@ try {
       reducedMotion: "reduce",
     });
     const page = await context.newPage();
+    page.on("requestfailed", (request) =>
+      console.log(
+        `  request failed: ${request.url()} ${request.failure()?.errorText}`,
+      ),
+    );
     const paths = ["/", await projectPath(page), "/admin/login"];
     const checks = paths.map((path) => ({ path, label: path }));
     if (name === "phone") {
@@ -47,7 +52,12 @@ try {
     }
 
     for (const check of checks) {
-      await page.goto(`${site}${check.path}`, { waitUntil: "networkidle" });
+      // the page and its fonts, not network idle: a background request
+      // (a prefetch, the hero animation) shouldn't hold the check up
+      await page.goto(`${site}${check.path}`, { waitUntil: "load" });
+      await page.evaluate(() => document.fonts.ready);
+      // the reduced-motion fades take 300 ms
+      await page.waitForTimeout(500);
       if (check.menu) {
         await page.getByRole("button", { name: /open menu/i }).click();
         await page.getByRole("button", { name: /close menu/i }).waitFor();

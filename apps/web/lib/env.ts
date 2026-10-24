@@ -16,6 +16,16 @@ const schema = z.object({
     unsetIfEmpty,
     z.string().min(32, "must be at least 32 characters").optional(),
   ),
+  // sent to the API with every admin request. Its own secret, not the
+  // contact form's
+  ADMIN_API_SECRET: z.preprocess(
+    unsetIfEmpty,
+    z.string().min(32, "must be at least 32 characters").optional(),
+  ),
+  // Vercel Blob, where admin uploads go. Vercel sets it once a Blob store is
+  // connected to the project. Without it, development stores uploads in
+  // public/uploads and production refuses uploads
+  BLOB_READ_WRITE_TOKEN: z.preprocess(unsetIfEmpty, z.string().optional()),
   // where uploaded media is served from once it moves to object storage
   MEDIA_ORIGIN: z.preprocess(unsetIfEmpty, z.url().optional()),
 });
@@ -29,6 +39,8 @@ export type Env = {
   siteUrl: string;
   revalidateSecret: string | null;
   contactApiSecret: string | null;
+  adminApiSecret: string | null;
+  blobToken: string | null;
   mediaOrigin: string | null;
 };
 
@@ -40,9 +52,9 @@ export function currentStage(): Stage {
 // Development has a local default for everything. Builds need API_URL and
 // SITE_URL, since pages prerender from the API and canonical URLs can't point
 // at localhost. next start also needs REVALIDATE_SECRET, which the API sends to
-// refresh cached pages, and CONTACT_API_SECRET, which the contact form sends to
-// the API. instrumentation.ts runs this at startup so a bad config fails right
-// away with a clear message
+// refresh cached pages, CONTACT_API_SECRET, which the contact form sends to the
+// API, and ADMIN_API_SECRET for the admin. instrumentation.ts runs this at
+// startup so a bad config fails right away with a clear message
 export function loadEnv(
   stage: Stage,
   source: Record<string, string | undefined> = process.env,
@@ -66,6 +78,9 @@ export function loadEnv(
   if (stage === "server" && !env.CONTACT_API_SECRET) {
     missing.push("CONTACT_API_SECRET");
   }
+  if (stage === "server" && !env.ADMIN_API_SECRET) {
+    missing.push("ADMIN_API_SECRET");
+  }
   if (missing.length > 0) {
     throw new Error(
       `Missing environment variables (${stage}): ${missing.join(", ")}. See apps/web/.env.example.`,
@@ -77,6 +92,8 @@ export function loadEnv(
     siteUrl: new URL(env.SITE_URL ?? "http://localhost:3000").origin,
     revalidateSecret: env.REVALIDATE_SECRET ?? null,
     contactApiSecret: env.CONTACT_API_SECRET ?? null,
+    adminApiSecret: env.ADMIN_API_SECRET ?? null,
+    blobToken: env.BLOB_READ_WRITE_TOKEN ?? null,
     mediaOrigin: env.MEDIA_ORIGIN ? new URL(env.MEDIA_ORIGIN).origin : null,
   };
 }

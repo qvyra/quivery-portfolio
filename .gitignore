@@ -45,3 +45,6 @@ yarn-error.log*
 
 # the old static site, kept locally for reference
 assets/
+
+# admin uploads while developing without a Blob store
+apps/web/public/uploads/

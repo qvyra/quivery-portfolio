@@ -59,9 +59,11 @@ function contentSecurityPolicy(admin: boolean, options: Options): string {
 /** next.config.ts headers(): shared ones everywhere, a CSP per area */
 export function securityHeaders(options: Options) {
   const shared: Header[] = [
+    // browsers already ship all of .dev as HTTPS-only, so preload changes
+    // nothing on quivery.dev and keeps the list's terms if the domain moves
     {
       key: "Strict-Transport-Security",
-      value: "max-age=63072000; includeSubDomains",
+      value: "max-age=63072000; includeSubDomains; preload",
     },
     { key: "X-Content-Type-Options", value: "nosniff" },
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

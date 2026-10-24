@@ -18,6 +18,7 @@ import {
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { Env } from '../config/env.js';
+import { withDraft } from './drafts.js';
 import { attachMedia, collectMediaIds } from './media-refs.js';
 import {
   parseJsonList,
@@ -33,25 +34,33 @@ import {
 
 // what the public may see: published and not hidden
 const live = { publishStatus: 'PUBLISHED', visible: true } as const;
+// what the admin's preview shows: everything not hidden, drafts applied
+const previewed = { visible: true } as const;
+
+/** Preview shows the site as it will be once every draft is published */
+export type ContentMode = { preview?: boolean };
 const ordered = [{ sortOrder: 'asc' }, { createdAt: 'asc' }] as const;
 
 @Injectable()
 export class PublicContentService {
   private readonly logger = new Logger(PublicContentService.name);
-  private readonly liveProjects: Prisma.ProjectWhereInput;
+  private readonly production: boolean;
 
   constructor(
     private db: PrismaService,
     config: ConfigService<Env, true>,
   ) {
-    // placeholder projects are for local layout work only
-    this.liveProjects =
-      config.get('NODE_ENV', { infer: true }) === 'production'
-        ? { ...live, isPlaceholder: false }
-        : live;
+    this.production = config.get('NODE_ENV', { infer: true }) === 'production';
   }
 
-  async getSite(): Promise<Site> {
+  // placeholder projects are for local layout work only
+  private projectsWhere(preview: boolean): Prisma.ProjectWhereInput {
+    const base = preview ? previewed : live;
+    return this.production ? { ...base, isPlaceholder: false } : base;
+  }
+
+  async getSite({ preview = false }: ContentMode = {}): Promise<Site> {
+    const where = preview ? previewed : live;
     // one transaction, so the page is built from a consistent snapshot
     const [
       profile,
@@ -67,26 +76,26 @@ export class PublicContentService {
         where: { id: 1 },
         include: { avatar: true, cv: true },
       }),
-      this.db.contactLink.findMany({ where: live, orderBy: [...ordered] }),
-      this.db.section.findMany({ where: live, orderBy: [...ordered] }),
-      this.db.stat.findMany({ where: live, orderBy: [...ordered] }),
+      this.db.contactLink.findMany({ where, orderBy: [...ordered] }),
+      this.db.section.findMany({ where, orderBy: [...ordered] }),
+      this.db.stat.findMany({ where, orderBy: [...ordered] }),
       this.db.service.findMany({
-        where: live,
+        where,
         orderBy: [...ordered],
         include: { icon: true },
       }),
       this.db.project.findMany({
-        where: this.liveProjects,
+        where: this.projectsWhere(preview),
         orderBy: [...ordered],
         include: { cover: true },
       }),
       this.db.skill.findMany({
-        where: live,
+        where,
         orderBy: [...ordered],
         include: { icon: true },
       }),
       this.db.testimonial.findMany({
-        where: live,
+        where,
         orderBy: [...ordered],
         include: { avatar: true },
       }),
@@ -100,16 +109,26 @@ export class PublicContentService {
       });
     }
 
+    const draft = <R extends { draft: unknown }>(rows: R[]) =>
+      preview ? rows.map(withDraft) : rows;
     const lists = {
-      stats: stats.map(toStat),
-      services: services.map(toService),
-      projects: projects.map(toProjectSummary),
-      skills: skills.map(toSkill),
-      testimonials: testimonials.map(toTestimonial),
-      contactLinks: contactLinks.map(toContactLink),
+      stats: draft(stats).map(toStat),
+      services: (await this.previewMedia(draft(services), 'icon', preview)).map(
+        toService,
+      ),
+      projects: (
+        await this.previewMedia(draft(projects), 'cover', preview)
+      ).map(toProjectSummary),
+      skills: (await this.previewMedia(draft(skills), 'icon', preview)).map(
+        toSkill,
+      ),
+      testimonials: (
+        await this.previewMedia(draft(testimonials), 'avatar', preview)
+      ).map(toTestimonial),
+      contactLinks: draft(contactLinks).map(toContactLink),
     };
 
-    const parsed = sections.map((section) => ({
+    const parsed = draft(sections).map((section) => ({
       section,
       blocks: parseJsonList(
         blockSchema,
@@ -149,7 +168,7 @@ export class PublicContentService {
 
   async getProjects(): Promise<ProjectSummary[]> {
     const projects = await this.db.project.findMany({
-      where: this.liveProjects,
+      where: this.projectsWhere(false),
       orderBy: [...ordered],
       include: { cover: true },
     });
@@ -157,17 +176,39 @@ export class PublicContentService {
   }
 
   async getProject(slug: string): Promise<ProjectDetail> {
-    const project = await this.db.project.findFirst({
-      where: { ...this.liveProjects, slug },
+    return this.loadProject({ ...this.projectsWhere(false), slug }, false);
+  }
+
+  /**
+   * A project as it will be once published, by id rather than slug, since a
+   * draft can rename it. Hidden ones are previewed too, so they can be checked
+   */
+  async getProjectPreview(id: string): Promise<ProjectDetail> {
+    return this.loadProject({ id }, true);
+  }
+
+  private async loadProject(
+    where: Prisma.ProjectWhereInput,
+    preview: boolean,
+  ): Promise<ProjectDetail> {
+    const row = await this.db.project.findFirst({
+      where,
       include: {
         cover: true,
         testimonials: {
-          where: live,
+          where: preview ? previewed : live,
           orderBy: [...ordered],
           include: { avatar: true },
         },
       },
     });
+    const [project] = row
+      ? await this.previewMedia(
+          [preview ? withDraft(row) : row],
+          'cover',
+          preview,
+        )
+      : [];
     if (!project) {
       throw new NotFoundException({
         status: 404,
@@ -186,8 +227,43 @@ export class PublicContentService {
     return {
       ...toProjectSummary(project),
       body: attachMedia(body, media) as ResolvedBlock[],
-      testimonials: project.testimonials.map(toTestimonial),
+      testimonials: (
+        await this.previewMedia(
+          preview ? project.testimonials.map(withDraft) : project.testimonials,
+          'avatar',
+          preview,
+        )
+      ).map(toTestimonial),
     };
+  }
+
+  // A draft can point at another file than the one the row's relation loaded
+  // (a new cover, say), so in preview the relation is looked up again from the
+  // id. Live rows have no draft applied and are returned as they are
+  private async previewMedia<R extends Record<string, unknown>>(
+    rows: R[],
+    relation: 'cover' | 'icon' | 'avatar',
+    preview: boolean,
+  ): Promise<R[]> {
+    if (!preview || rows.length === 0) return rows;
+    const idKey = `${relation}Id`;
+    const ids = [
+      ...new Set(
+        rows
+          .map((row) => row[idKey])
+          .filter((id): id is string => typeof id === 'string'),
+      ),
+    ];
+    const media =
+      ids.length > 0
+        ? await this.db.media.findMany({ where: { id: { in: ids } } })
+        : [];
+    const byId = new Map(media.map((item) => [item.id, item]));
+    return rows.map((row) => ({
+      ...row,
+      [relation]:
+        typeof row[idKey] === 'string' ? (byId.get(row[idKey]) ?? null) : null,
+    }));
   }
 
   // every media item the blocks reference, at any depth, in one query

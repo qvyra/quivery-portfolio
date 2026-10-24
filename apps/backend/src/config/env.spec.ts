@@ -9,6 +9,7 @@ describe('validateEnv', () => {
       PORT: 5005,
       DATABASE_URL,
       WEB_ORIGIN: 'http://localhost:3000',
+      GITHUB_DEPLOY_REPO: 'qvyra/quivery-portfolio',
     });
   });
 

@@ -67,6 +67,13 @@ jobs:
 
       - run: npx turbo run lint check-types test test:e2e
 
+      # the admin's flows against a real database. They empty the tables, so
+      # they run before the seed below
+      - name: Database tests
+        run: |
+          npm run db:deploy --workspace backend
+          npm run test:db --workspace backend
+
       # the site is prerendered from the API, so it needs a production one
       # running first (the seed skips placeholders in production)
       - name: Build and start the API

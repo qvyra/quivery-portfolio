@@ -21,6 +21,14 @@ export const envSchema = z
     // shared with the web app, sent with every admin request. Its own secret,
     // not the contact form's. At least 32 characters
     ADMIN_API_SECRET: z.string().min(32).optional(),
+    // a fine-grained GitHub token for this repository with only Actions:
+    // read and write, so the admin can start the Deploy workflow. Optional:
+    // without it, publishing a project asks for a manual deploy
+    GITHUB_DEPLOY_TOKEN: z.string().min(20).optional(),
+    GITHUB_DEPLOY_REPO: z
+      .string()
+      .regex(/^[\w.-]+\/[\w.-]+$/, 'must be owner/repo')
+      .default('qvyra/quivery-portfolio'),
     // where new contact messages are announced. Optional: without it messages
     // are still stored, just not announced. The error never echoes the value
     DISCORD_WEBHOOK_URL: z

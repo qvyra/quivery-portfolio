@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
     "check-types": "next typegen && tsc --noEmit",
+    "test:a11y": "node scripts/a11y.mjs",
     "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
@@ -24,6 +25,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@repo/eslint-config": "*",
     "@resvg/resvg-js": "2.6.2",
     "@tailwindcss/postcss": "^4",
@@ -31,6 +33,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9.39.5",
+    "playwright": "1.64.1",
     "tailwindcss": "^4",
     "typescript": "^7.0.2"
   }

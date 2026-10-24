@@ -103,9 +103,28 @@ jobs:
             exit 1
           fi
 
+      # axe (WCAG 2.2 AA) on the homepage, a project page and the admin
+      # sign-in, at phone and desktop widths, on the build above
+      - name: Accessibility
+        env:
+          API_URL: http://localhost:5005
+          SITE_URL: https://ci.invalid
+          REVALIDATE_SECRET: ci-only-secret-0123456789abcdef0123456789
+          CONTACT_API_SECRET: ci-only-contact-secret-0123456789abcdef
+          ADMIN_API_SECRET: ci-only-admin-secret-0123456789abcdefgh
+        run: |
+          (cd apps/web && npx playwright install --with-deps chromium)
+          (cd apps/web && nohup npx next start -p 3000 > ../../web.log 2>&1 &)
+          for _ in $(seq 1 30); do curl -sf localhost:3000/ > /dev/null && break; sleep 1; done
+          SITE=http://localhost:3000 npm run test:a11y --workspace web
+
       - name: API log
         if: always()
         run: cat api.log || true
+
+      - name: Site log
+        if: always()
+        run: cat web.log || true
 
   docker:
     name: API Docker image

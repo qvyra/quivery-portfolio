@@ -39,7 +39,7 @@
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
     "@repo/shared": "*",
-    "dotenv": "^16.0.3",
+    "dotenv": "^18.0.8",
     "prisma": "^7.10.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",

@@ -47,7 +47,7 @@ function ContactRow({ link }: { link: ContactLink }) {
 }
 
 /**
- * How to reach Ether: one call to action (the featured or most direct
+ * How to reach Quivery: one call to action (the featured or most direct
  * channel) and every published contact link
  */
 export function ContactSection({

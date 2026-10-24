@@ -60,7 +60,7 @@ export async function startApp() {
   await db.profile.create({
     data: {
       brandName: 'Quivery',
-      displayName: 'Ether',
+      displayName: 'Quivery',
       headline: 'Roblox systems engineer',
       tagline: 'Data, architecture and tooling',
     },

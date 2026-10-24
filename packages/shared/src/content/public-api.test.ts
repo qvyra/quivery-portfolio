@@ -29,7 +29,7 @@ const site = (sections: unknown[]) =>
   ok({
     profile: {
       brandName: "Quivery",
-      displayName: "Ether",
+      displayName: "Quivery",
       headline: "Roblox systems engineer",
       tagline: "Tagline",
       avatar: null,

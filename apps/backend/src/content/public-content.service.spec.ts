@@ -11,7 +11,7 @@ const id = (n: number) =>
 const profile = {
   id: 1,
   brandName: 'Quivery',
-  displayName: 'Ether',
+  displayName: 'Quivery',
   headline: 'Roblox systems engineer',
   tagline: 'Tagline',
   avatarId: null,

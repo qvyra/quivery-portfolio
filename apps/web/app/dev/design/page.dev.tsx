@@ -143,9 +143,9 @@ export default function DesignPreviewPage({
                   <span className="text-gradient">the gameplay.</span>
                 </h1>
                 <p className="mt-6 max-w-[36rem] animate-enter text-lead text-white/75 [--i:2]">
-                  Hi, I&apos;m Ether. I design the data layers, architecture and
-                  tooling that live Roblox games depend on, backed by 6 years of
-                  Luau.
+                  Hi, I&apos;m Quivery. I design the data layers, architecture
+                  and tooling that live Roblox games depend on, backed by 6
+                  years of Luau.
                 </p>
                 <div className="mt-9 flex animate-enter flex-wrap gap-3 [--i:3]">
                   <ButtonLink href="#contact" size="lg">

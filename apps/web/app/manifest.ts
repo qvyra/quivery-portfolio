@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Quivery",
     short_name: "Quivery",
     description:
-      "Quivery (Ether): Roblox systems engineer focused on data, architecture and tooling for live games.",
+      "Quivery: Roblox systems engineer focused on data, architecture and tooling for live games.",
     start_url: "/",
     display: "standalone",
     background_color: "#0A001D",

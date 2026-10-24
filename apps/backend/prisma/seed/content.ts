@@ -27,7 +27,7 @@ export const media: (MediaInput & { id: string })[] = [];
 
 export const profile: ProfileInput = {
   brandName: 'Quivery',
-  displayName: 'Ether',
+  displayName: 'Quivery',
   headline: 'Roblox systems engineer',
   // subline shown under the hero title
   tagline:
@@ -51,8 +51,8 @@ export const sections: SectionInput[] = [
     // the bio, its text is in the block below
     slug: 'about',
     type: 'custom',
-    title: "Hi, I'm Ether",
-    titleHighlight: 'Ether',
+    title: "Hi, I'm Quivery",
+    titleHighlight: 'Quivery',
     navLabel: 'About',
     publishStatus: 'PUBLISHED',
     blocks: [

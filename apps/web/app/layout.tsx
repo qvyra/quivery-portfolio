@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     template: "%s · Quivery",
   },
   description:
-    "Quivery (Ether): Roblox systems engineer focused on data, architecture and tooling for live games.",
+    "Quivery: Roblox systems engineer focused on data, architecture and tooling for live games.",
   // the images are generated per page, see opengraph-image.tsx in app/(site)
   openGraph: pageOpenGraph({}),
   twitter: { card: "summary_large_image" },

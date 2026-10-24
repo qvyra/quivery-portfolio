@@ -1,6 +1,6 @@
 # Quivery Portfolio
 
-The portfolio of **Ether (Quivery)**, a Roblox systems engineer with 6 years of Luau, working on data layers, architecture and tooling for live games.
+The portfolio of **Quivery**, a Roblox systems engineer with 6 years of Luau, working on data layers, architecture and tooling for live games.
 
 **Live: https://quivery-portfolio.vercel.app**
 
@@ -44,7 +44,7 @@ flowchart LR
   end
 
   visitor(["Visitor"]) -->|prerendered pages from the CDN| web
-  admin(["Ether, signed in"]) -->|"/admin, session cookie"| web
+  admin(["Quivery, signed in"]) -->|"/admin, session cookie"| web
   admin -. "uploads, short-lived token" .-> blob[("Vercel Blob<br/>media")]
 
   web -->|"build and background refresh<br/>(never during a visit)"| api
@@ -65,7 +65,7 @@ flowchart LR
 - **Content without migrations:** the homepage is an ordered list of sections. Typed sections render their models (projects, skills...) and custom sections render JSON blocks (rich text, images, video, galleries, embeds, code) from a Zod discriminated union
 - **Built for a sleeping free tier:** the API scales to zero when idle. Builds wake it first, and the database is only touched by builds, refreshes, the admin and the contact form
 - **Contact form that never loses a message:** stored before anything else, retried with an idempotency key, the draft kept in the browser until the API confirms it. Spam is filtered with a hidden field, a time check, link and rate limits, and new messages are announced on Discord
-- **Found and shared properly:** generated Open Graph cards per page, a sitemap, canonical URLs, and schema.org data (a Person for Ether, SoftwareSourceCode for open-source projects)
+- **Found and shared properly:** generated Open Graph cards per page, a sitemap, canonical URLs, and schema.org data (a Person for Quivery, SoftwareSourceCode for open-source projects)
 - **Self-hosted fonts:** Poppins subset to what the content uses, with the arrows it lacks merged in from Inter, so no visitor's browser ever goes looking for a fallback
 
 ![The admin: editing a project with the live preview open](docs/screenshots/admin.webp)

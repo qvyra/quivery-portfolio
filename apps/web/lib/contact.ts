@@ -1,6 +1,6 @@
 import type { ContactLink, ContactLinkType } from "@repo/shared";
 
-// channels people can actually reach Ether on, most direct first
+// channels people can actually reach Quivery on, most direct first
 const reachPriority: ContactLinkType[] = [
   "discord",
   "email",

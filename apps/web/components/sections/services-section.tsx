@@ -4,7 +4,7 @@ import { MediaImage } from "@/components/blocks/media-image";
 import { Reveal } from "@/components/ui/reveal";
 import { SectionShell } from "./section-shell";
 
-/** What Ether offers. Only rendered when at least one service is published */
+/** What Quivery offers. Only rendered when at least one service is published */
 export function ServicesSection({
   section,
 }: {

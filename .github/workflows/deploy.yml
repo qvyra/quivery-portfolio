@@ -20,6 +20,23 @@ jobs:
   ci:
     uses: ./.github/workflows/ci.yml
 
+  # a schedule GitHub turned off for inactivity stays off after the next
+  # commit, so every deploy turns them back on. See keepalive.yml
+  schedules:
+    name: Re-enable schedules
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - run: |
+          for workflow in backup.yml token-expiry.yml keepalive.yml; do
+            gh api --method PUT "repos/$REPO/actions/workflows/$workflow/enable"
+          done
+
   api:
     name: Deploy API (Render)
     needs: ci

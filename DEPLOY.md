@@ -217,7 +217,7 @@ So anything older than 6 hours exists only in dumps: the weekly encrypted one be
 
 **Keep a second copy of `BACKUP_AGE_SECRET_KEY` in your password manager.** Without it every backup is unreadable, and the secrets file alone is one lost disk away from gone.
 
-GitHub emails you when a scheduled run fails. It also turns scheduled workflows off after 60 days without a commit, so if the Actions tab says Backup is disabled, turn it back on there.
+GitHub emails you when a scheduled run fails. A backup that stops running fails nothing, so the Keepalive workflow also fails, and emails, once the last successful backup is more than 8 days old. It keeps the schedule itself from being turned off for inactivity, see MAINTENANCE.md.
 
 **Restoring a weekly dump** (from the repo root, with Docker running):
 

@@ -465,13 +465,13 @@ export function Inbox() {
   return (
     <div className="max-w-3xl">
       <h1 className="mb-4 text-h2 font-semibold">Inbox</h1>
-      <div role="tablist" aria-label="Messages" className="mb-6 flex gap-2">
+      {/* filters over one list, so toggle buttons rather than tabs */}
+      <div role="group" aria-label="Show" className="mb-6 flex gap-2">
         {[false, true].map((tab) => (
           <button
             key={String(tab)}
-            role="tab"
             type="button"
-            aria-selected={archived === tab}
+            aria-pressed={archived === tab}
             onClick={() => setArchived(tab)}
             className={`btn btn-sm ${archived === tab ? "btn-primary" : "btn-secondary"}`}
           >
@@ -487,7 +487,10 @@ export function Inbox() {
           {archived ? "Nothing archived." : "No messages."}
         </p>
       )}
-      <ul className="space-y-2" role="tabpanel">
+      <ul
+        className="space-y-2"
+        aria-label={archived ? "Archived messages" : "Messages"}
+      >
         {data?.messages.map((message) => (
           <li
             key={message.id}

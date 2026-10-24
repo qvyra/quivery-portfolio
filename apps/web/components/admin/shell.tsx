@@ -160,7 +160,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
             </button>
           </div>
         </aside>
-        <main id="main" className="min-w-0 p-4 sm:p-8">
+        {/* labelled, so it stays distinct from the site's own main inside
+            the preview frame */}
+        <main id="main" aria-label="Admin" className="min-w-0 p-4 sm:p-8">
           {children}
           <button
             type="button"

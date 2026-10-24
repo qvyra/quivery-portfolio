@@ -11,8 +11,25 @@ if (!site || !api) {
 }
 
 const checks = [
-  { url: `${site}/`, status: 200, absent: ["Placeholder project", "/admin"] },
-  { url: `${site}/projects/geode`, status: 200 },
+  {
+    url: `${site}/`,
+    status: 200,
+    absent: ["Placeholder project", "/admin"],
+    // the security headers, and a share card that loads
+    headers: {
+      "content-security-policy": "frame-ancestors 'none'",
+      "strict-transport-security": "max-age=",
+      "x-content-type-options": "nosniff",
+    },
+    ogImage: true,
+  },
+  { url: `${site}/projects/geode`, status: 200, ogImage: true },
+  { url: `${site}/sitemap.xml`, status: 200, present: ["/projects/geode"] },
+  {
+    url: `${site}/robots.txt`,
+    status: 200,
+    present: ["Disallow: /admin", "Sitemap:"],
+  },
   { url: `${site}/projects/placeholder-one`, status: 404 },
   { url: `${site}/projects/no-such-project-${Date.now()}`, status: 404 },
   { url: `${site}/dev/design`, status: 404 },
@@ -64,6 +81,29 @@ async function run(check) {
     const found = (check.absent ?? []).filter((text) => body.includes(text));
     if (response.status !== check.status) {
       return `expected ${check.status}, got ${response.status}`;
+    }
+    for (const text of check.present ?? []) {
+      if (!body.includes(text)) return `no ${JSON.stringify(text)}`;
+    }
+    for (const [name, text] of Object.entries(check.headers ?? {})) {
+      if (!response.headers.get(name)?.includes(text)) {
+        return `${name} doesn't have ${JSON.stringify(text)}`;
+      }
+    }
+    if (check.ogImage) {
+      const image = body.match(
+        /<meta property="og:image" content="([^"]+)"/,
+      )?.[1];
+      if (!image) return "no og:image";
+      const card = await fetch(image.replaceAll("&amp;", "&"), {
+        signal: AbortSignal.timeout(60_000),
+      });
+      if (
+        card.status !== 200 ||
+        card.headers.get("content-type") !== "image/png"
+      ) {
+        return `og:image answered ${card.status} ${card.headers.get("content-type")}`;
+      }
     }
     if (check.code && !body.includes(`"code":"${check.code}"`)) {
       return `no ${check.code} in the answer`;

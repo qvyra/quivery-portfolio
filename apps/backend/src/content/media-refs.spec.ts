@@ -9,6 +9,7 @@ const logo: Media = {
   width: 64,
   height: 64,
   alt: 'Logo',
+  captionsUrl: null,
 };
 const goneId = 'f0e1d2c3-b4a5-4697-8879-6a5b4c3d2e1f';
 

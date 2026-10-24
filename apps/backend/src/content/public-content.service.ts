@@ -273,6 +273,8 @@ export class PublicContentService {
 
     const rows = await this.db.media.findMany({
       where: { id: { in: [...ids] } },
+      // video blocks show their captions
+      include: { captions: true },
     });
     return new Map(rows.map((row) => [row.id, toMedia(row)!]));
   }

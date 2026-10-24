@@ -39,7 +39,9 @@ export function parseJsonList<T>(
   });
 }
 
-export const toMedia = (row: Prisma.MediaModel | null): Media | null =>
+export const toMedia = (
+  row: (Prisma.MediaModel & { captions?: Prisma.MediaModel | null }) | null,
+): Media | null =>
   row && {
     id: row.id,
     kind: row.kind,
@@ -48,6 +50,7 @@ export const toMedia = (row: Prisma.MediaModel | null): Media | null =>
     width: row.width,
     height: row.height,
     alt: row.alt,
+    captionsUrl: row.captions?.url ?? null,
   };
 
 export const toProfile = (

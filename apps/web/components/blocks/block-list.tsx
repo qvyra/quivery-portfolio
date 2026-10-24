@@ -83,6 +83,7 @@ const registry: { [T in ResolvedBlock["type"]]: Renderer<T> } = {
       <figure>
         <VideoPlayer
           src={block.video.media.url}
+          captionsUrl={block.video.media.captionsUrl}
           label={block.caption ?? (block.video.media.alt || "Video")}
           loop={block.loop}
         />

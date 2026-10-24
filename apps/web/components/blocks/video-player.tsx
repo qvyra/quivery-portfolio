@@ -37,10 +37,13 @@ function LoopVideo({ src, label }: { src: string; label: string }) {
  */
 export function VideoPlayer({
   src,
+  captionsUrl,
   label,
   loop,
 }: {
   src: string;
+  /** WebVTT captions, shown on by default when there are any */
+  captionsUrl: string | null;
   /** Accessible name: the caption, or a generic description */
   label: string;
   loop: boolean;
@@ -53,8 +56,7 @@ export function VideoPlayer({
       {loop && !reducedMotion ? (
         <LoopVideo src={src} label={label} />
       ) : playing ? (
-        // TODO: caption tracks. Media has no captions field yet, the upload
-        // flow should add a .vtt per video and render it as a <track>
+        // a video without captions uploaded yet still plays
         // eslint-disable-next-line jsx-a11y/media-has-caption
         <video
           src={src}
@@ -63,8 +65,23 @@ export function VideoPlayer({
           playsInline
           loop={loop}
           aria-label={label}
+          // captions from object storage are cross-origin, and a <track> from
+          // another origin only loads in CORS mode
+          crossOrigin={
+            captionsUrl?.startsWith("http") ? "anonymous" : undefined
+          }
           className="size-full object-contain"
-        />
+        >
+          {captionsUrl && (
+            <track
+              kind="captions"
+              src={captionsUrl}
+              srcLang="en"
+              label="English"
+              default
+            />
+          )}
+        </video>
       ) : (
         <button
           type="button"

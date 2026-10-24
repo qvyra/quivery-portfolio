@@ -32,5 +32,8 @@ export const mediaSchema = z.object({
   width: z.number().int().nullable(),
   height: z.number().int().nullable(),
   alt: z.string(),
+  // a video's WebVTT captions. Defaults to null so a site built against an
+  // older API still parses
+  captionsUrl: mediaUrlSchema.nullable().default(null),
 });
 export type Media = z.infer<typeof mediaSchema>;

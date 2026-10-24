@@ -83,3 +83,4 @@ jobs:
         env:
           SITE_URL: ${{ vars.SITE_URL }}
           API_URL: ${{ vars.API_URL }}
+          SITE_ALIASES: ${{ vars.SITE_ALIASES }}

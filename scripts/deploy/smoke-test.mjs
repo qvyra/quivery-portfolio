@@ -1,6 +1,9 @@
 // Checks the deployed site and API from the outside, after every deploy or by hand
 //
 //   SITE_URL=https://... API_URL=https://... node scripts/deploy/smoke-test.mjs
+//
+// SITE_ALIASES, optional and comma separated, lists other origins that must
+// redirect to SITE_URL
 import process from "node:process";
 
 const site = process.env.SITE_URL?.replace(/\/+$/, "");
@@ -9,6 +12,10 @@ if (!site || !api) {
   console.error("::error::SITE_URL and API_URL must be set");
   process.exit(1);
 }
+const aliases = (process.env.SITE_ALIASES ?? "")
+  .split(",")
+  .map((alias) => alias.trim().replace(/\/+$/, ""))
+  .filter(Boolean);
 
 const checks = [
   {
@@ -18,12 +25,18 @@ const checks = [
     // the security headers, and a share card that loads
     headers: {
       "content-security-policy": "frame-ancestors 'none'",
-      "strict-transport-security": "max-age=",
+      "strict-transport-security": "includeSubDomains; preload",
       "x-content-type-options": "nosniff",
     },
     ogImage: true,
   },
-  { url: `${site}/projects/geode`, status: 200, ogImage: true },
+  {
+    url: `${site}/projects/geode`,
+    status: 200,
+    // a wrong SITE_URL in the build shows up here first
+    present: [`<link rel="canonical" href="${site}/projects/geode"/>`],
+    ogImage: true,
+  },
   { url: `${site}/sitemap.xml`, status: 200, present: ["/projects/geode"] },
   {
     url: `${site}/robots.txt`,
@@ -63,6 +76,13 @@ const checks = [
     status: 401,
     code: "ADMIN_UNAUTHORIZED",
   },
+  // a permanent redirect that keeps the path, so old links and search
+  // results land on the same page
+  ...aliases.map((alias) => ({
+    url: `${alias}/projects/geode`,
+    status: 308,
+    location: `${site}/projects/geode`,
+  })),
 ];
 
 async function run(check) {
@@ -84,6 +104,9 @@ async function run(check) {
     }
     for (const text of check.present ?? []) {
       if (!body.includes(text)) return `no ${JSON.stringify(text)}`;
+    }
+    if (check.location && response.headers.get("location") !== check.location) {
+      return `redirects to ${response.headers.get("location")}`;
     }
     for (const [name, text] of Object.entries(check.headers ?? {})) {
       if (!response.headers.get(name)?.includes(text)) {

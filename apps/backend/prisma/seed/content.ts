@@ -142,23 +142,32 @@ export const projects: ProjectInput[] = [
         id: 'overview',
         type: 'richText',
         markdown:
-          'Geode layers DataStore, MemoryStore and MessagingService into one data service, with guards, reactive mutations and server→client sync.\n\nWritten in Luau and published on Wally. A roblox-ts version is planned.',
+          'Geode layers DataStore, MemoryStore and MessagingService into one data service, with guards, reactive mutations and server→client sync.\n\nWritten in Luau and published on Wally, and on npm as @rbxts/geode for roblox-ts.',
       },
     ],
-    tags: ['Luau', 'Wally'],
+    tags: ['Luau', 'Wally', 'roblox-ts'],
     links: [
       {
         label: 'GitHub',
         url: 'https://github.com/qvyra/geode',
         type: 'repository',
       },
-      // TODO: the Wally package link
+      {
+        label: 'Wally',
+        url: 'https://wally.run/package/qvyra/geode',
+        type: 'package',
+      },
+      {
+        label: 'npm',
+        url: 'https://www.npmjs.com/package/@rbxts/geode',
+        type: 'package',
+      },
     ],
     releaseStatus: 'RELEASED',
-    version: '0.5.0',
+    version: '0.6.0',
     featured: true,
     openSource: true,
-    // benchmarkUrl is required before making any performance or safety claim
+    benchmarkUrl: 'https://github.com/qvyra/geode/blob/main/BENCHMARKS.md',
     publishStatus: 'PUBLISHED',
   },
   {
@@ -171,16 +180,18 @@ export const projects: ProjectInput[] = [
         id: 'overview',
         type: 'richText',
         markdown:
-          'Loupe is a data manager plugin for Roblox Studio.\n\n- **Raw mode** edits any DataStore key, whichever library wrote it.\n- **View as** shows data through Geode, with other libraries planned.\n\nFree and supported by donations, coming to the Creator Store.',
+          'Loupe is a data manager plugin for Roblox Studio.\n\n- **Raw mode** edits any DataStore key, whichever library wrote it.\n- **View as** shows data through Geode, with other libraries planned.\n\nFree on the Creator Store and supported by donations.',
       },
     ],
     tags: ['Studio plugin'],
     links: [
-      // TODO: the Creator Store link once it's live
+      {
+        label: 'Creator Store',
+        url: 'https://create.roblox.com/store/asset/134787455935323/Loupe',
+        type: 'creator-store',
+      },
     ],
-    // TODO: 'RELEASED' once it's on the Creator Store, and update the body's
-    // last line
-    releaseStatus: 'IN_DEVELOPMENT',
+    releaseStatus: 'RELEASED',
     featured: true,
     openSource: false,
     publishStatus: 'PUBLISHED',
@@ -240,8 +251,8 @@ export const contactLinks: ContactLinkInput[] = [
   {
     type: 'email',
     label: 'Email',
-    value: 'badro.zitouni.dev@gmail.com',
-    url: 'mailto:badro.zitouni.dev@gmail.com',
+    value: 'hello@quivery.dev',
+    url: 'mailto:hello@quivery.dev',
     publishStatus: 'PUBLISHED',
   },
   {

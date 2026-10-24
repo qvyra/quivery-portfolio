@@ -79,3 +79,7 @@ export const contactSubmissionSchema = contactMessageSchema.extend({
   elapsedMs: z.number().int().min(0),
 });
 export type ContactSubmission = z.input<typeof contactSubmissionSchema>;
+
+/** The inbox state of a stored message. NEW is unread */
+export const contactMessageStatusSchema = z.enum(["NEW", "READ", "ARCHIVED"]);
+export type ContactMessageStatus = z.infer<typeof contactMessageStatusSchema>;

@@ -44,20 +44,25 @@ export const sectionInputBaseSchema = z.strictObject({
   ...listItemStateInput,
 });
 
-export const sectionInputSchema = sectionInputBaseSchema.superRefine(
-  (section, ctx) => {
-    if (
-      section.titleHighlight &&
-      !section.title.includes(section.titleHighlight)
-    ) {
-      ctx.addIssue({
-        code: "custom",
-        message: "The highlight must be part of the title, exactly as written",
-        path: ["titleHighlight"],
-      });
-    }
-  },
-);
+/** The title highlight has to be a phrase from the title */
+export function checkTitleHighlight(
+  section: { title: string; titleHighlight?: string | null },
+  ctx: z.RefinementCtx,
+) {
+  if (
+    section.titleHighlight &&
+    !section.title.includes(section.titleHighlight)
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      message: "The highlight must be part of the title, exactly as written",
+      path: ["titleHighlight"],
+    });
+  }
+}
+
+export const sectionInputSchema =
+  sectionInputBaseSchema.superRefine(checkTitleHighlight);
 export type SectionInput = z.input<typeof sectionInputSchema>;
 
 const sectionBase = {

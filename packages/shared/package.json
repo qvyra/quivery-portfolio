@@ -25,6 +25,6 @@
     "@repo/typescript-config": "*",
     "eslint": "9.39.5",
     "typescript": "7.0.2",
-    "vitest": "^4.1.12"
+    "vitest": "^5.0.5"
   }
 }

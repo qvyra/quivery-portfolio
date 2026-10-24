@@ -91,7 +91,7 @@ updates:
       # need TypeScript 6's JS API, which 7 doesn't ship. Majors go by hand
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
-      # typescript-eslint stays on 8.68 until a release stops crashing ESLint.
+      # typescript-eslint stays below 8.72 until a release stops crashing ESLint.
       # It isn't ignored: each release gets its own pull request, and CI's
       # lint step shows whether it's fixed
 

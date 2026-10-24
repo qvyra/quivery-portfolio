@@ -95,7 +95,7 @@ Hobby is for non-commercial use only. The site is a portfolio for job hunting to
 
 - **multer:** `npm audit` reports 4 high findings for multer below 2.5.0 (GHSA-q7qp-rjg7-q26m). Nest 12.2.0 pins multer 2.4.0. They can't be reached here, since nothing parses multipart (uploads go straight to Blob). The nest group or a security update brings the fix once Nest ships it, and the findings clear when that pull request merges
 - **ESLint stays on 9:** the React and a11y lint plugins don't support ESLint 10 yet. Dependabot ignores ESLint majors. Check the plugins now and then, and remove the ignore when they do
-- **typescript-eslint stays on 8.68:** later releases let npm hoist `ts-api-utils` next to TypeScript 7 and ESLint crashes. Dependabot opens a pull request for each new release, and a green lint step means it's fixed
+- **typescript-eslint stays below 8.72 (on 8.71.2):** 8.72 lets npm hoist `ts-api-utils` next to TypeScript 7 and ESLint crashes. Dependabot opens a pull request for each new release, and a green lint step means it's fixed
 - **TypeScript 6 in two places:** the backend (for the Nest CLI) and `packages/eslint-config` (for typescript-eslint) need the TypeScript JS API, which 7 doesn't ship. Dependabot ignores TypeScript majors, so a new major (for the root too) is a manual update
 
 CONTRIBUTING.md, Known constraints, has the background.

@@ -1,6 +1,7 @@
-// Loads content.ts into the database (`npm run db:seed`). Until the admin panel
-// exists the seed owns the content, so each run replaces every content row, but
-// it never deletes media (uploads) or contact messages (visitor data)
+// Loads content.ts into the database (`npm run db:seed`). In development each
+// run replaces every content row. In production the admin owns the content, so
+// it only fills an empty database and refuses to overwrite anything. It never
+// deletes media (uploads) or contact messages (visitor data)
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { z } from 'zod';
@@ -48,6 +49,20 @@ const inFileOrder = <T extends object>(items: T[]) =>
 
 const json = (value: unknown) => value as Prisma.InputJsonValue;
 
+async function hasContent(tx: Prisma.TransactionClient): Promise<boolean> {
+  const counts = await Promise.all([
+    tx.profile.count(),
+    tx.section.count(),
+    tx.project.count(),
+    tx.stat.count(),
+    tx.skill.count(),
+    tx.service.count(),
+    tx.testimonial.count(),
+    tx.contactLink.count(),
+  ]);
+  return counts.some((count) => count > 0);
+}
+
 async function main() {
   const media = validate(
     mediaInputSchema.required({ id: true }),
@@ -83,6 +98,14 @@ async function main() {
 
   try {
     await db.$transaction(async (tx) => {
+      if (isProduction && (await hasContent(tx))) {
+        throw new Error(
+          'Production already has content, which the admin owns now. The seed ' +
+            'only fills an empty database. Edit it in the admin, or restore a ' +
+            'dump (DEPLOY.md, Backups and recovery)',
+        );
+      }
+
       for (const item of media) {
         await tx.media.upsert({
           where: { id: item.id },

@@ -61,7 +61,7 @@ CI runs lint, types, unit and end-to-end tests, a production build against a see
 
 ## Content
 
-In production the content is edited in the admin at `/admin`, see [DEPLOY.md](DEPLOY.md#admin). Locally, `apps/backend/prisma/seed/content.ts` gives a fresh database its content: edit it and run `npm run db:seed`, which replaces the content but never deletes uploaded media, contact messages or the admin account. The seed validates everything with the same Zod schemas as the API.
+In production the content is edited in the admin at `/admin`, see [DEPLOY.md](DEPLOY.md#admin). Locally, `apps/backend/prisma/seed/content.ts` gives a fresh database its content: edit it and run `npm run db:seed`, which replaces the content but never deletes uploaded media, contact messages or the admin account. With `NODE_ENV=production` it only fills an empty database and refuses once content exists. The seed validates everything with the same Zod schemas as the API.
 
 - **The admin locally:** put the same `ADMIN_API_SECRET` in `apps/backend/.env` and `apps/web/.env.local`, create the account with `ADMIN_USERNAME=... ADMIN_PASSWORD=... npm run admin:password -w backend`, and sign in at `http://localhost:3000/admin`. Without `BLOB_READ_WRITE_TOKEN`, uploads land in `apps/web/public/uploads`
 - **Database tests:** `npm run test:db -w backend` runs the admin's flows against a real Postgres. It empties the tables, so it refuses any `DATABASE_URL` that isn't local. Point it at a throwaway database, never the dev one with content you want

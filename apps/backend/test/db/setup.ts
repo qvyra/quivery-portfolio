@@ -35,6 +35,13 @@ const tables = [
   'Media',
 ];
 
+/** Empties every table, so the next suite (or CI's seed) starts clean */
+export async function emptyDatabase(db: PrismaService) {
+  await db.$executeRawUnsafe(
+    `TRUNCATE ${tables.map((t) => `"${t}"`).join(', ')} CASCADE`,
+  );
+}
+
 /** A real app on the test database, emptied, with one admin signed in */
 export async function startApp() {
   assertLocalDatabase();
@@ -46,9 +53,7 @@ export async function startApp() {
   await app.init();
 
   const db = app.get(PrismaService);
-  await db.$executeRawUnsafe(
-    `TRUNCATE ${tables.map((t) => `"${t}"`).join(', ')} CASCADE`,
-  );
+  await emptyDatabase(db);
   await db.adminUser.create({
     data: { username: 'ether', passwordHash: await hashPassword(PASSWORD) },
   });

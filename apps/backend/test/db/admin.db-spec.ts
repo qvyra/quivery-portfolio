@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { startApp } from './setup.js';
+import { emptyDatabase, startApp } from './setup.js';
 
 type Started = Awaited<ReturnType<typeof startApp>>;
 type Item = {
@@ -42,6 +42,7 @@ describe('admin content (database)', () => {
   });
 
   afterEach(async () => {
+    await emptyDatabase(db);
     await app.close();
     vi.restoreAllMocks();
   });

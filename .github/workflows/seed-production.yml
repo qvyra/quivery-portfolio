@@ -1,14 +1,14 @@
-# Replaces the production content with prisma/seed/content.ts. Manual only,
-# never on deploy. The admin owns the content now, so this throws away every
-# edit made there; take a dump first (DEPLOY.md, Backups and recovery). Media,
-# contact messages and the admin account are never touched
+# Fills an empty production database from prisma/seed/content.ts, e.g. a new
+# Neon project. Manual only, never on deploy. The admin owns the content, so
+# the seed refuses to run once any content exists. Media, contact messages and
+# the admin account are never touched
 name: Seed production
 
 on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Type "seed production" to replace the live content'
+        description: 'Type "seed production" to fill the empty database'
         required: true
       refresh_site:
         description: Refresh the live site's cached pages afterwards

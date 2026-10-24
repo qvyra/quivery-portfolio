@@ -105,11 +105,11 @@ GitHub turns off scheduled workflows in a public repository after 60 days withou
 
 ## Seeding production
 
-**The admin owns the content now. Seeding production replaces every section, project, stat, skill, service, testimonial and contact link with `apps/backend/prisma/seed/content.ts`, so it throws away whatever was edited in the admin.** Take a dump first (see Backups and recovery) if you might need it.
+**The admin owns the content.** Edit it there, not in `apps/backend/prisma/seed/content.ts`. In production the seed only fills an empty database (a new Neon project, say) and refuses to run once any section, project, stat, skill, service, testimonial, contact link or profile exists, so it can't overwrite admin edits. To get lost content back, restore a dump (see Backups and recovery).
 
-To run it anyway: **Seed production** from the Actions tab, type `seed production`, keep "Refresh the live site" ticked.
+To fill an empty database: **Seed production** from the Actions tab, type `seed production`, keep "Refresh the live site" ticked.
 
-- It applies pending migrations, replaces the content without the placeholder projects, and refreshes the site's cached pages
+- It applies pending migrations, loads the content without the placeholder projects, and refreshes the site's cached pages
 - It never runs on deploy
 - Uploaded media, contact messages and the admin account are never touched
 

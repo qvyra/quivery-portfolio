@@ -27,20 +27,24 @@ Every workflow runs on `ubuntu-24.04`, not `ubuntu-latest`, so GitHub moving `la
 
 ## Environment variables
 
-Production secrets are generated fresh, never copied from a local setup. `REVALIDATE_SECRET` has to be the same in Vercel, Render and GitHub, and `CONTACT_API_SECRET` the same in Vercel and Render.
+Production secrets are generated fresh, never copied from a local setup. `REVALIDATE_SECRET` has to be the same in Vercel, Render and GitHub, and `CONTACT_API_SECRET` and `ADMIN_API_SECRET` each the same in Vercel and Render.
 
-| Variable              | Where                         | Value                                                          |
-| --------------------- | ----------------------------- | -------------------------------------------------------------- |
-| `API_URL`             | Vercel                        | The Render URL, no trailing slash                              |
-| `SITE_URL`            | Vercel                        | The site's public origin, for canonical and OG URLs            |
-| `REVALIDATE_SECRET`   | Vercel, Render, GitHub secret | At least 32 random characters                                  |
-| `CONTACT_API_SECRET`  | Vercel, Render                | At least 32 random characters, sent with every contact message |
-| `DISCORD_WEBHOOK_URL` | Render                        | The webhook that announces new contact messages. Optional      |
-| `MEDIA_ORIGIN`        | Vercel, later                 | The object storage origin, once uploads exist                  |
-| `DATABASE_URL`        | Render, GitHub secret         | Neon's direct connection string, pooling off                   |
-| `WEB_ORIGIN`          | Render                        | Same as `SITE_URL`, where the API sends cache refreshes        |
-| `NODE_ENV`            | set by the Dockerfile         | `production`                                                   |
-| `PORT`                | Render                        | `10000`, Render's default                                      |
+| Variable                | Where                         | Value                                                                                |
+| ----------------------- | ----------------------------- | ------------------------------------------------------------------------------------ |
+| `API_URL`               | Vercel                        | The Render URL, no trailing slash                                                    |
+| `SITE_URL`              | Vercel                        | The site's public origin, for canonical and OG URLs                                  |
+| `REVALIDATE_SECRET`     | Vercel, Render, GitHub secret | At least 32 random characters                                                        |
+| `CONTACT_API_SECRET`    | Vercel, Render                | At least 32 random characters, sent with every contact message                       |
+| `DISCORD_WEBHOOK_URL`   | Render                        | The webhook that announces new contact messages. Optional                            |
+| `ADMIN_API_SECRET`      | Vercel, Render                | At least 32 random characters, sent with every admin request. Not the contact one    |
+| `GITHUB_DEPLOY_TOKEN`   | Render                        | A fine-grained token with only Actions write on this repository, see Admin. Optional |
+| `GITHUB_DEPLOY_REPO`    | Render                        | `owner/repo` for that token. Defaults to `qvyra/quivery-portfolio`                   |
+| `BLOB_READ_WRITE_TOKEN` | Vercel, set by the store      | Added when the Blob store was connected to the project, see Media storage            |
+| `MEDIA_ORIGIN`          | Vercel                        | The Blob store's public origin, so `next/image` serves uploads                       |
+| `DATABASE_URL`          | Render, GitHub secret         | Neon's direct connection string, pooling off                                         |
+| `WEB_ORIGIN`            | Render                        | Same as `SITE_URL`, where the API sends cache refreshes                              |
+| `NODE_ENV`              | set by the Dockerfile         | `production`                                                                         |
+| `PORT`                  | Render                        | `10000`, Render's default                                                            |
 
 Vercel doesn't get `DATABASE_URL`: the site only talks to the API.
 
@@ -101,21 +105,74 @@ GitHub turns off scheduled workflows in a public repository after 60 days withou
 
 ## Seeding production
 
-Until the admin panel exists, `apps/backend/prisma/seed/content.ts` is the content. To publish changes to it, run **Seed production** from the Actions tab, type `seed production` and keep "Refresh the live site" ticked.
+**The admin owns the content now. Seeding production replaces every section, project, stat, skill, service, testimonial and contact link with `apps/backend/prisma/seed/content.ts`, so it throws away whatever was edited in the admin.** Take a dump first (see Backups and recovery) if you might need it.
+
+To run it anyway: **Seed production** from the Actions tab, type `seed production`, keep "Refresh the live site" ticked.
 
 - It applies pending migrations, replaces the content without the placeholder projects, and refreshes the site's cached pages
-- It never runs on deploy. Once the admin panel exists, the database owns the content and this would overwrite edits made there, so it goes away then
-- Uploaded media and contact messages are never touched
+- It never runs on deploy
+- Uploaded media, contact messages and the admin account are never touched
 
 ## Refreshing cached pages
 
-The site keeps serving cached pages until it's told to refresh. The API will do that after admin edits. By hand:
+The site keeps serving cached pages until it's told to refresh. The API does that after every admin change that can show on the site. By hand:
 
 ```sh
 SITE_URL=<site url> node scripts/deploy/revalidate.mjs site projects
 ```
 
 `REVALIDATE_SECRET` is read from `.deploy/secrets.local`. Tags are `site`, `projects` and `project:<slug>`. The next visit gets the cached page while a fresh one renders, and the one after shows the change.
+
+## Admin
+
+The admin lives at `<SITE_URL>/admin`. Nothing on the site links to it, it's `noindex` (meta tag and `X-Robots-Tag`) and disallowed in `robots.txt`. What keeps it closed is the API, not the hidden URL: every `/admin` route in the API needs `ADMIN_API_SECRET`, which only the site's server has, and a signed-in session.
+
+**Signing in.** The username and password are `ADMIN_USERNAME` and `ADMIN_PASSWORD` in `.deploy/secrets.local`. There's no sign-up route: the one account is created, or its password reset, only by this command, which reads those two and `DATABASE_URL` from the secrets file and prints nothing secret:
+
+```sh
+npx tsx --env-file=.deploy/secrets.local apps/backend/prisma/admin-password.ts
+```
+
+To change the password, change it in the secrets file and run the command again. That also signs every session out. It refuses passwords under 16 characters.
+
+**How it's protected**
+
+- The browser only calls `/admin/api/*` on the site. Those routes check the request comes from the site's own pages and forward it to the API with the secret and the session token
+- The session token lives in a `__Secure-admin_session` cookie: httpOnly, `SameSite=Strict`, Secure, `Path=/admin`. Page scripts can't read it, and the database only keeps its SHA-256
+- A session ends after 30 idle minutes or 8 hours, whichever comes first. Signing out deletes it
+- Sign-in allows 5 attempts per 15 minutes per address and 30 an hour in total, and every attempt costs a slow scrypt hash
+- Every change is checked against the strict schemas in `@repo/shared`: a field that isn't on the list is refused
+
+**Drafts and publishing.** New items start unpublished. Editing a published item saves the edit as unpublished changes in the row's `draft` column, and the site doesn't change until you publish them (or discard them). The preview pane shows the site with every draft applied. Publishing, unpublishing, showing, hiding, reordering, deleting, and profile or media edits refresh the site's cached pages within seconds.
+
+**Changes that need a deploy.** Which project pages exist is fixed at build time (see `apps/web/proxy.ts`), so publishing, unpublishing, hiding, renaming or deleting a project starts the Deploy workflow, CI included, and the site updates in about 5 minutes. That needs `GITHUB_DEPLOY_TOKEN` in Render. Without it the admin says a deploy is needed and you run **Deploy** from the Actions tab yourself. To create the token:
+
+1. GitHub → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token
+2. Resource owner: `qvyra`. Repository access: **Only select repositories** → `quivery-portfolio`
+3. Permissions → Repository permissions → **Actions: Read and write**, nothing else (Metadata: read-only is added automatically). Pick an expiration, a year at most
+4. Put it in `.deploy/secrets.local` as `GITHUB_DEPLOY_TOKEN` and in Render's environment, then redeploy the API
+
+It uses `workflow_dispatch`, which only needs Actions access, rather than `repository_dispatch`, which needs Contents write and with it the power to push code.
+
+## Media storage
+
+Uploads go to a **Vercel Blob** store, `quivery-media` in Frankfurt (`fra1`), public, connected to the project's production environment. It was picked over the alternatives in October 2026:
+
+|                         | Free                                | Past the limit                       | Fit                                                                                                      |
+| ----------------------- | ----------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| **Vercel Blob (Hobby)** | 1 GB stored, 10 GB transfer a month | Never billed, Blob stops for 30 days | Same account, served from Vercel's CDN, works with `next/image`, browser uploads with short-lived tokens |
+| Neon Object Storage     | 5 GB per project                    | Hard capped on the free plan         | In beta, and files are only shared through expiring presigned URLs, which prerendered pages can't hold   |
+| Cloudflare R2           | 10 GB, no egress fees               | Billed, a card is required           | A new account with billing                                                                               |
+
+**How an upload works.** The browser asks `/admin/api/uploads` for a token, which is only issued to a signed-in admin, lasts 10 minutes and covers one file. It uploads the file straight to Blob, then asks `/admin/api/media` to record it. That route asks the store what actually arrived and refuses anything else: images (PNG, JPEG, WebP, AVIF, GIF) up to 10 MB, MP4 or WebM videos up to 100 MB, PDFs up to 10 MB, and `.vtt` captions. No SVG, since it can carry scripts. No file passes through the site or the API and nothing parses multipart, so multer is never used.
+
+**Deleting.** Deleting a file in the media library removes it from the store. A file that's still used anywhere, a draft included, is refused with a list of where it's used.
+
+**Staying inside the free tier.** 1 GB fills up with a few videos. Keep uploaded videos short (clips, loops) and put long ones on YouTube or Vimeo with an embed block. Vercel emails as usage nears the limits. If Blob ever stops, uploaded images and videos stop loading for up to 30 days, so check the store's usage page now and then.
+
+**Backing up files.** The database dump holds the records, not the files. Keep the originals, or list and download them with `npx vercel blob list --scope quivery` and `npx vercel blob get <url>`.
+
+**Locally,** without `BLOB_READ_WRITE_TOKEN`, `next dev` saves uploads in `apps/web/public/uploads`, which git ignores. A production build without the token refuses uploads instead.
 
 ## Rolling back
 
@@ -175,18 +232,19 @@ The browser posts to the site's `/api/contact` route, which checks the message w
 - **The sleeping API:** the form calls `/api/contact/warm` on first focus, which wakes the API and the database while the visitor types. Sending says "Waking the server, this can take up to a minute" after 3 seconds, waits up to 90 seconds, and retries once by itself. The draft stays in the browser until the API confirms the message is stored
 - **Spam:** a hidden field and a 3 second minimum since the first keystroke. Bots get the normal success and nothing is stored or announced. One visitor (by IP, IPv6 by /64) can send 5 an hour and 10 a day. The throttler counts in memory, which the free instance loses when it sleeps, so the daily limit is also counted from stored messages. At most 3 links per message
 - **Privacy:** messages keep the name, email, topic, text, time and a keyed hash of the IP, never the IP itself. `status` is the inbox's read flag (`NEW` is unread)
-- **Reading messages:** until the admin inbox exists, they're in the `ContactMessage` table and on Discord
+- **Reading messages:** in the admin's Inbox, where they can be read, archived and deleted, and on Discord
 - **Cloudflare Turnstile, later:** render the widget in the form, send its token in the submission (one optional field in `contactSubmissionSchema`), and verify it in the site's `/api/contact` route before forwarding, or in the API next to the other checks in `apps/backend/src/contact/spam.ts`. Nothing else has to move
 
 To rotate `CONTACT_API_SECRET`, set the new value in Vercel and Render and redeploy both. No workflow needs it, so GitHub doesn't have it. Messages sent between the two deploys fail and the form offers a retry. The IP hashes are keyed with it, so rotating also restarts the daily counts.
 
 ## Limits and cost
 
-| Host   | Free limits (October 2026)                                                                                    | Past the limit                                                                                                                                                                                                                                                                 |
-| ------ | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Vercel | 100 GB transfer, 1M function calls, 4 CPU hours, 5,000 image transforms a month                               | The feature stops until the 30 day window resets. Hobby can't be billed                                                                                                                                                                                                        |
-| Render | Free web services (0.1 CPU, 512 MB), 750 instance hours, 5 GB outbound transfer and 500 build minutes a month | No card on file: past the hours or transfer, free services are suspended until next month, and past the build minutes new builds stop while the live one keeps running. Paid plans can't be created without a card, and `render-deploy.mjs` refuses anything but the free plan |
-| Neon   | 1 GB storage, 100 compute hours a month                                                                       | Compute suspends or writes stop until next month. No card on file                                                                                                                                                                                                              |
+| Host        | Free limits (October 2026)                                                                                    | Past the limit                                                                                                                                                                                                                                                                 |
+| ----------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Vercel      | 100 GB transfer, 1M function calls, 4 CPU hours, 5,000 image transforms a month                               | The feature stops until the 30 day window resets. Hobby can't be billed                                                                                                                                                                                                        |
+| Render      | Free web services (0.1 CPU, 512 MB), 750 instance hours, 5 GB outbound transfer and 500 build minutes a month | No card on file: past the hours or transfer, free services are suspended until next month, and past the build minutes new builds stop while the live one keeps running. Paid plans can't be created without a card, and `render-deploy.mjs` refuses anything but the free plan |
+| Neon        | 1 GB storage, 100 compute hours a month                                                                       | Compute suspends or writes stop until next month. No card on file                                                                                                                                                                                                              |
+| Vercel Blob | 1 GB stored, 10 GB transfer, 10,000 simple and 2,000 advanced operations a month                              | Never billed on Hobby, but Blob stops for 30 days, so uploaded images and videos stop loading. See Media storage                                                                                                                                                               |
 
 ### When to upgrade
 

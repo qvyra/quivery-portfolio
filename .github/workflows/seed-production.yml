@@ -1,6 +1,7 @@
 # Replaces the production content with prisma/seed/content.ts. Manual only,
-# never on deploy: once the admin panel exists the database owns the content
-# and this would overwrite edits. Media and contact messages are never touched
+# never on deploy. The admin owns the content now, so this throws away every
+# edit made there; take a dump first (DEPLOY.md, Backups and recovery). Media,
+# contact messages and the admin account are never touched
 name: Seed production
 
 on:

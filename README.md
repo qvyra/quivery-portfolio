@@ -34,9 +34,11 @@ flowchart LR
 - **Fails safe:** a failed refresh keeps the last good page. A build that can't reach the API, or gets an empty homepage, fails, and the host keeps the previous deployment live
 - **Content without migrations:** the homepage is an ordered list of sections. Typed sections render their models (projects, skills...) and custom sections render JSON blocks (rich text, images, video, galleries, embeds, code) from a Zod discriminated union. Types the site doesn't know yet are skipped, not crashed on
 - **Built for a sleeping free tier:** the API scales to zero when idle. Builds wake it first, and the database is only touched by builds, refreshes and the contact form
-- **Media:** images go through `next/image`, and videos and embeds show a poster and load nothing until clicked
+- **Media:** images go through `next/image`, and videos and embeds show a poster and load nothing until clicked. Uploads go straight from the browser to Vercel Blob
+- **Contact form that never loses a message:** stored before anything else, retried with an idempotency key, the draft kept in the browser until the API confirms it. Spam is filtered with a hidden field, a time check, link and rate limits, and new messages are announced on Discord
+- **An admin that can't be stumbled into:** sign-in by server-side session in an httpOnly cookie, every change checked by strict schemas, drafts held back until published, live preview, and a deploy started only when project URLs change
 
-Coming next: a contact form, then an admin panel for the content (drafts, ordering, live preview), then SEO, accessibility and performance polish.
+Coming next: SEO, accessibility and performance polish.
 
 ## Repository
 

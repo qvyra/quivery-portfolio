@@ -61,7 +61,10 @@ CI runs lint, types, unit and end-to-end tests, a production build against a see
 
 ## Content
 
-Until the admin panel exists, the content lives in `apps/backend/prisma/seed/content.ts`. Edit it and run `npm run db:seed`. The seed validates everything with the same Zod schemas as the API, and it never deletes uploaded media or contact messages. Production is seeded from GitHub Actions, see [DEPLOY.md](DEPLOY.md).
+In production the content is edited in the admin at `/admin`, see [DEPLOY.md](DEPLOY.md#admin). Locally, `apps/backend/prisma/seed/content.ts` gives a fresh database its content: edit it and run `npm run db:seed`, which replaces the content but never deletes uploaded media, contact messages or the admin account. The seed validates everything with the same Zod schemas as the API.
+
+- **The admin locally:** put the same `ADMIN_API_SECRET` in `apps/backend/.env` and `apps/web/.env.local`, create the account with `ADMIN_USERNAME=... ADMIN_PASSWORD=... npm run admin:password -w backend`, and sign in at `http://localhost:3000/admin`. Without `BLOB_READ_WRITE_TOKEN`, uploads land in `apps/web/public/uploads`
+- **Database tests:** `npm run test:db -w backend` runs the admin's flows against a real Postgres. It empties the tables, so it refuses any `DATABASE_URL` that isn't local. Point it at a throwaway database, never the dev one with content you want
 
 - **Typed models** live in `apps/backend/prisma/schema.prisma`: Profile, Stat, Project, Skill, Service, Testimonial, ContactLink, ContactMessage and Media
 - **Sections** make up the homepage, in order. A typed section (`projects`, `skills`...) renders its list and a `custom` section renders only its blocks, like the About section. `titleHighlight` is the part of the title shown in the accent gradient and `navLabel` is a shorter label for the nav. Sections with nothing to show drop out of the page and the nav on their own

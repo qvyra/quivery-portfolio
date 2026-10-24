@@ -1,17 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Poppins } from "next/font/google";
+import { preload } from "react-dom";
 import { ogImage } from "@/lib/brand";
 import { env } from "@/lib/env";
+import { poppinsFiles } from "@/lib/fonts";
+import "./fonts.css";
 import "./globals.css";
-
-const poppins = Poppins({
-  variable: "--font-poppins",
-  subsets: ["latin"],
-  // regular, medium (numbers, nav) and semibold (headings, buttons). Each
-  // extra weight is another font file on first load
-  weight: ["400", "500", "600"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   // canonical and Open Graph URLs resolve against SITE_URL, so a custom
@@ -48,12 +41,20 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  // semibold sets the h1 and buttons, the largest text on first paint. The
+  // other weights swap in over a fallback sized to match, so nothing moves
+  preload(poppinsFiles[600], {
+    as: "font",
+    type: "font/woff2",
+    crossOrigin: "anonymous",
+  });
+
   return (
     <html
       lang="en"
       // smooth anchor scrolling from CSS, but not during route changes
       data-scroll-behavior="smooth"
-      className={`${poppins.variable} antialiased`}
+      className="antialiased"
     >
       <body className="flex min-h-dvh flex-col font-sans">{children}</body>
     </html>

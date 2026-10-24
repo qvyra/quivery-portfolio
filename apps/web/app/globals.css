@@ -5,7 +5,9 @@
 
 /* Quivery design tokens. The site is dark only */
 @theme {
-  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  /* self-hosted, see app/fonts.css */
+  --font-sans:
+    "Poppins", "Poppins Fallback", ui-sans-serif, system-ui, sans-serif;
 
   /* surfaces */
   --color-ink: #0a001d; /* page background */

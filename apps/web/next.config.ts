@@ -33,6 +33,21 @@ export default function nextConfig(phase: string): NextConfig {
       ? lanAddresses().map(({ address }) => address)
       : undefined,
 
+    async headers() {
+      return [
+        // the file names carry a content hash, see scripts/fonts.py
+        {
+          source: "/fonts/:file",
+          headers: [
+            {
+              key: "Cache-Control",
+              value: "public, max-age=31536000, immutable",
+            },
+          ],
+        },
+      ];
+    },
+
     images: {
       remotePatterns: [
         // posters for YouTube embeds

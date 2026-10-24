@@ -1,3 +1,6 @@
+// first, so every parse anywhere runs without eval
+import "./zod-config.js";
+
 export * from "./admin.js";
 export * from "./api.js";
 export * from "./contact.js";

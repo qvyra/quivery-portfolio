@@ -330,7 +330,7 @@ In Vercel, `quivery.dev` is the production domain, and `www.quivery.dev` and `qu
 
 **HSTS:** the site sends `max-age` of two years, `includeSubDomains` and `preload`. Browsers already ship the whole `.dev` TLD as HTTPS-only, so there's nothing to submit to hstspreload.org, and **any subdomain ever added has to serve HTTPS**.
 
-**DNSSEC** is set in Cloudflare → DNS → Settings. Cloudflare is also the registrar, so turning it on publishes the DS record at the registry by itself. It only signs Cloudflare's answers and doesn't involve Vercel.
+**DNSSEC** is on (Cloudflare → DNS → Settings), with the DS record at the registry since 2026-10-25. Cloudflare is also the registrar, so it publishes and updates the DS record by itself. It only signs Cloudflare's answers and doesn't involve Vercel. **Before moving the domain's DNS away from Cloudflare, turn DNSSEC off and wait a day**, or validating resolvers will reject the new nameservers' answers.
 
 **Changing the domain:** add the new one in Vercel and set the DNS records it shows, wait for its certificate, then change `SITE_URL` in Vercel and GitHub, `WEB_ORIGIN` in Render and `SITE_ALIASES`, and run Deploy. Canonical and Open Graph URLs, robots.txt and the sitemap all follow `SITE_URL`. Redirect the old domain to the new one last. Signed-in admin sessions don't carry over, since the cookie belongs to the old host.
 

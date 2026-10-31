@@ -14,14 +14,15 @@ Keep auto-renew on under Cloudflare → Domain Registration, with a card that wo
 
 ## What runs on its own
 
-| When                    | What                              | It does                                                                                                 |
-| ----------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Sunday 03:17 UTC        | Backup (`backup.yml`)             | An age-encrypted `pg_dump` of production, kept 14 days                                                  |
-| Monday 06:00 UTC        | Dependabot                        | Dependency pull requests, see below                                                                     |
-| Monday 08:00 UTC        | Token expiry (`token-expiry.yml`) | Fails from 30 days before a token expires                                                               |
-| Wednesday 05:23 UTC     | Keepalive (`keepalive.yml`)       | Keeps the schedules on, and fails if the last good backup is over 8 days old or `main` is 50 days quiet |
-| Every push to `main`    | Deploy (`deploy.yml`)             | CI, the API, the site, a smoke test, and turns the schedules back on                                    |
-| When a fix is published | Dependabot security updates       | A pull request for a vulnerable dependency, as soon as a fixed version exists                           |
+| When                     | What                              | It does                                                                                                                          |
+| ------------------------ | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Sunday 03:17 UTC         | Backup (`backup.yml`)             | An age-encrypted `pg_dump` of production, kept 14 days                                                                           |
+| Monday 06:00 UTC         | Dependabot                        | Dependency pull requests, see below                                                                                              |
+| Monday 08:00 UTC         | Token expiry (`token-expiry.yml`) | Fails from 30 days before a token expires                                                                                        |
+| Wednesday 05:23 UTC      | Keepalive (`keepalive.yml`)       | Keeps the schedules on, and fails if the last good backup is over 8 days old or `main` is 50 days quiet                          |
+| Every push to `main`     | Deploy (`deploy.yml`)             | CI, the API, the site, a smoke test, and turns the schedules back on                                                             |
+| When a fix is published  | Dependabot security updates       | A pull request for a vulnerable dependency, as soon as a fixed version exists                                                    |
+| Daily, on the next visit | Benchmark data                    | Geode's benchmarks page fetches the bench data again. Admin, Overview, Refresh benchmarks does it sooner (DEPLOY.md, Benchmarks) |
 
 A failed scheduled run emails the repository owner. Neon also keeps 6 hours of instant restore on its own.
 

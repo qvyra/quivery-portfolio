@@ -142,6 +142,16 @@ SITE_URL=<site url> node scripts/deploy/revalidate.mjs site projects
 
 `REVALIDATE_SECRET` is read from `.deploy/secrets.local`. Tags are `site`, `projects` and `project:<slug>`. The next visit gets the cached page while a fresh one renders, and the one after shows the change.
 
+## Benchmarks
+
+A project's **Benchmarks page** field holds blocks for `/projects/<slug>/benchmarks`, usually one Benchmark results block. With any blocks there, the project page gets a Benchmarks button, its Benchmark URL button reads "Full method", and the benchmarks page and its run pages (`/benchmarks/runs/<runId>`) join the sitemap. Adding the first block or removing the last starts a deploy, like any other change to the set of project pages.
+
+- **Where the data comes from:** the block's data URL, an `index.json` (or a `latest.json`) that follows the bench data schema, version 1. Geode's is `https://qvyra.github.io/geode/data/benchmarks/index.json`. Only `https://qvyra.github.io` is allowed (`benchmarkDataHosts` in `packages/shared/src/benchmarks/parse.ts`), checked when the block is saved and again before every fetch, redirects included. Paths inside the data that point anywhere else are refused too
+- **When it's fetched:** only by the site's server, while building or refreshing a page, never for a visitor and never from the browser, so the CSP doesn't change. The data refreshes once a day: a day after a render, the next visit gets the cached page while a new one renders. Admin, Overview, **Refresh benchmarks** marks it stale right away instead. Run files never change, so each is fetched once
+- **When it fails:** a failed fetch, data that doesn't match the schema, or a run that isn't the one the index promised is logged (`[benchmarks]` in the Vercel function logs). After deploy the last good page stays. During a build the page shows "Results unavailable" and tries again within the hour, so an outage on GitHub Pages can't stop a deploy. Data with a schema version other than 1 shows "Results unavailable" until the site learns the new version
+- **What's never shown:** results of a suite marked `recordedOnly` (the memory numbers), and runs' raw `tasks` and `lune` measurements. The page shows only what the data says: there's no ranking, and the block's title and note are the only words an admin adds
+- **Schema changes:** `packages/shared/src/benchmarks/fixtures` holds copies of the published files and of `schema/v1.json`. Its tests check the copies against both the JSON Schema and the Zod schemas, and that the two schemas name the same fields. When Geode's data changes shape, refresh the copies and let the tests say what to change
+
 ## Admin
 
 The admin lives at `<SITE_URL>/admin`. Nothing on the site links to it, it's `noindex` (meta tag and `X-Robots-Tag`) and disallowed in `robots.txt`. What keeps it closed is the API, not the hidden URL: every `/admin` route in the API needs `ADMIN_API_SECRET`, which only the site's server has, and a signed-in session.

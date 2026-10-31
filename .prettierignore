@@ -1,3 +1,6 @@
 # Prisma's generated client, gitignored in apps/backend but prettier only
 # reads the root ignore files
 apps/backend/src/generated
+
+# copies of files Geode publishes, kept byte for byte
+packages/shared/src/benchmarks/fixtures

@@ -12,3 +12,6 @@ export * from "./content/project.js";
 export * from "./content/section.js";
 export * from "./content/public-api.js";
 export * from "./content/embeds.js";
+export * from "./benchmarks/v1.js";
+export * from "./benchmarks/parse.js";
+export * from "./benchmarks/view.js";

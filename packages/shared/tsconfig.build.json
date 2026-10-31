@@ -1,4 +1,8 @@
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // the package runs in browsers too, so its code can't lean on Node
+    "types": []
+  },
   "exclude": ["node_modules", "dist", "src/**/*.test.ts"]
 }

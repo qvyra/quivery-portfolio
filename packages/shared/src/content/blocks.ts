@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { benchmarkDataUrlSchema } from "../benchmarks/parse.js";
 import { httpUrlSchema, linkSchema } from "./common.js";
 import { mediaSchema } from "./media.js";
 
@@ -24,6 +25,12 @@ export const embedProviderHosts = {
   streamable: ["streamable.com"],
 } as const;
 export type EmbedProvider = keyof typeof embedProviderHosts;
+
+// a suite or scenario id in bench data
+const benchId = z
+  .string()
+  .trim()
+  .regex(/^[a-z0-9][a-z0-9.+-]*$/, "Use the id from the bench data");
 
 const embedProviderSchema = z.enum(
   Object.keys(embedProviderHosts) as [EmbedProvider, ...EmbedProvider[]],
@@ -104,6 +111,19 @@ function defineBlocks<MediaRef extends z.ZodType>(mediaRef: MediaRef) {
           path: ["url"],
         },
       ),
+    z.strictObject({
+      id: blockId,
+      type: z.literal("benchmark"),
+      title: z.string().trim().min(1).max(120),
+      note: z.string().trim().min(1).max(2000).optional(),
+      // the data's index.json, which leads to its latest results and runs
+      dataUrl: benchmarkDataUrlSchema,
+      // the write-up of how it was measured
+      methodUrl: httpUrlSchema.optional(),
+      // all of them when empty
+      suites: z.array(benchId).max(20).default([]),
+      scenarios: z.array(benchId).max(50).default([]),
+    }),
   ]);
 }
 
@@ -132,6 +152,7 @@ export const blockTypeSchema = z.enum([
   "statsRow",
   "codeSnippet",
   "embed",
+  "benchmark",
 ]);
 
 export const blockSchema = defineBlocks(storedMediaRef);

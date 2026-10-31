@@ -104,14 +104,27 @@ export function parseProject(
   onSkip: SkipReporter = () => {},
 ): ProjectDetail {
   const raw = envelope(
-    z.looseObject({ slug: z.string(), body: z.unknown() }),
+    z.looseObject({
+      slug: z.string(),
+      body: z.unknown(),
+      benchmarks: z.unknown().optional(),
+    }),
   ).safeParse(json);
   if (!raw.success)
     throw new ContentSchemaError("GET /public/projects/:slug", raw.error);
 
   const where = `Project "${raw.data.data.slug}"`;
   const body = dropUnknownBlocks(raw.data.data.body, where, onSkip);
-  const project = projectDetailSchema.safeParse({ ...raw.data.data, body });
+  const benchmarks = dropUnknownBlocks(
+    raw.data.data.benchmarks ?? [],
+    `${where} benchmarks`,
+    onSkip,
+  );
+  const project = projectDetailSchema.safeParse({
+    ...raw.data.data,
+    body,
+    benchmarks,
+  });
   if (!project.success)
     throw new ContentSchemaError(
       `GET /public/projects/${raw.data.data.slug}`,

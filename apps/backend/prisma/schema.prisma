@@ -121,6 +121,8 @@ model Project {
   summary          String
   // Zod-validated array of content blocks (the project page)
   body             Json          @default("[]")
+  // the blocks of /projects/<slug>/benchmarks, which exists only with some
+  benchmarks       Json          @default("[]")
   tags             String[]      @default([])
   // Zod-validated array of { label, url, type }
   links            Json          @default("[]")

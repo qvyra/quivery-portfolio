@@ -19,6 +19,8 @@ export const projectInputSchema = z.strictObject({
   summary: z.string().trim().min(1).max(300),
   // the project's own page
   body: blocksSchema.default([]),
+  // /projects/<slug>/benchmarks, which exists only when this has blocks
+  benchmarks: blocksSchema.default([]),
   tags: z.array(z.string().trim().min(1).max(32)).max(12).default([]),
   links: z.array(linkSchema).max(20).default([]),
   releaseStatus: releaseStatusSchema,
@@ -60,6 +62,7 @@ export type ProjectSummary = z.infer<typeof projectSummarySchema>;
 
 export const projectDetailSchema = projectSummarySchema.extend({
   body: z.array(resolvedBlockSchema),
+  benchmarks: z.array(resolvedBlockSchema),
   testimonials: z.array(testimonialSchema),
 });
 export type ProjectDetail = z.infer<typeof projectDetailSchema>;

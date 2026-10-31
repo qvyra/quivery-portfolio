@@ -222,11 +222,17 @@ export class PublicContentService {
       project.body,
       `Project(${project.slug}).body`,
     );
-    const media = await this.findMedia([body]);
+    const benchmarks = parseJsonList(
+      blockSchema,
+      project.benchmarks,
+      `Project(${project.slug}).benchmarks`,
+    );
+    const media = await this.findMedia([body, benchmarks]);
 
     return {
       ...toProjectSummary(project),
       body: attachMedia(body, media) as ResolvedBlock[],
+      benchmarks: attachMedia(benchmarks, media) as ResolvedBlock[],
       testimonials: (
         await this.previewMedia(
           preview ? project.testimonials.map(withDraft) : project.testimonials,

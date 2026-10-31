@@ -206,7 +206,8 @@ export class AdminContentService {
       : this.site.deploy('the published project pages changed');
   }
 
-  // the project slugs the public site serves, mirroring PublicContentService
+  // the project pages the public site serves, mirroring PublicContentService:
+  // each slug, and its benchmarks page when it has blocks
   private async liveProjectUrls(
     collection: AdminCollection,
   ): Promise<string | null> {
@@ -219,10 +220,14 @@ export class AdminContentService {
         visible: true,
         ...(production && { isPlaceholder: false }),
       },
-      select: { slug: true },
+      select: { slug: true, benchmarks: true },
     });
     return rows
-      .map((row) => row.slug)
+      .map((row) =>
+        Array.isArray(row.benchmarks) && row.benchmarks.length > 0
+          ? `${row.slug}+benchmarks`
+          : row.slug,
+      )
       .sort()
       .join(',');
   }

@@ -128,7 +128,13 @@ export class AdminMediaService {
         where: { OR: [{ avatarId: id }, { cvId: id }] },
       }),
       this.db.project.findMany({
-        select: { title: true, coverId: true, body: true, draft: true },
+        select: {
+          title: true,
+          coverId: true,
+          body: true,
+          benchmarks: true,
+          draft: true,
+        },
       }),
       this.db.section.findMany({
         select: { title: true, blocks: true, draft: true },
@@ -151,7 +157,13 @@ export class AdminMediaService {
     return [
       ...profile.map(() => 'the profile'),
       ...projects
-        .filter((p) => p.coverId === id || used(p.body) || used(p.draft))
+        .filter(
+          (p) =>
+            p.coverId === id ||
+            used(p.body) ||
+            used(p.benchmarks) ||
+            used(p.draft),
+        )
         .map((p) => `project "${p.title}"`),
       ...sections
         .filter((s) => used(s.blocks) || used(s.draft))

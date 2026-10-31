@@ -39,12 +39,13 @@ export default async function Image({
       scenarios: block.scenarios,
     });
     text = view.suites.map((suite) => suite.name).join(" · ");
-    const builds = [...new Set(data.latest.runs.map((run) => run.build))];
+    // one row of badges fits the card: the run count and the newest run's
+    // build. Each suite's environment is on the page
+    const newest = data.latest.runs.toSorted((a, b) =>
+      b.date.localeCompare(a.date),
+    )[0];
     badges.push({ label: `${data.latest.runs.length} runs` });
-    for (const build of builds) badges.push({ label: `Build ${build}` });
-    if (view.suites.some((suite) => suite.environment === "roblox-live")) {
-      badges.push({ label: "Live Roblox servers" });
-    }
+    if (newest) badges.push({ label: `Latest build ${newest.build}` });
   }
 
   return ogCard(

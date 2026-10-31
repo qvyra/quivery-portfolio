@@ -22,6 +22,7 @@ const blockLabels: Record<BlockType, string> = {
   statsRow: "Stats row",
   codeSnippet: "Code",
   embed: "Embedded video",
+  benchmark: "Benchmark results",
 };
 
 const newId = () => Math.random().toString(36).slice(2, 10);
@@ -45,7 +46,64 @@ function newBlock(type: BlockType): Values {
       return { id, type, language: "luau", code: "" };
     case "embed":
       return { id, type, provider: "youtube", url: "", title: "" };
+    case "benchmark":
+      return {
+        id,
+        type,
+        title: "Results",
+        dataUrl: "",
+        suites: [],
+        scenarios: [],
+      };
   }
+}
+
+// ids typed as a comma list. The text is kept as typed, so a trailing comma
+// or space doesn't vanish mid-word
+function IdList({
+  label,
+  help,
+  value,
+  error,
+  onChange,
+}: {
+  label: string;
+  help: string;
+  value: unknown;
+  error?: string;
+  onChange: (ids: string[]) => void;
+}) {
+  const id = useId();
+  const [text, setText] = useState(() =>
+    Array.isArray(value) ? value.join(", ") : "",
+  );
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1.5 block text-sm">
+        {label}
+      </label>
+      <input
+        id={id}
+        className="field-input font-mono text-sm"
+        value={text}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={`${id}-help ${id}-error`}
+        onChange={(e) => {
+          setText(e.target.value);
+          onChange(
+            e.target.value
+              .split(",")
+              .map((item) => item.trim())
+              .filter(Boolean),
+          );
+        }}
+      />
+      <p id={`${id}-help`} className="mt-1 text-xs text-white/60">
+        {help}
+      </p>
+      <FieldError id={`${id}-error`} error={error} />
+    </div>
+  );
 }
 
 // an optional text that's empty is left out, the schema rejects ""
@@ -59,12 +117,14 @@ function withOptional(block: Values, key: string, value: string): Values {
 /** Edits a list of content blocks: add, change, reorder and remove */
 export function BlocksEditor({
   label,
+  help,
   blocks,
   errors,
   path,
   onChange,
 }: {
   label: string;
+  help?: string | undefined;
   blocks: Values[];
   errors: Errors;
   path: string;
@@ -78,6 +138,7 @@ export function BlocksEditor({
   return (
     <fieldset className="space-y-3">
       <legend className="mb-1.5 text-sm font-medium">{label}</legend>
+      {help && <p className="text-sm text-white/55">{help}</p>}
       {blocks.length === 0 && (
         <p className="text-sm text-white/55">No blocks yet.</p>
       )}
@@ -389,6 +450,54 @@ function BlockFields({
               value={block.url}
               error={at("url")}
               onChange={(url) => onChange({ ...block, url })}
+            />
+          </div>
+        </div>
+      );
+    case "benchmark":
+      return (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Text
+            label="Title"
+            value={block.title}
+            error={at("title")}
+            onChange={(title) => onChange({ ...block, title })}
+          />
+          <Text
+            label="Method URL (optional)"
+            value={block.methodUrl}
+            error={at("methodUrl")}
+            onChange={(v) => onChange(withOptional(block, "methodUrl", v))}
+          />
+          <div className="sm:col-span-2">
+            <Text
+              label="Data URL: index.json or latest.json on qvyra.github.io"
+              value={block.dataUrl}
+              error={at("dataUrl")}
+              onChange={(dataUrl) => onChange({ ...block, dataUrl })}
+            />
+          </div>
+          <IdList
+            label="Suites to show"
+            help="Suite ids, comma separated. Empty shows every suite."
+            value={block.suites}
+            error={at("suites")}
+            onChange={(suites) => onChange({ ...block, suites })}
+          />
+          <IdList
+            label="Scenarios to show"
+            help="Scenario ids, comma separated. Empty shows every scenario."
+            value={block.scenarios}
+            error={at("scenarios")}
+            onChange={(scenarios) => onChange({ ...block, scenarios })}
+          />
+          <div className="sm:col-span-2">
+            <Text
+              label="Note (optional, Markdown)"
+              multiline
+              value={block.note}
+              error={at("note")}
+              onChange={(v) => onChange(withOptional(block, "note", v))}
             />
           </div>
         </div>

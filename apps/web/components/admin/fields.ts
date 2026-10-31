@@ -180,6 +180,12 @@ export const collections: Record<AdminCollection, CollectionConfig> = {
         optional: true,
       },
       { name: "body", label: "Page", kind: "blocks" },
+      {
+        name: "benchmarks",
+        label: "Benchmarks page",
+        kind: "blocks",
+        help: "Blocks for /projects/<slug>/benchmarks, usually one Benchmark results block. Empty means no benchmarks page",
+      },
     ],
   },
   stats: {

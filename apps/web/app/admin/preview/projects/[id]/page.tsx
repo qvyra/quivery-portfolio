@@ -4,7 +4,9 @@ import { parseProject } from "@repo/shared";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { BlockList } from "@/components/blocks/block-list";
 import { ProjectArticle } from "@/components/site/project-article";
+import { Container } from "@/components/ui/container";
 import { adminApi, sessionToken } from "@/lib/admin/server";
 import { PreviewNotice } from "../../page";
 
@@ -23,14 +25,26 @@ async function ProjectPreview({ params }: { params: Promise<{ id: string }> }) {
       </PreviewNotice>
     );
   }
+  const project = parseProject(answer.json);
   return (
     <>
       <PreviewNotice>Preview: unpublished changes included</PreviewNotice>
       <main id="main">
-        <ProjectArticle
-          project={parseProject(answer.json)}
-          backHref="/admin/preview"
-        />
+        <ProjectArticle project={project} backHref="/admin/preview" />
+        {/* the benchmarks page lives on its own URL, here it follows the
+            project so a draft block can be checked too */}
+        {project.benchmarks.length > 0 && (
+          <Container className="border-t border-white/10 pt-12 pb-section">
+            <h2 className="text-h2 font-semibold">
+              {project.title} benchmarks
+            </h2>
+            <BlockList
+              blocks={project.benchmarks}
+              context={{ headingLevel: 3 }}
+              className="mt-10"
+            />
+          </Container>
+        )}
       </main>
     </>
   );

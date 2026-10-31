@@ -275,6 +275,7 @@ function FieldInput({
       return (
         <BlocksEditor
           label={label}
+          help={field.help}
           blocks={Array.isArray(value) ? (value as Values[]) : []}
           errors={errors}
           path={path}

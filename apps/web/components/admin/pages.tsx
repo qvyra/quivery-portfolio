@@ -74,6 +74,7 @@ export function Overview() {
           Open the inbox
         </Link>
       </section>
+      <BenchmarksRefresh />
       <section aria-labelledby="drafts-title">
         <h2 id="drafts-title" className="text-h3 font-semibold">
           Not published yet
@@ -97,6 +98,51 @@ export function Overview() {
         </ul>
       </section>
     </div>
+  );
+}
+
+// the bench data refreshes daily by itself, this is for right after a run
+function BenchmarksRefresh() {
+  const notify = useNotice();
+  const [busy, setBusy] = useState(false);
+  const refresh = () => {
+    setBusy(true);
+    adminFetch("/benchmarks/refresh", { method: "POST" })
+      .then(() =>
+        notify(
+          "Done. The next visit to a benchmarks page starts a refresh, and the one after shows it.",
+        ),
+      )
+      .catch((e: Error) => notify(e.message, "error"))
+      .finally(() => setBusy(false));
+  };
+  return (
+    <section
+      aria-labelledby="benchmarks-title"
+      className="rounded-xl bg-white/[0.03] p-5 ring-1 ring-white/10 ring-inset"
+    >
+      <h2 id="benchmarks-title" className="text-h3 font-semibold">
+        Benchmarks
+      </h2>
+      <p className="mt-1 text-white/70">
+        Results are fetched from the bench data once a day. Refresh after a new
+        run to pick it up sooner.
+      </p>
+      <button
+        type="button"
+        className="btn btn-secondary btn-sm mt-4"
+        onClick={refresh}
+        disabled={busy}
+      >
+        {busy && (
+          <LoaderCircle
+            aria-hidden="true"
+            className="motion-safe:animate-spin"
+          />
+        )}
+        Refresh benchmarks
+      </button>
+    </section>
   );
 }
 

@@ -164,10 +164,20 @@ export const projects: ProjectInput[] = [
       },
     ],
     releaseStatus: 'RELEASED',
-    version: '0.6.0',
+    version: '0.6.1',
     featured: true,
     openSource: true,
-    benchmarkUrl: 'https://github.com/qvyra/geode/blob/main/BENCHMARKS.md',
+    benchmarkUrl: 'https://qvyra.github.io/geode/docs/benchmarks/',
+    // /projects/geode/benchmarks, read from the data Geode's docs publish
+    benchmarks: [
+      {
+        id: 'results',
+        type: 'benchmark',
+        title: 'Results',
+        dataUrl: 'https://qvyra.github.io/geode/data/benchmarks/index.json',
+        methodUrl: 'https://qvyra.github.io/geode/docs/benchmarks/',
+      },
+    ],
     publishStatus: 'PUBLISHED',
   },
   {

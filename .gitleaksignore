@@ -3,3 +3,15 @@
 
 # a made-up UUID in a test, flagged because its field is called idempotencyKey
 ad412a5d99ddfcbc4e79448adbe7cd45ad0db430:packages/shared/src/contact.test.ts:generic-api-key:111
+
+# Roblox throttling messages in a bench run copied from Geode's public data:
+# "Key = <run id>-burst-<n>" names a DataStore key, not a secret
+ecaa57906064dd925b178e2e1226966661b90794:packages/shared/src/benchmarks/fixtures/run-74d6b2a5.json:generic-api-key:6124
+ecaa57906064dd925b178e2e1226966661b90794:packages/shared/src/benchmarks/fixtures/run-74d6b2a5.json:generic-api-key:6286
+ecaa57906064dd925b178e2e1226966661b90794:packages/shared/src/benchmarks/fixtures/run-74d6b2a5.json:generic-api-key:6294
+ecaa57906064dd925b178e2e1226966661b90794:packages/shared/src/benchmarks/fixtures/run-74d6b2a5.json:generic-api-key:6464
+ecaa57906064dd925b178e2e1226966661b90794:packages/shared/src/benchmarks/fixtures/run-74d6b2a5.json:generic-api-key:6472
+ecaa57906064dd925b178e2e1226966661b90794:packages/shared/src/benchmarks/fixtures/run-74d6b2a5.json:generic-api-key:6626
+ecaa57906064dd925b178e2e1226966661b90794:packages/shared/src/benchmarks/fixtures/run-74d6b2a5.json:generic-api-key:6634
+ecaa57906064dd925b178e2e1226966661b90794:packages/shared/src/benchmarks/fixtures/run-74d6b2a5.json:generic-api-key:6801
+ecaa57906064dd925b178e2e1226966661b90794:packages/shared/src/benchmarks/fixtures/run-74d6b2a5.json:generic-api-key:7017

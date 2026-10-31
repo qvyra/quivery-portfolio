@@ -748,6 +748,61 @@
     --i: 6;
   }
 
+  /* Spotlight, see <Spotlight>. A light under the mouse across a button or
+     card's surface, and a brighter one along its border. The layer sits under
+     the content, so text contrast never drops, and moves by transform only */
+  .spotlight {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--motion-slow) var(--ease-out-quart);
+  }
+  [data-spot] > .spotlight {
+    opacity: 1;
+  }
+  .spotlight-light {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--spot-size);
+    height: var(--spot-size);
+    border-radius: 9999px;
+    background-image: radial-gradient(
+      closest-side,
+      var(--spot-fill),
+      transparent
+    );
+    will-change: transform;
+  }
+  .spotlight-edge {
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+
+    & > .spotlight-light {
+      background-image: radial-gradient(
+        closest-side,
+        var(--spot-edge),
+        transparent
+      );
+    }
+  }
+  @media (forced-colors: active) {
+    .spotlight {
+      display: none;
+    }
+  }
+
   /* Hero mark, the highlighted Q (see <HeroMark>). Layers bottom to top:
      glow, halo and outline (static), the logo art, then the light sweep, a
      rotating conic gradient masked to the outline */
@@ -755,6 +810,12 @@
     position: relative;
     aspect-ratio: 1;
     animation: hero-mark-enter 900ms var(--ease-out-expo) 150ms both;
+  }
+
+  /* every layer tilts together, see lib/effects/hero-gaze.ts */
+  .hero-mark-tilt {
+    position: absolute;
+    inset: 0;
   }
 
   .hero-mark-glow {
@@ -796,6 +857,20 @@
     position: absolute;
     /* big enough to cover the corners while it rotates */
     inset: -22%;
+    animation: orbit 7s linear infinite;
+    will-change: transform;
+  }
+  /* the light's two shapes, crossfaded (see lib/effects/hero-gaze.ts): a
+     comet while it orbits, and while it follows the mouse a glow that fades
+     out evenly both ways, so it reads right in either direction. Both are
+     centred on 0.75turn, where the comet's head is */
+  .hero-mark-comet,
+  .hero-mark-gaze {
+    position: absolute;
+    inset: 0;
+    transition: opacity var(--hero-morph, 300ms) ease-in-out;
+  }
+  .hero-mark-comet {
     background-image: conic-gradient(
       from 0turn,
       transparent 0turn 0.52turn,
@@ -804,8 +879,23 @@
       rgb(255 214 245) 0.75turn,
       transparent 0.765turn 1turn
     );
-    animation: orbit 7s linear infinite;
-    will-change: transform;
+  }
+  .hero-mark-gaze {
+    opacity: 0;
+    background-image: conic-gradient(
+      from 0turn,
+      transparent 0turn 0.63turn,
+      rgb(220 0 255 / 0.35) 0.69turn,
+      rgb(255 79 216 / 0.9) 0.75turn,
+      rgb(220 0 255 / 0.35) 0.81turn,
+      transparent 0.87turn 1turn
+    );
+  }
+  .hero-mark-beam[data-gaze] .hero-mark-comet {
+    opacity: 0;
+  }
+  .hero-mark-beam[data-gaze] .hero-mark-gaze {
+    opacity: 1;
   }
   /* paused until the mark is on screen and the tab is visible */
   .hero-mark:not([data-active="true"]) .hero-mark-beam {

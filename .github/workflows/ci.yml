@@ -104,8 +104,9 @@ jobs:
             exit 1
           fi
 
-      # axe (WCAG 2.2 AA) on the homepage, a project page and the admin
-      # sign-in, at phone and desktop widths, on the build above
+      # axe (WCAG 2.2 AA) on the homepage, a project page, a benchmarks page
+      # and one of its runs, and the admin sign-in, at phone and desktop
+      # widths, on the build above
       - name: Accessibility
         env:
           API_URL: http://localhost:5005

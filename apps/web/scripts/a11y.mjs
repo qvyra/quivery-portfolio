@@ -1,6 +1,6 @@
-// Accessibility check: axe (WCAG 2.2 A and AA) on the homepage, a project page
-// and the admin sign-in, at phone and desktop widths, with the phone menu open
-// too. Runs against a started site:
+// Accessibility check: axe (WCAG 2.2 A and AA) on the homepage, a project page,
+// the first benchmarks page and one of its runs, and the admin sign-in, at
+// phone and desktop widths, with the phone menu open too. Runs against a started site:
 //
 //   SITE=http://localhost:3000 npm run test:a11y --workspace web
 //
@@ -27,6 +27,28 @@ async function projectPath(page) {
   return href;
 }
 
+// the first benchmarks page any project links to, and its first run, if any
+async function benchmarkPaths(page) {
+  await page.goto(`${site}/`);
+  const projects = await page
+    .locator('a[href^="/projects/"]')
+    .evaluateAll((links) => [
+      ...new Set(links.map((a) => a.getAttribute("href"))),
+    ]);
+  for (const project of projects) {
+    await page.goto(`${site}${project}`);
+    const benchmarks = page.locator('a[href$="/benchmarks"]').first();
+    if ((await benchmarks.count()) === 0) continue;
+    const href = await benchmarks.getAttribute("href");
+    await page.goto(`${site}${href}`);
+    const runLink = page.locator('a[href*="/benchmarks/runs/"]').first();
+    const run =
+      (await runLink.count()) > 0 ? await runLink.getAttribute("href") : null;
+    return run ? [href, run] : [href];
+  }
+  return [];
+}
+
 // motion off, so reveal animations don't leave text mid-fade for the
 // contrast check
 const browser = await chromium.launch(
@@ -45,7 +67,12 @@ try {
         `  request failed: ${request.url()} ${request.failure()?.errorText}`,
       ),
     );
-    const paths = ["/", await projectPath(page), "/admin/login"];
+    const paths = [
+      "/",
+      await projectPath(page),
+      ...(await benchmarkPaths(page)),
+      "/admin/login",
+    ];
     const checks = paths.map((path) => ({ path, label: path }));
     if (name === "phone") {
       checks.push({ path: "/", label: "/ (menu open)", menu: true });

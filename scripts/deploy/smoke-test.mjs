@@ -37,7 +37,25 @@ const checks = [
     present: [`<link rel="canonical" href="${site}/projects/geode"/>`],
     ogImage: true,
   },
-  { url: `${site}/sitemap.xml`, status: 200, present: ["/projects/geode"] },
+  // Geode's benchmarks: the page links its runs, the data loaded (a failed
+  // fetch at build shows "Results unavailable" instead), and an unknown run
+  // is a 404
+  {
+    url: `${site}/projects/geode/benchmarks`,
+    status: 200,
+    present: [
+      `<link rel="canonical" href="${site}/projects/geode/benchmarks"/>`,
+      'href="/projects/geode/benchmarks/runs/',
+    ],
+    absent: ["Results unavailable"],
+    ogImage: true,
+  },
+  { url: `${site}/projects/geode/benchmarks/runs/ffffffff`, status: 404 },
+  {
+    url: `${site}/sitemap.xml`,
+    status: 200,
+    present: ["/projects/geode", "/projects/geode/benchmarks/runs/"],
+  },
   {
     url: `${site}/robots.txt`,
     status: 200,

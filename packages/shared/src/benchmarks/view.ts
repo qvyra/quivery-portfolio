@@ -26,10 +26,7 @@ export type SubjectView = {
 type Row<V> = { subject: SubjectView; value: V };
 type ValueOf<K extends BenchValue["kind"]> = Extract<BenchValue, { kind: K }>;
 
-export type TimingRow = Row<ValueOf<"timing">> & {
-  /** Other current subjects whose median is less than one timing step away */
-  ties: SubjectView[];
-};
+export type TimingRow = Row<ValueOf<"timing">>;
 
 export type MetricView =
   | {
@@ -157,31 +154,10 @@ const highest = (rows: Row<BenchValue>[]) =>
     ),
   );
 
-function withTies(
-  rows: Row<ValueOf<"timing">>[],
-  resolution: number | undefined,
-): TimingRow[] {
-  return rows.map((row) => ({
-    ...row,
-    ties:
-      resolution === undefined || row.value.median === undefined
-        ? []
-        : rows
-            .filter(
-              (other) =>
-                other !== row &&
-                other.value.median !== undefined &&
-                Math.abs(other.value.median - row.value.median!) < resolution,
-            )
-            .map((other) => other.subject),
-  }));
-}
-
 function metricView(
   metric: BenchMetric,
   kind: BenchValue["kind"],
   rows: Row<BenchValue>[],
-  suite: BenchSuite,
   latest: BenchLatest,
   separate: boolean,
 ): MetricView {
@@ -193,18 +169,13 @@ function metricView(
   const of = <K extends BenchValue["kind"]>() => rows as Row<ValueOf<K>>[];
 
   switch (kind) {
-    case "timing": {
-      const { current, historical } = split(of<"timing">());
+    case "timing":
       return {
         kind,
         metric,
-        // ties are only called among current subjects, a historical one
-        // stands apart from them
-        current: withTies(current, suite.timingResolution),
-        historical: withTies(historical, undefined),
+        ...split(of<"timing">()),
         scaleMax: highest(rows),
       };
-    }
     case "range":
       return { kind, metric, ...split(of<"range">()), scaleMax: highest(rows) };
     case "amount":
@@ -296,7 +267,6 @@ export function benchView(
                     subject: subjects.get(row.subject)!,
                     value: row.value,
                   })),
-                suite,
                 latest,
                 separate,
               ),
@@ -395,4 +365,134 @@ export function runView(
     ...options,
     separateHistorical: false,
   });
+}
+
+export type HistoryPoint = {
+  build: string;
+  /** The subject that ran on this build */
+  subject: SubjectView;
+  /** Median of every sample from this build's runs */
+  median: number;
+  /** Samples behind the median */
+  n: number;
+  /** How many of latest.json's runs were on this build */
+  runs: number;
+};
+
+export type HistoryView = {
+  suite: string;
+  scenario: string;
+  metric: BenchMetric;
+  library: string;
+  /** One per build that has samples, in latest.json's build order */
+  points: HistoryPoint[];
+};
+
+const median = (values: number[]) => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = sorted.length >> 1;
+  return sorted.length % 2
+    ? sorted[middle]!
+    : (sorted[middle - 1]! + sorted[middle]!) / 2;
+};
+
+/**
+ * A library's timings build by build, for each library with a historical
+ * subject. It follows the library's subjects that run with default options,
+ * so a build's point always measures the store as most games make it. Only
+ * runs latest.json uses count, and a build's samples are pooled across its
+ * runs. Timings with fewer than two builds are left out
+ */
+export function historyViews(
+  latest: BenchLatest,
+  runs: BenchRun[],
+  options: Omit<BenchViewOptions, "separateHistorical"> = {},
+): HistoryView[] {
+  const subjects = subjectViews(latest);
+  const metrics = new Map(latest.metrics.map((metric) => [metric.id, metric]));
+  const used = new Set(latest.runs.map((run) => run.id));
+  const kept = runs.filter((run) => used.has(run.id));
+  const builds = latest.builds
+    .map((build) => build.id)
+    .filter((id) => kept.some((run) => run.build === id));
+  const libraries = [
+    ...new Set(
+      latest.subjects
+        .filter((subject) => subject.historical === true)
+        .map((subject) => subject.library),
+    ),
+  ];
+  const views: HistoryView[] = [];
+
+  for (const library of libraries) {
+    const lineage = latest.subjects
+      .filter(
+        (subject) =>
+          subject.library === library &&
+          Object.keys(subject.config.options).length === 0,
+      )
+      .map((subject) => subject.id);
+    for (const suite of latest.suites) {
+      if (suite.recordedOnly === true) continue;
+      if (options.suites?.length && !options.suites.includes(suite.id)) {
+        continue;
+      }
+      for (const scenario of suite.scenarios) {
+        if (
+          options.scenarios?.length &&
+          !options.scenarios.includes(scenario.id)
+        ) {
+          continue;
+        }
+        for (const metricId of scenario.metrics) {
+          const metric = metrics.get(metricId);
+          if (!metric || metric.kind !== "timing") continue;
+          const points = builds.flatMap((build): HistoryPoint[] => {
+            const timings = (run: BenchRun, subject: string) =>
+              run.results.flatMap((result) =>
+                result.suite === suite.id &&
+                result.scenario === scenario.id &&
+                result.metric === metricId &&
+                result.subject === subject &&
+                result.value.kind === "timing"
+                  ? [result.value]
+                  : [],
+              );
+            const onBuild = kept.filter((run) => run.build === build);
+            // one subject per build, the first in the data's order
+            const subjectId = lineage.find((id) =>
+              onBuild.some((run) => timings(run, id).length > 0),
+            );
+            if (!subjectId) return [];
+            const ran = onBuild.filter(
+              (run) => timings(run, subjectId).length > 0,
+            );
+            const samples = ran.flatMap((run) =>
+              timings(run, subjectId).flatMap((value) => value.samples),
+            );
+            if (samples.length === 0) return [];
+            return [
+              {
+                build,
+                subject: subjects.get(subjectId)!,
+                median: median(samples),
+                n: samples.length,
+                runs: ran.length,
+              },
+            ];
+          });
+          if (points.length >= 2) {
+            views.push({
+              suite: suite.id,
+              scenario: scenario.id,
+              metric,
+              library,
+              points,
+            });
+          }
+        }
+      }
+    }
+  }
+  return views;
 }

@@ -47,16 +47,31 @@ export function stepLabel(seconds: number): string {
   return `${number(seconds * 1_000_000, 1)} µs`;
 }
 
-/** Tick values from 0 to a round number at or above max */
-export function ticks(max: number, count = 4): number[] {
-  if (max <= 0) return [0, 1];
-  const raw = max / count;
-  const magnitude = 10 ** Math.floor(Math.log10(raw));
-  const step =
-    [1, 2, 2.5, 5, 10].map((m) => m * magnitude).find((s) => s >= raw) ??
-    10 * magnitude;
-  const top = Math.ceil(max / step - 1e-9) * step;
-  return Array.from({ length: Math.round(top / step) + 1 }, (_, i) => i * step);
+/**
+ * Axis labels, with only the decimals a tick needs. A log axis reads each
+ * tick in its own unit (10 ms, 100 ms, 1 s), a linear one keeps one unit
+ */
+export function tickFormatter(
+  unit: string,
+  scale: { kind: "linear" | "log"; ticks: number[] },
+): Formatter {
+  const short = (value: number) =>
+    value.toLocaleString("en", { maximumFractionDigits: 3 });
+  if (unit !== "s") {
+    const label = unitLabel(unit);
+    return (value) => `${short(value)} ${label}`;
+  }
+  const inMs = (value: number) => `${short(value * 1000)} ms`;
+  const inS = (value: number) => `${short(value)} s`;
+  if (scale.kind === "log")
+    return (value) => (value < 1 ? inMs(value) : inS(value));
+  return scale.ticks.at(-1)! < 1 ? inMs : inS;
+}
+
+/** "17 ms (one frame)" for a 1/60 s step, otherwise the step's own label */
+export function resolutionLabel(seconds: number): string {
+  if (Math.abs(seconds - 1 / 60) < 1e-9) return "17 ms (one frame)";
+  return stepLabel(seconds);
 }
 
 const dateFormat = new Intl.DateTimeFormat("en", {

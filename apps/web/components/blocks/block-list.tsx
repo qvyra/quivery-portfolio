@@ -1,6 +1,7 @@
 import { embedPlayer, type ResolvedBlock } from "@repo/shared";
 import { ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
+import { BenchmarkBlock } from "@/components/benchmarks/benchmark-block";
 import { LinkIcon } from "@/components/ui/link-icon";
 import { Stat, StatList } from "@/components/ui/stat";
 import { CopyButton } from "./copy-button";
@@ -13,6 +14,8 @@ import { VideoPlayer } from "./video-player";
 export type BlockContext = {
   /** Top rich text heading level, 2 on a project page and 3 in a section */
   headingLevel: 2 | 3;
+  /** Where a benchmark block's run pages live, on a benchmarks page */
+  benchmarkRunsPath?: string;
 };
 
 type BlockOf<T extends ResolvedBlock["type"]> = Extract<
@@ -166,6 +169,14 @@ const registry: { [T in ResolvedBlock["type"]]: Renderer<T> } = {
         </figcaption>
       )}
     </figure>
+  ),
+
+  benchmark: (block, context) => (
+    <BenchmarkBlock
+      block={block}
+      level={context.headingLevel}
+      runsPath={context.benchmarkRunsPath}
+    />
   ),
 };
 

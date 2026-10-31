@@ -1,5 +1,5 @@
 import type { ProjectDetail, ProjectSummary } from "@repo/shared";
-import { ArrowLeft, ArrowRight, FlaskConical } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChartBar, FlaskConical } from "lucide-react";
 import Link from "next/link";
 import { BlockList } from "@/components/blocks/block-list";
 import { MediaImage } from "@/components/blocks/media-image";
@@ -57,6 +57,7 @@ export function ProjectArticle({
   previous?: ProjectSummary | undefined;
   next?: ProjectSummary | undefined;
 }) {
+  const hasBenchmarks = project.benchmarks.length > 0;
   return (
     <article>
       <Container className="pt-[clamp(1.5rem,5svh,3.5rem)] pb-section">
@@ -78,7 +79,9 @@ export function ProjectArticle({
           <p className="animate-enter text-lead text-white/75 [--i:2]">
             {project.summary}
           </p>
-          {(project.links.length > 0 || project.benchmarkUrl) && (
+          {(project.links.length > 0 ||
+            project.benchmarkUrl ||
+            hasBenchmarks) && (
             <ul className="flex animate-enter flex-wrap gap-3 [--i:3]">
               {project.links.map((link, linkIndex) => (
                 <li key={link.url}>
@@ -94,9 +97,21 @@ export function ProjectArticle({
                   </a>
                 </li>
               ))}
+              {hasBenchmarks && (
+                <li>
+                  <Link
+                    href={`/projects/${project.slug}/benchmarks`}
+                    className="btn btn-secondary btn-md"
+                  >
+                    <ChartBar aria-hidden="true" />
+                    Benchmarks
+                  </Link>
+                </li>
+              )}
               {project.benchmarkUrl && (
                 <li>
-                  {/* evidence for the performance and safety claims */}
+                  {/* evidence for the performance and safety claims. With a
+                      results page on the site, this is the method behind it */}
                   <a
                     href={project.benchmarkUrl}
                     target="_blank"
@@ -104,7 +119,7 @@ export function ProjectArticle({
                     className="btn btn-secondary btn-md"
                   >
                     <FlaskConical aria-hidden="true" />
-                    Benchmarks and method
+                    {hasBenchmarks ? "Full method" : "Benchmarks and method"}
                     <span className="sr-only"> (opens in a new tab)</span>
                   </a>
                 </li>

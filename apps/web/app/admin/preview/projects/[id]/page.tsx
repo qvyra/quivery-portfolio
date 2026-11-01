@@ -30,7 +30,11 @@ async function ProjectPreview({ params }: { params: Promise<{ id: string }> }) {
     <>
       <PreviewNotice>Preview: unpublished changes included</PreviewNotice>
       <main id="main">
-        <ProjectArticle project={project} backHref="/admin/preview" />
+        <ProjectArticle
+          project={project}
+          backHref="/admin/preview"
+          backLabel="Back to the preview list"
+        />
         {/* the benchmarks page lives on its own URL, here it follows the
             project so a draft block can be checked too */}
         {project.benchmarks.length > 0 && (

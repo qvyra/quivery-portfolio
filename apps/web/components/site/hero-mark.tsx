@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { heroArt } from "@/lib/brand";
+import { effectsTier, whenIdle } from "@/lib/effects/tier";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import {
   useEffect,
@@ -113,6 +114,8 @@ function AnimatedLogo({ src }: { src: string }) {
  */
 export function HeroMark({ className }: { className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
+  const tiltRef = useRef<HTMLDivElement>(null);
+  const beamRef = useRef<HTMLDivElement>(null);
   const inView = useInView(ref);
   const pageVisible = usePageVisible();
   const reducedMotion = usePrefersReducedMotion();
@@ -122,6 +125,28 @@ export function HeroMark({ className }: { className?: string }) {
   // tab is visible. Reduced motion gets a static frame and the still logo
   const active = inView && pageVisible && !reducedMotion;
 
+  // the Q follows the mouse inside its frame, or glances at a tap
+  useEffect(() => {
+    const frame = ref.current;
+    const tilt = tiltRef.current;
+    const beam = beamRef.current;
+    const tier = effectsTier();
+    if (!frame || !tilt || !beam || reducedMotion || tier === "off") return;
+    let undo: (() => void) | undefined;
+    let live = true;
+    // same lazy chunk as the other effects, fetched once the page is idle
+    const cancel = whenIdle(() => {
+      void import("@/lib/effects/ambient").then(({ heroGaze }) => {
+        if (live) undo = heroGaze(frame, tilt, beam, tier);
+      });
+    });
+    return () => {
+      live = false;
+      cancel();
+      undo?.();
+    };
+  }, [reducedMotion]);
+
   return (
     <div
       ref={ref}
@@ -129,62 +154,71 @@ export function HeroMark({ className }: { className?: string }) {
       className={["hero-mark", className].filter(Boolean).join(" ")}
       style={{ "--hero-mark-mask": SWEEP_MASK } as CSSProperties}
     >
-      <svg className="hero-mark-glow" viewBox="0 0 100 100" aria-hidden="true">
-        <path
-          d={FRAME_PATH}
-          fill="none"
-          stroke="#ffd9f4"
-          strokeWidth={OUTLINE_WIDTH * 2.5}
-          strokeLinejoin="round"
-        />
-      </svg>
+      <div ref={tiltRef} className="hero-mark-tilt">
+        <svg
+          className="hero-mark-glow"
+          viewBox="0 0 100 100"
+          aria-hidden="true"
+        >
+          <path
+            d={FRAME_PATH}
+            fill="none"
+            stroke="#ffd9f4"
+            strokeWidth={OUTLINE_WIDTH * 2.5}
+            strokeLinejoin="round"
+          />
+        </svg>
 
-      {/* same URL and size as the still below, so it's one request */}
-      <div className="hero-mark-halo">
-        <Image
-          src={heroArt.still.src}
-          alt=""
-          fill
-          loading="eager"
-          fetchPriority="high"
-          unoptimized={unoptimizedStill}
-          sizes={SIZES}
-          className="object-contain"
-        />
-      </div>
+        {/* same URL and size as the still below, so it's one request */}
+        <div className="hero-mark-halo">
+          <Image
+            src={heroArt.still.src}
+            alt=""
+            fill
+            loading="eager"
+            fetchPriority="high"
+            unoptimized={unoptimizedStill}
+            sizes={SIZES}
+            className="object-contain"
+          />
+        </div>
 
-      <div className="hero-mark-art">
-        <Image
-          src={heroArt.still.src}
-          alt="Quivery logo"
-          fill
-          loading="eager"
-          fetchPriority="high"
-          unoptimized={unoptimizedStill}
-          sizes={SIZES}
-          className="object-contain"
-        />
-        {heroArt.animated && active && pageLoaded && !savesData && (
-          <AnimatedLogo src={heroArt.animated} />
-        )}
-      </div>
+        <div className="hero-mark-art">
+          <Image
+            src={heroArt.still.src}
+            alt="Quivery logo"
+            fill
+            loading="eager"
+            fetchPriority="high"
+            unoptimized={unoptimizedStill}
+            sizes={SIZES}
+            className="object-contain"
+          />
+          {heroArt.animated && active && pageLoaded && !savesData && (
+            <AnimatedLogo src={heroArt.animated} />
+          )}
+        </div>
 
-      <svg
-        className="hero-mark-outline"
-        viewBox="0 0 100 100"
-        aria-hidden="true"
-      >
-        <path
-          d={FRAME_PATH}
-          fill="none"
-          stroke="white"
-          strokeWidth={OUTLINE_WIDTH}
-          strokeLinejoin="round"
-        />
-      </svg>
+        <svg
+          className="hero-mark-outline"
+          viewBox="0 0 100 100"
+          aria-hidden="true"
+        >
+          <path
+            d={FRAME_PATH}
+            fill="none"
+            stroke="white"
+            strokeWidth={OUTLINE_WIDTH}
+            strokeLinejoin="round"
+          />
+        </svg>
 
-      <div className="hero-mark-sweep" aria-hidden="true">
-        <div className="hero-mark-beam" />
+        <div className="hero-mark-sweep" aria-hidden="true">
+          <div ref={beamRef} className="hero-mark-beam">
+            <div className="hero-mark-comet" />
+            <div className="hero-mark-gaze" />
+          </div>
+        </div>
       </div>
     </div>
   );

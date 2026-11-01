@@ -12,6 +12,9 @@ import {
 import { pageOpenGraph } from "@/lib/seo";
 import { projectStructuredData } from "@/lib/structured-data";
 
+// the end card's "follow along" link, when the site has no GitHub contact link
+const GITHUB_URL = "https://github.com/qvyra";
+
 // every published project prerenders through generateStaticParams. Any other
 // slug waits for the full page instead of streaming a shell, so it gets a real
 // 404 status. The layout's ensureStatic still requires static output
@@ -77,9 +80,15 @@ export default async function ProjectPage({
       {structuredData && <JsonLd data={structuredData} />}
       <ProjectArticle
         project={project}
-        backHref={worksSection ? `/#${worksSection.slug}` : "/"}
-        previous={previous}
-        next={next}
+        backHref="/"
+        navigation={{
+          previous,
+          next,
+          allProjectsHref: worksSection ? `/#${worksSection.slug}` : "/",
+          githubUrl:
+            site.contactLinks.find((link) => link.type === "github" && link.url)
+              ?.url ?? GITHUB_URL,
+        }}
       />
     </main>
   );

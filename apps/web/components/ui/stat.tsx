@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CountUp } from "@/components/effects/count-up";
 import { Reveal } from "./reveal";
 
 /**
@@ -12,7 +13,9 @@ export function Stat({ value, label }: { value: string; label: string }) {
       <dt className="text-sm leading-snug text-white/70 sm:max-w-[10ch] sm:text-base">
         {label}
       </dt>
-      <dd className="text-stat font-medium tabular-nums">{value}</dd>
+      <dd className="text-stat font-medium tabular-nums">
+        <CountUp value={value} />
+      </dd>
     </div>
   );
 }

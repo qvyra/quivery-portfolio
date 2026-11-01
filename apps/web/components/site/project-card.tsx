@@ -23,7 +23,10 @@ export function ProjectCard({
   const links = flagship ? project.links.slice(0, 3) : [];
 
   return (
-    <article className="group relative isolate flex h-full flex-col overflow-hidden rounded-xl bg-white/[0.03] ring-1 ring-white/10 transition-transform duration-(--motion-base) ease-out-quart ring-inset motion-safe:hover:-translate-y-1">
+    <article
+      data-spotlight=""
+      className="group relative isolate flex h-full flex-col overflow-hidden rounded-xl bg-white/[0.03] ring-1 ring-white/10 transition-transform duration-(--motion-base) ease-out-quart ring-inset motion-safe:hover:-translate-y-1"
+    >
       {/* hover wash and brighter edge, animating opacity only */}
       <span
         aria-hidden="true"

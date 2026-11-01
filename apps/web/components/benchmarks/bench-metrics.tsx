@@ -5,10 +5,12 @@ import {
   amountFormatter,
   formatRange,
   plural,
+  resolutionLabel,
   secondsFormatter,
-  ticks,
+  tickFormatter,
   type Formatter,
 } from "./format";
+import { chartScale, type Scale } from "./scale";
 
 // One metric of one scenario, as a chart with its table or as a table alone.
 // Rows keep the data's order and nothing is singled out: no winner, no
@@ -20,70 +22,117 @@ type ChartRow = {
   min?: number | undefined;
   max?: number | undefined;
   median?: number | undefined;
+  samples: number[];
   n: number;
   failed?: number | undefined;
-  ties?: SubjectView[];
 };
 
-const pct = (value: number, top: number) => `${(value / top) * 100}%`;
+// Each row is one SVG stretched to the track's width. Strokes don't scale
+// with it (non-scaling-stroke), so a zero-length round-capped line draws a
+// true circle, and a range too narrow to see still shows as a 6px mark.
+// Every sample dot is its own faint circle on the bar's centre line, so
+// samples that overlap add up and read as denser
+const VIEW_W = 1000;
+const VIEW_H = 28;
+const MID = VIEW_H / 2;
 
-function TieNote({ ties }: { ties?: SubjectView[] | undefined }) {
-  if (!ties?.length) return null;
-  return (
-    <span className="block text-xs text-white/60">
-      {/* labels can hold commas, so the list uses semicolons */}
-      Tie with {ties.map((subject) => subject.label).join("; ")}
-    </span>
-  );
-}
+const dotX = (value: number, scale: Scale) =>
+  (scale.at(value) * VIEW_W).toFixed(1);
 
-function SubjectLabel({ row }: { row: ChartRow }) {
+const gridPath = (values: number[], scale: Scale) =>
+  values
+    .map((value) => `M${(scale.at(value) * VIEW_W).toFixed(1)} 0V${VIEW_H}`)
+    .join("");
+
+function GridLines({ scale }: { scale: Scale }) {
   return (
-    <span className="min-w-0 text-sm">
-      <span className="font-medium text-white/90">{row.subject.label}</span>
-      <TieNote ties={row.ties} />
-    </span>
+    <>
+      {scale.minor.length > 0 && (
+        <path
+          d={gridPath(scale.minor, scale)}
+          stroke="rgb(255 255 255 / 0.07)"
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
+          shapeRendering="crispEdges"
+        />
+      )}
+      <path
+        d={gridPath(scale.ticks, scale)}
+        stroke="rgb(255 255 255 / 0.24)"
+        strokeWidth={1}
+        vectorEffect="non-scaling-stroke"
+        shapeRendering="crispEdges"
+      />
+    </>
   );
 }
 
 function Track({
   row,
-  top,
-  grid,
+  scale,
   historical,
 }: {
   row: ChartRow;
-  top: number;
-  grid: number[];
+  scale: Scale;
   historical: boolean;
 }) {
-  const { min, max, median } = row;
+  const { min, max, median, samples } = row;
+  const x = (value: number) => (scale.at(value) * VIEW_W).toFixed(1);
   return (
-    <div className="relative h-6">
-      {grid.map((value) => (
-        <span
-          key={value}
-          className="absolute inset-y-0 w-px bg-white/10"
-          style={{ left: pct(value, top) }}
-        />
-      ))}
+    <svg
+      viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+      preserveAspectRatio="none"
+      className="block h-7 w-full overflow-visible"
+    >
+      <GridLines scale={scale} />
       {min !== undefined && max !== undefined && (
-        <span
-          className={`absolute top-1/2 h-2 min-w-0.5 -translate-y-1/2 rounded-full ${
-            historical ? "border border-dashed border-white/70" : "bg-orchid/75"
-          }`}
-          style={{ left: pct(min, top), width: pct(max - min, top) }}
+        <path
+          d={`M${x(min)} ${MID}H${x(max)}`}
+          stroke={
+            historical ? "rgb(255 255 255 / 0.55)" : "rgb(220 0 255 / 0.45)"
+          }
+          strokeWidth={historical ? 2 : 6}
+          strokeLinecap="round"
+          strokeDasharray={historical ? "4 4" : undefined}
+          vectorEffect="non-scaling-stroke"
         />
+      )}
+      {samples.length > 0 && (
+        <g
+          stroke={historical ? "rgb(255 255 255)" : "rgb(245 184 255)"}
+          strokeOpacity={historical ? 0.3 : 0.4}
+          strokeWidth={4}
+          strokeLinecap="round"
+        >
+          {samples.map((value, index) => (
+            <path
+              key={index}
+              d={`M${dotX(value, scale)} ${MID}h0`}
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+        </g>
       )}
       {median !== undefined && (
-        <span
-          className={`absolute inset-y-0.5 w-[3px] -translate-x-1/2 rounded-full ring-2 ring-ink ${
-            historical ? "bg-white/70" : "bg-white"
-          }`}
-          style={{ left: pct(median, top) }}
-        />
+        <>
+          {/* a dark edge keeps the tick readable over the dots */}
+          <path
+            d={`M${x(median)} 1V${VIEW_H - 1}`}
+            stroke="var(--color-ink)"
+            strokeWidth={5}
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+          <path
+            d={`M${x(median)} 2V${VIEW_H - 2}`}
+            stroke={historical ? "rgb(255 255 255 / 0.75)" : "white"}
+            strokeWidth={3}
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </>
       )}
-    </div>
+    </svg>
   );
 }
 
@@ -115,29 +164,27 @@ function ValueText({ row, format }: { row: ChartRow; format: Formatter }) {
 
 function ChartRows({
   rows,
-  top,
-  grid,
+  scale,
   format,
   historical,
 }: {
   rows: ChartRow[];
-  top: number;
-  grid: number[];
+  scale: Scale;
   format: Formatter;
   historical: boolean;
 }) {
-  // on a phone the label and value share a line and the bar gets the full
+  // on a phone the label and value share a line and the track gets the full
   // width under them
   return rows.map((row) => (
     <div key={row.subject.id} className={chartGrid}>
-      <span className="min-w-0 sm:col-start-1 sm:row-start-1">
-        <SubjectLabel row={row} />
+      <span className="min-w-0 text-sm font-medium text-white/90 sm:col-start-1 sm:row-start-1">
+        {row.subject.label}
       </span>
       <span className="text-right sm:col-start-3 sm:row-start-1 sm:text-left">
         <ValueText row={row} format={format} />
       </span>
       <div className="col-span-2 sm:col-span-1 sm:col-start-2 sm:row-start-1">
-        <Track row={row} top={top} grid={grid} historical={historical} />
+        <Track row={row} scale={scale} historical={historical} />
       </div>
     </div>
   ));
@@ -146,7 +193,30 @@ function ChartRows({
 const chartGrid =
   "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5 sm:grid-cols-[11rem_minmax(0,1fr)_9rem]";
 
-function HistoricalLabel({ rows }: { rows: { subject: SubjectView }[] }) {
+/**
+ * A calm surface behind a chart's gridlines, so the page's wordmark and
+ * particles don't show through them. A tint and a hairline, nothing that
+ * draws the eye
+ */
+export function ChartSurface({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-lg border border-white/[0.08] bg-ink-raised/75 p-4 sm:p-5">
+      {children}
+    </div>
+  );
+}
+
+/** What the axis does, when it isn't a plain 0-based one */
+export function axisNote(scale: Scale, format: Formatter) {
+  if (scale.kind === "log") return "Log scale";
+  return scale.start === 0 ? null : `Axis starts at ${format(scale.start)}`;
+}
+
+export function HistoricalLabel({
+  rows,
+}: {
+  rows: { subject: SubjectView }[];
+}) {
   const notes = [...new Set(rows.flatMap((row) => row.subject.notes))];
   return (
     <p className="text-xs text-white/60">
@@ -158,13 +228,17 @@ function HistoricalLabel({ rows }: { rows: { subject: SubjectView }[] }) {
   );
 }
 
-function DataTable({
+export function DataTable({
   caption,
+  context,
   head,
   current,
   historical,
 }: {
   caption: string;
+  /** Where the table sits (scenario and suite), so tables of the same
+   metric in different places get different names */
+  context?: string | undefined;
   head: string[];
   current: { key: string; cells: ReactNode[] }[];
   historical: { key: string; cells: ReactNode[] }[];
@@ -182,9 +256,11 @@ function DataTable({
     </tr>
   );
   return (
-    <ScrollRegion label={caption}>
+    <ScrollRegion label={context ? `${caption} (${context})` : caption}>
       <table className="w-full min-w-max text-left text-sm">
-        <caption className="sr-only">{caption}</caption>
+        <caption className="sr-only">
+          {context ? `${caption} (${context})` : caption}
+        </caption>
         <thead>
           <tr className="text-xs text-white/60">
             {head.map((label) => (
@@ -214,7 +290,7 @@ function DataTable({
   );
 }
 
-function MetricFigure({
+export function MetricFigure({
   title,
   description,
   children,
@@ -238,136 +314,195 @@ function MetricFigure({
   );
 }
 
+/** The axis under a chart's tracks, with its note at the right */
+export function AxisLabels({
+  scale,
+  format,
+  className = "",
+}: {
+  scale: Scale;
+  format: Formatter;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <div className="relative h-4 text-[0.6875rem] text-white/60 tabular-nums">
+        {scale.ticks.map((value, index) => (
+          <span
+            key={value}
+            className={`absolute top-0 whitespace-nowrap ${
+              index === 0
+                ? ""
+                : index === scale.ticks.length - 1
+                  ? "-translate-x-full"
+                  : "-translate-x-1/2"
+            }`}
+            style={{ left: `${scale.at(value) * 100}%` }}
+          >
+            {format(value)}
+          </span>
+        ))}
+      </div>
+      <AxisNoteText scale={scale} format={format} />
+    </div>
+  );
+}
+
+/** "Log scale" or where a fitted axis starts, at the chart's bottom right */
+export function AxisNoteText({
+  scale,
+  format,
+}: {
+  scale: Scale;
+  format: Formatter;
+}) {
+  const note = axisNote(scale, format);
+  return note ? (
+    <p className="mt-1 text-right text-[0.6875rem] text-white/60">{note}</p>
+  ) : null;
+}
+
+export function TableDisclosure({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <details className="group rounded-lg bg-white/[0.03] ring-1 ring-white/10 ring-inset">
+      <summary className="flex min-h-11 cursor-pointer items-center rounded-lg px-4 text-sm font-medium text-white/80 hover:text-white">
+        Table: {title}
+      </summary>
+      <div className="px-4 pb-3">{children}</div>
+    </details>
+  );
+}
+
 function RangeChart({
   title,
+  context,
   description,
-  shows,
+  notes,
   current,
   historical,
-  scaleMax,
+  unit,
   format,
   tableHead,
   tableCells,
 }: {
   title: string;
+  context?: string | undefined;
   description?: string | undefined;
-  shows: string;
+  notes: string[];
   current: ChartRow[];
   historical: ChartRow[];
-  scaleMax: number;
+  unit: string;
   format: Formatter;
   tableHead: string[];
   tableCells: (row: ChartRow) => ReactNode[];
 }) {
-  const grid = ticks(scaleMax);
-  const top = grid.at(-1)!;
+  const scale = chartScale(
+    [...current, ...historical].flatMap((row) =>
+      [row.min, row.max, row.median, ...row.samples].filter(
+        (value): value is number => value !== undefined,
+      ),
+    ),
+  );
   const toTable = (rows: ChartRow[]) =>
     rows.map((row) => ({ key: row.subject.id, cells: tableCells(row) }));
   return (
     <MetricFigure title={title} description={description}>
-      <p className="text-xs text-white/60">{shows}</p>
-      {/* the chart repeats the table below it, so screen readers get the
-          table alone */}
-      <div aria-hidden="true" className="space-y-3">
-        <ChartRows
-          rows={current}
-          top={top}
-          grid={grid}
-          format={format}
-          historical={false}
-        />
-        {historical.length > 0 && (
-          <div className="space-y-3 border-t border-dashed border-white/20 pt-3">
-            <HistoricalLabel rows={historical} />
-            <ChartRows
-              rows={historical}
-              top={top}
-              grid={grid}
-              format={format}
-              historical
+      <ChartSurface>
+        <div className="space-y-1 text-xs text-white/65">
+          {notes.map((note) => (
+            <p key={note}>{note}</p>
+          ))}
+        </div>
+        {/* the chart repeats the table below it, so screen readers get the
+            table alone */}
+        <div aria-hidden="true" className="mt-4 space-y-3">
+          <ChartRows
+            rows={current}
+            scale={scale}
+            format={format}
+            historical={false}
+          />
+          {historical.length > 0 && (
+            <div className="space-y-3 border-t border-dashed border-white/20 pt-3">
+              <HistoricalLabel rows={historical} />
+              <ChartRows
+                rows={historical}
+                scale={scale}
+                format={format}
+                historical
+              />
+            </div>
+          )}
+          <div className={chartGrid}>
+            <AxisLabels
+              scale={scale}
+              format={tickFormatter(unit, scale)}
+              className="col-span-2 sm:col-span-1 sm:col-start-2"
             />
           </div>
-        )}
-        <div className={chartGrid}>
-          <div className="relative col-span-2 h-4 text-[0.6875rem] text-white/55 tabular-nums sm:col-span-1 sm:col-start-2">
-            {grid.map((value, index) => (
-              <span
-                key={value}
-                className={`absolute top-0 whitespace-nowrap ${
-                  index === 0
-                    ? ""
-                    : index === grid.length - 1
-                      ? "-translate-x-full"
-                      : "-translate-x-1/2"
-                }`}
-                style={{ left: pct(value, top) }}
-              >
-                {format(value)}
-              </span>
-            ))}
-          </div>
         </div>
-      </div>
-      <details className="group rounded-lg bg-white/[0.03] ring-1 ring-white/10 ring-inset">
-        <summary className="flex min-h-11 cursor-pointer items-center rounded-lg px-4 text-sm font-medium text-white/80 hover:text-white">
-          Table: {title}
-        </summary>
-        <div className="px-4 pb-3">
-          <DataTable
-            caption={title}
-            head={tableHead}
-            current={toTable(current)}
-            historical={toTable(historical)}
-          />
-        </div>
-      </details>
+      </ChartSurface>
+      <TableDisclosure title={title}>
+        <DataTable
+          caption={title}
+          context={context}
+          head={tableHead}
+          current={toTable(current)}
+          historical={toTable(historical)}
+        />
+      </TableDisclosure>
     </MetricFigure>
   );
 }
 
-const valueOrDash = (value: number | undefined, format: Formatter) =>
+export const valueOrDash = (value: number | undefined, format: Formatter) =>
   value === undefined ? "–" : format(value);
+
+const DOTS =
+  "Each dot is one sample, and where samples overlap the dots look denser.";
 
 /** A metric view, as the kind of figure its values call for */
 export function BenchMetric({
   view,
-  timingStep,
+  resolution,
+  context,
 }: {
   view: MetricView;
-  timingStep?: string | undefined;
+  /** Where it sits, scenario and suite, to tell its table apart */
+  context?: string | undefined;
+  /** The suite's timing resolution in seconds */
+  resolution?: number | undefined;
 }) {
   const { metric } = view;
   switch (view.kind) {
     case "timing": {
       const format = secondsFormatter(view.scaleMax);
       const rows = (list: typeof view.current): ChartRow[] =>
-        list.map((row) => ({
-          subject: row.subject,
-          ...row.value,
-          ties: row.ties,
-        }));
+        list.map((row) => ({ subject: row.subject, ...row.value }));
       return (
         <RangeChart
           title={metric.name}
+          context={context}
           description={metric.description}
-          shows={`Median (the upright tick) and min to max of every sample (the bar)${
-            timingStep
-              ? `. Medians less than one timing step (${timingStep}) apart are ties`
-              : ""
-          }.`}
+          notes={[
+            ...(resolution
+              ? [
+                  `Differences under ${resolutionLabel(resolution)} are within the timer's resolution.`,
+                ]
+              : []),
+            `${DOTS} The upright tick is the median and the bar runs from min to max.`,
+          ]}
           current={rows(view.current)}
           historical={rows(view.historical)}
-          scaleMax={view.scaleMax}
+          unit="s"
           format={format}
-          tableHead={[
-            "Subject",
-            "Median",
-            "Min",
-            "Max",
-            "n",
-            "Failed",
-            "Tie with",
-          ]}
+          tableHead={["Subject", "Median", "Min", "Max", "n", "Failed"]}
           tableCells={(row) => [
             row.subject.label,
             valueOrDash(row.median, format),
@@ -375,7 +510,6 @@ export function BenchMetric({
             valueOrDash(row.max, format),
             row.n,
             row.failed ?? 0,
-            row.ties?.map((s) => s.label).join(", ") || "–",
           ]}
         />
       );
@@ -387,17 +521,21 @@ export function BenchMetric({
           subject: row.subject,
           min: row.value.min,
           max: row.value.max,
+          samples: row.value.samples,
           n: row.value.n,
           failed: row.value.failed,
         }));
       return (
         <RangeChart
           title={metric.name}
+          context={context}
           description={metric.description}
-          shows="Shown as a range only: the shortest and longest sample, no median."
+          notes={[
+            `Shown as a range only, no median. ${DOTS} The bar runs from the shortest sample to the longest.`,
+          ]}
           current={rows(view.current)}
           historical={rows(view.historical)}
-          scaleMax={view.scaleMax}
+          unit="s"
           format={format}
           tableHead={["Subject", "Min", "Max", "n", "Failed"]}
           tableCells={(row) => [
@@ -412,18 +550,24 @@ export function BenchMetric({
     }
     case "amount": {
       const unit =
-        view.current[0]?.value.unit ?? view.historical[0]?.value.unit;
-      const format = amountFormatter(unit ?? metric.unit ?? "");
+        view.current[0]?.value.unit ??
+        view.historical[0]?.value.unit ??
+        metric.unit ??
+        "";
+      const format = amountFormatter(unit);
       const rows = (list: typeof view.current): ChartRow[] =>
         list.map((row) => ({ subject: row.subject, ...row.value }));
       return (
         <RangeChart
           title={metric.name}
+          context={context}
           description={metric.description}
-          shows="Median (the upright tick) and min to max of every sample (the bar)."
+          notes={[
+            `${DOTS} The upright tick is the median and the bar runs from min to max.`,
+          ]}
           current={rows(view.current)}
           historical={rows(view.historical)}
-          scaleMax={view.scaleMax}
+          unit={unit}
           format={format}
           tableHead={["Subject", "Median", "Min", "Max", "n"]}
           tableCells={(row) => [
@@ -451,6 +595,7 @@ export function BenchMetric({
         <MetricFigure title={metric.name} description={metric.description}>
           <DataTable
             caption={metric.name}
+            context={context}
             head={["Subject", metric.name]}
             current={toTable(view.current)}
             historical={toTable(view.historical)}
@@ -482,6 +627,7 @@ export function BenchMetric({
         <MetricFigure title={metric.name} description={metric.description}>
           <DataTable
             caption={metric.name}
+            context={context}
             head={["Subject", metric.name]}
             current={toTable(view.current)}
             historical={toTable(view.historical)}
@@ -514,6 +660,7 @@ export function BenchMetric({
           </p>
           <DataTable
             caption={metric.name}
+            context={context}
             head={[
               "Subject",
               ...view.methods.map((method) => method.label),

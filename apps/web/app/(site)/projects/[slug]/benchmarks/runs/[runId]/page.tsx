@@ -100,7 +100,8 @@ function RunDetails({ run, latest }: { run: BenchRun; latest: BenchLatest }) {
         <Heading level={2} id="run-libraries">
           Libraries
         </Heading>
-        <ScrollRegion labelledBy="run-libraries">
+        {/* its own name, apart from the section's */}
+        <ScrollRegion label="Libraries, as a table">
           <table className="w-full min-w-max text-left text-sm">
             <thead>
               <tr className="text-xs text-white/60">

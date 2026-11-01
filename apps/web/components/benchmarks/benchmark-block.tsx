@@ -1,6 +1,12 @@
-import { benchView, runList, type ResolvedBlock } from "@repo/shared";
+import {
+  benchView,
+  historyViews,
+  runList,
+  type BenchRun,
+  type ResolvedBlock,
+} from "@repo/shared";
 import { RichText } from "@/components/blocks/rich-text";
-import { benchRunUrl, getBenchData } from "@/lib/benchmarks";
+import { benchRunUrl, getBenchData, getBenchRun } from "@/lib/benchmarks";
 import {
   BenchSuites,
   Heading,
@@ -70,6 +76,21 @@ export async function BenchmarkBlock({
     scenarios: block.scenarios,
   });
   const builds = [...new Set(latest.runs.map((run) => run.build))];
+  // the history needs every run latest.json uses. If one can't be read the
+  // page goes without it rather than charting part of it
+  const runs = await Promise.all(
+    latest.runs.map((ref) =>
+      getBenchRun(new URL(ref.data, latestUrl).href, ref.id).catch(() => null),
+    ),
+  );
+  const history = runs.every(
+    (run): run is BenchRun => run !== null && run !== "unsupported",
+  )
+    ? historyViews(latest, runs, {
+        suites: block.suites,
+        scenarios: block.scenarios,
+      })
+    : [];
 
   return (
     <section aria-labelledby={id} className="space-y-12">
@@ -124,7 +145,7 @@ export async function BenchmarkBlock({
         </nav>
       </div>
 
-      <BenchSuites view={view} level={sub} idPrefix={id} />
+      <BenchSuites view={view} history={history} level={sub} idPrefix={id} />
 
       <NotMeasuredList
         items={view.notMeasured}

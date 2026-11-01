@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Effects } from "@/components/effects/effects";
 import { getSite } from "@/lib/content";
 import { Backdrop } from "./backdrop";
 import { contactItem, navItems } from "./nav-items";
@@ -12,6 +13,7 @@ export async function SiteChrome({ children }: { children: ReactNode }) {
   return (
     <>
       <Backdrop />
+      <Effects />
       <SiteHeader
         items={navItems(site.sections)}
         contact={contactItem(site.sections)}

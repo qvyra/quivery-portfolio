@@ -1,10 +1,16 @@
-import type { BenchView, NotMeasuredView, RunListItem } from "@repo/shared";
+import type {
+  BenchView,
+  HistoryView,
+  NotMeasuredView,
+  RunListItem,
+} from "@repo/shared";
 import { ArrowUpRight, Cpu, Server } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { BenchMetric } from "./bench-metrics";
-import { formatDate, stepLabel } from "./format";
+import { formatDate } from "./format";
+import { HistoryChart } from "./history-chart";
 
 export type HeadingLevel = 2 | 3 | 4 | 5;
 
@@ -106,23 +112,19 @@ export function ScrollRegion({
 /** Every suite of a view, each with its scenarios and metrics */
 export function BenchSuites({
   view,
+  history = [],
   level,
   idPrefix,
 }: {
   view: BenchView;
+  /** Per-build medians, each shown under its timing chart */
+  history?: HistoryView[];
   level: HeadingLevel;
   idPrefix: string;
 }) {
   return (
     <div className="space-y-16">
       {view.suites.map((suite) => {
-        const hasTimings = suite.scenarios.some((scenario) =>
-          scenario.metrics.some((metric) => metric.kind === "timing"),
-        );
-        const step =
-          hasTimings && suite.timingResolution
-            ? stepLabel(suite.timingResolution)
-            : undefined;
         return (
           <section
             key={suite.id}
@@ -149,9 +151,10 @@ export function BenchSuites({
               )}
             </header>
             {suite.scenarios.map((scenario) => (
+              // named with its suite too, since suites share scenario names
               <section
                 key={scenario.id}
-                aria-labelledby={`${idPrefix}-${suite.id}-${scenario.id}`}
+                aria-label={`${scenario.name}, ${suite.name}`}
                 className="space-y-6 border-t border-white/10 pt-8"
               >
                 <div className="max-w-[48rem] space-y-1">
@@ -168,13 +171,34 @@ export function BenchSuites({
                   )}
                 </div>
                 <div className="space-y-10">
-                  {scenario.metrics.map((metric) => (
-                    <BenchMetric
-                      key={`${metric.metric.id}-${metric.kind}`}
-                      view={metric}
-                      timingStep={step}
-                    />
-                  ))}
+                  {scenario.metrics.map((metric) => {
+                    const past =
+                      metric.kind === "timing"
+                        ? history.filter(
+                            (item) =>
+                              item.suite === suite.id &&
+                              item.scenario === scenario.id &&
+                              item.metric.id === metric.metric.id,
+                          )
+                        : [];
+                    return (
+                      <Fragment key={`${metric.metric.id}-${metric.kind}`}>
+                        <BenchMetric
+                          view={metric}
+                          resolution={suite.timingResolution}
+                          context={`${scenario.name}, ${suite.name}`}
+                        />
+                        {past.map((item) => (
+                          <HistoryChart
+                            key={item.library}
+                            view={item}
+                            resolution={suite.timingResolution}
+                            context={`${scenario.name}, ${suite.name}`}
+                          />
+                        ))}
+                      </Fragment>
+                    );
+                  })}
                 </div>
               </section>
             ))}
@@ -235,7 +259,8 @@ export function RunsTable({
       <p className="max-w-[48rem] text-sm text-white/70">
         Newest first. The results above come from the runs marked as used.
       </p>
-      <ScrollRegion labelledBy={id}>
+      {/* its own name, apart from the section's */}
+      <ScrollRegion label="Every run, as a table">
         <table className="w-full min-w-max text-left text-sm">
           <thead>
             <tr className="text-xs text-white/60">

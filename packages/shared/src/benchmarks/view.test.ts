@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parseBenchIndex, parseBenchLatest, parseBenchRun } from "./parse.js";
 import type { BenchIndex, BenchLatest, BenchRun } from "./v1.js";
-import { benchView, runList, runView, type MetricView } from "./view.js";
+import {
+  benchView,
+  historyViews,
+  runList,
+  runView,
+  type MetricView,
+} from "./view.js";
 
 const load = <T>(name: string, parse: (json: unknown) => unknown): T => {
   const parsed = parse(
@@ -66,23 +72,6 @@ describe("benchView", () => {
       .map((s) => s.id)
       .filter((id) => timing.current.some((row) => row.subject.id === id));
     expect(timing.current.map((row) => row.subject.id)).toEqual(order);
-  });
-
-  it("calls medians less than one timing step apart ties", () => {
-    const timing = metricOf(view, "load-save-release", "load-new", "timing");
-    if (timing?.kind !== "timing") throw new Error("no timing");
-    const ties = (id: string) =>
-      timing.current
-        .find((row) => row.subject.id === id)!
-        .ties.map((subject) => subject.id);
-    // 0.283 and 0.299 are 16 ms apart, under a 1/60 s step
-    expect(ties("geode")).toContain("geode-mailbox");
-    // 0.283 and 0.300 are 17 ms apart, over it
-    expect(ties("geode")).not.toContain("profilestore");
-    // and no historical subject is ever someone's tie
-    expect(
-      timing.current.flatMap((row) => row.ties.map((s) => s.id)),
-    ).not.toContain("geode-0.5");
   });
 
   it("puts correctness before times and request counts", () => {
@@ -160,5 +149,90 @@ describe("runList", () => {
     expect(runs[0]!.date >= runs.at(-1)!.date).toBe(true);
     const used = new Set(latest.runs.map((r) => r.id));
     for (const item of runs) expect(item.inLatest).toBe(used.has(item.id));
+  });
+});
+
+describe("historyViews", () => {
+  // the fixture holds one 0.6.1 run, so the others are made from it
+  const asRun = (id: string, build: string, subject: string, factor = 1) => ({
+    ...run,
+    id,
+    build,
+    results: run.results.flatMap((result) =>
+      result.subject !== "geode" && result.subject !== "geode-mailbox"
+        ? [result]
+        : result.subject === "geode-mailbox" && subject !== "geode"
+          ? []
+          : [
+              {
+                ...result,
+                subject:
+                  result.subject === "geode-mailbox" ? result.subject : subject,
+                value:
+                  result.value.kind === "timing"
+                    ? {
+                        ...result.value,
+                        samples: result.value.samples.map((x) => x * factor),
+                      }
+                    : result.value,
+              },
+            ],
+    ),
+  });
+  const old = asRun("1d449b46", "0.5.0", "geode-0.5", 2);
+  const older = asRun("25532752", "0.5.0", "geode-0.5", 4);
+  // a run latest.json doesn't use
+  const unused = asRun("1b5acb20", "0.6.0-pre", "geode", 100);
+  const views = historyViews(latest, [run, unused, older, old]);
+  const loadNew = views.find(
+    (view) =>
+      view.suite === "load-save-release" && view.scenario === "load-new",
+  )!;
+  const samples = run.results.find(
+    (result) =>
+      result.scenario === "load-new" &&
+      result.subject === "geode" &&
+      result.value.kind === "timing",
+  )!.value as { samples: number[] };
+
+  it("follows the default-options subjects in build order", () => {
+    expect(loadNew.library).toBe("Geode");
+    expect(loadNew.points.map((point) => point.build)).toEqual([
+      "0.5.0",
+      "0.6.1",
+    ]);
+    expect(loadNew.points.map((point) => point.subject.id)).toEqual([
+      "geode-0.5",
+      "geode",
+    ]);
+  });
+
+  it("pools a build's samples across its runs", () => {
+    const pooled = [
+      ...samples.samples.map((x) => x * 2),
+      ...samples.samples.map((x) => x * 4),
+    ].sort((a, b) => a - b);
+    const first = loadNew.points[0]!;
+    expect(first.n).toBe(pooled.length);
+    expect(first.runs).toBe(2);
+    // an even count takes the mean of the middle two
+    expect(first.median).toBeCloseTo(
+      (pooled[pooled.length / 2 - 1]! + pooled[pooled.length / 2]!) / 2,
+    );
+  });
+
+  it("only counts runs latest.json uses", () => {
+    expect(loadNew.points.map((point) => point.build)).not.toContain(
+      "0.6.0-pre",
+    );
+  });
+
+  it("leaves out timings with fewer than two builds", () => {
+    expect(historyViews(latest, [run])).toEqual([]);
+  });
+
+  it("only charts timings, never a recordedOnly suite", () => {
+    expect(views.every((view) => view.metric.kind === "timing")).toBe(true);
+    expect(views.map((view) => view.suite)).not.toContain("memory");
   });
 });

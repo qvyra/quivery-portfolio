@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { SiteAnalytics } from "@/components/site/analytics";
+import { HashRealign } from "@/components/site/hash-realign";
 import { SiteChrome } from "@/components/site/site-chrome";
 import { env } from "@/lib/env";
 
@@ -11,6 +12,7 @@ export const ensureStatic = "navigation";
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <>
+      <HashRealign />
       <SiteChrome>{children}</SiteChrome>
       {/* public pages only, the admin never loads the script */}
       {env().webAnalytics && <SiteAnalytics />}

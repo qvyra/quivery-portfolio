@@ -22,13 +22,32 @@
   src: url("/fonts/poppins-600.1c98aa1e2a.woff2") format("woff2");
 }
 
-/* Arial resized to Poppins' metrics (the values next/font computes), so
-   text doesn't move when Poppins swaps in */
+/* Local fonts resized to Poppins, so text barely moves when it swaps
+   in (FALLBACKS in scripts/fonts.py) */
 @font-face {
   font-family: "Poppins Fallback";
-  src: local("Arial");
+  src: local("Arial"), local("ArialMT"), local("Liberation Sans");
+  ascent-override: 93.09%;
+  descent-override: 31.03%;
+  line-gap-override: 8.87%;
+  size-adjust: 112.8%;
+}
+
+@font-face {
+  font-family: "Poppins Fallback";
+  font-weight: 500;
+  src: local("Arial"), local("ArialMT"), local("Liberation Sans");
   ascent-override: 93.62%;
   descent-override: 31.21%;
   line-gap-override: 8.92%;
   size-adjust: 112.16%;
+}
+
+@font-face {
+  font-family: "Poppins Fallback Roboto";
+  src: local("Roboto"), local("Roboto-Regular");
+  ascent-override: 92.51%;
+  descent-override: 30.84%;
+  line-gap-override: 8.81%;
+  size-adjust: 113.5%;
 }

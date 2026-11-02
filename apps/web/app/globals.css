@@ -7,7 +7,8 @@
 @theme {
   /* self-hosted, see app/fonts.css */
   --font-sans:
-    "Poppins", "Poppins Fallback", ui-sans-serif, system-ui, sans-serif;
+    "Poppins", "Poppins Fallback", "Poppins Fallback Roboto", ui-sans-serif,
+    system-ui, sans-serif;
 
   /* surfaces */
   --color-ink: #0a001d; /* page background */

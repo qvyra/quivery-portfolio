@@ -915,6 +915,127 @@
   }
 }
 
+/* Image blocks. The picture's inline style sets --ratio-main and, with a
+   phone version, --ratio-phone. The box takes the shape of the version on
+   screen before either loads, at the same width as its <source> */
+@layer components {
+  .art-image {
+    --ratio: var(--ratio-main);
+    aspect-ratio: var(--ratio);
+    object-fit: contain;
+
+    @media (max-width: 639px) {
+      --ratio: var(--ratio-phone, var(--ratio-main));
+    }
+  }
+
+  .image-zoom {
+    position: relative;
+    display: block;
+    width: 100%;
+    border-radius: var(--radius-xl);
+    cursor: zoom-in;
+  }
+  /* always shown on touch screens, where nothing hints that a tap enlarges */
+  .image-zoom-badge {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 9999px;
+    background: rgb(10 0 29 / 0.7);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.15);
+    color: white;
+
+    @media (hover: hover) {
+      opacity: 0;
+      transition: opacity var(--motion-base) var(--ease-out-quart);
+
+      .image-zoom:hover &,
+      .image-zoom:focus-visible & {
+        opacity: 1;
+      }
+    }
+  }
+
+  /* the whole screen, so a click beside the image closes it like the
+     backdrop would */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: max(1rem, env(safe-area-inset-top))
+      max(1rem, env(safe-area-inset-right))
+      max(1rem, env(safe-area-inset-bottom))
+      max(1rem, env(safe-area-inset-left));
+    overscroll-behavior: contain;
+    background: transparent;
+    color: white;
+
+    &[open] {
+      display: grid;
+      place-items: center;
+      animation: fade-in var(--motion-slow) var(--ease-out-quart);
+    }
+    /* near opaque, so the page's text never shows through the caption */
+    &::backdrop {
+      background: rgb(10 0 29 / 0.97);
+      backdrop-filter: blur(6px);
+    }
+    &[open]::backdrop {
+      animation: fade-in var(--motion-slow) var(--ease-out-quart);
+    }
+  }
+  .lightbox-figure {
+    display: grid;
+    justify-items: center;
+    gap: 0.75rem;
+
+    @media (prefers-reduced-motion: no-preference) {
+      .lightbox[open] & {
+        animation: lightbox-zoom var(--motion-slow) var(--ease-out-quart);
+      }
+    }
+  }
+  /* as large as fits under the close button and above the caption */
+  .lightbox-image {
+    width: min(100vw - 2rem, (100dvh - 8rem) * var(--ratio));
+    height: auto;
+    border-radius: var(--radius-sm);
+  }
+  .lightbox-close {
+    position: fixed;
+    top: max(0.75rem, env(safe-area-inset-top));
+    right: max(0.75rem, env(safe-area-inset-right));
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 9999px;
+    background: rgb(255 255 255 / 0.08);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.15);
+
+    @media (hover: hover) {
+      &:hover {
+        background: rgb(255 255 255 / 0.16);
+      }
+    }
+  }
+}
+
+@keyframes lightbox-zoom {
+  from {
+    transform: scale(0.96);
+  }
+}
+
 /* Reduced motion: no movement anywhere. Fades stay and the logo is static */
 @media (prefers-reduced-motion: reduce) {
   .btn,

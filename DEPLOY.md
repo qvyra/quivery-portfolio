@@ -174,6 +174,8 @@ To change the password, change it in the secrets file and run the command again.
 
 **Drafts and publishing.** New items start unpublished. Editing a published item saves the edit as unpublished changes in the row's `draft` column, and the site doesn't change until you publish them (or discard them). The preview pane shows the site with every draft applied. Publishing, unpublishing, showing, hiding, reordering, deleting, and profile or media edits refresh the site's cached pages within seconds.
 
+**Image blocks.** An image block can take a second, mobile image, shown instead on screens under 640px wide. Both share the main image's alt text and the block's caption, so the mobile one should be a crop of the same picture, not a different one. Each keeps its own shape, and the editor shows the two side by side. **Wide** lets the image span the page's full width on desktop, on project pages, where text keeps to a narrower column. A tap or click opens whichever version is on screen full size.
+
 **Changes that need a deploy.** Which project pages exist is fixed at build time (see `apps/web/proxy.ts`), so publishing, unpublishing, hiding, renaming or deleting a project starts the Deploy workflow, CI included, and the site updates in about 5 minutes. That needs `GITHUB_DEPLOY_TOKEN` in Render. Without it the admin says a deploy is needed and you run **Deploy** from the Actions tab yourself. To create the token:
 
 1. GitHub → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token

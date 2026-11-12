@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { BenchmarkBlock } from "@/components/benchmarks/benchmark-block";
 import { LinkIcon } from "@/components/ui/link-icon";
 import { Stat, StatList } from "@/components/ui/stat";
+import { ArtImage } from "./art-image";
 import { CopyButton } from "./copy-button";
 import { EmbedPlayer } from "./embed-player";
 import { MediaImage } from "./media-image";
@@ -29,6 +30,8 @@ type Renderer<T extends ResolvedBlock["type"]> = (
 
 const CONTENT_SIZES =
   "(min-width: 1280px) 60rem, (min-width: 768px) 85vw, 100vw";
+// the page's full width, for a wide image
+const WIDE_SIZES = "(min-width: 1280px) 76rem, 100vw";
 
 function Caption({ children }: { children?: string }) {
   return children ? (
@@ -50,12 +53,13 @@ const registry: { [T in ResolvedBlock["type"]]: Renderer<T> } = {
   ),
 
   image: (block) =>
-    block.image.media && (
+    block.image.media?.kind === "IMAGE" && (
       <figure>
-        <MediaImage
-          media={block.image.media}
-          sizes={CONTENT_SIZES}
-          className="rounded-xl ring-1 ring-white/10"
+        <ArtImage
+          image={block.image.media}
+          mobileImage={block.mobileImage?.media}
+          sizes={block.wide ? WIDE_SIZES : CONTENT_SIZES}
+          caption={block.caption}
         />
         <Caption>{block.caption}</Caption>
       </figure>
@@ -188,10 +192,13 @@ export function BlockList({
   blocks,
   context,
   className,
+  measure,
 }: {
   blocks: ResolvedBlock[];
   context: BlockContext;
   className?: string;
+  /** Caps each block at the text column, except wide images */
+  measure?: string;
 }) {
   if (blocks.length === 0) return null;
   return (
@@ -200,7 +207,12 @@ export function BlockList({
         const render = registry[block.type] as
           Renderer<typeof block.type> | undefined;
         if (!render) return null;
-        return <div key={block.id}>{render(block as never, context)}</div>;
+        const wide = block.type === "image" && block.wide;
+        return (
+          <div key={block.id} className={wide ? undefined : measure}>
+            {render(block as never, context)}
+          </div>
+        );
       })}
     </div>
   );

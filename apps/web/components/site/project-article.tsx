@@ -247,7 +247,8 @@ export function ProjectArticle({
         <BlockList
           blocks={project.body}
           context={{ headingLevel: 2 }}
-          className="mt-14 max-w-[60rem]"
+          className="mt-14"
+          measure="max-w-[60rem]"
         />
 
         {project.testimonials.length > 0 && (

@@ -11,7 +11,7 @@ import {
   type Errors,
   type Values,
 } from "./form";
-import { MediaField } from "./media";
+import { MediaField, useMediaLibrary, type AdminMedia } from "./media";
 
 const blockLabels: Record<BlockType, string> = {
   richText: "Text",
@@ -260,31 +260,106 @@ function Text({
   );
 }
 
+const mediaIdOf = (value: unknown) =>
+  (value as { mediaId?: string | null } | undefined)?.mediaId ?? null;
+
 function MediaRef({
   label,
+  help,
   accept,
   value,
   error,
   onChange,
 }: {
   label: string;
+  help?: string;
   accept: "IMAGE" | "VIDEO";
   value: unknown;
   error?: string;
   onChange: (value: { mediaId: string | null }) => void;
 }) {
   const id = useId();
-  const mediaId =
-    (value as { mediaId?: string | null } | undefined)?.mediaId ?? null;
   return (
     <MediaField
       id={id}
       label={label}
+      {...(help && { help })}
       accept={accept}
-      value={mediaId}
+      value={mediaIdOf(value)}
       error={error}
       onChange={(next) => onChange({ mediaId: next })}
     />
+  );
+}
+
+// one version as the site sizes it: its own shape, the shared alt text and
+// caption under it
+function PreviewFrame({
+  label,
+  media,
+  caption,
+  className,
+}: {
+  label: string;
+  media: AdminMedia;
+  caption: unknown;
+  className: string;
+}) {
+  return (
+    <figure className={className}>
+      <figcaption className="mb-1.5 text-xs font-medium text-white/60">
+        {label}
+      </figcaption>
+      {/* admin preview, from any origin and never on the public site */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={media.url}
+        alt={media.alt}
+        style={{
+          aspectRatio:
+            media.width && media.height
+              ? `${media.width} / ${media.height}`
+              : "16 / 9",
+        }}
+        className="h-auto w-full rounded-lg object-contain ring-1 ring-white/10"
+      />
+      {typeof caption === "string" && caption.trim() && (
+        <p className="mt-1.5 text-xs text-white/60">{caption}</p>
+      )}
+    </figure>
+  );
+}
+
+/** Both versions side by side, so the crops can be compared before saving */
+function ImagePreview({ block }: { block: Values }) {
+  const library = useMediaLibrary();
+  const find = (value: unknown) =>
+    library?.find((media) => media.id === mediaIdOf(value)) ?? null;
+  const main = find(block.image);
+  if (!main) return null;
+  const phone = find(block.mobileImage);
+  return (
+    <div className="rounded-lg bg-black/20 p-3 ring-1 ring-white/10 ring-inset">
+      <div className="flex items-start gap-4">
+        <PreviewFrame
+          label={block.wide === true ? "Desktop, wide" : "Desktop"}
+          media={main}
+          caption={block.caption}
+          className="min-w-0 flex-1"
+        />
+        <PreviewFrame
+          label={phone ? "Phone" : "Phone (same image)"}
+          media={phone ?? main}
+          caption={block.caption}
+          className="w-[7.5rem] shrink-0 sm:w-[9rem]"
+        />
+      </div>
+      <p className="mt-3 text-xs text-white/60">
+        {main.alt
+          ? `Alt text, for both: ${main.alt}`
+          : "No alt text, so both are treated as decorative. Add it in Media."}
+      </p>
+    </div>
   );
 }
 
@@ -331,7 +406,37 @@ function BlockFields({
             error={at("image.mediaId") ?? at("image")}
             onChange={(image) => onChange({ ...block, image })}
           />
+          <MediaRef
+            label="Mobile image (optional)"
+            help="Shown instead on screens under 640px wide, with the same alt text and caption"
+            accept="IMAGE"
+            value={block.mobileImage}
+            error={at("mobileImage.mediaId") ?? at("mobileImage")}
+            onChange={(mobileImage) => {
+              const copy = { ...block };
+              // the schema rejects an empty reference, so a removed one goes
+              if (mobileImage.mediaId) copy.mobileImage = mobileImage;
+              else delete copy.mobileImage;
+              onChange(copy);
+            }}
+          />
           {caption}
+          <label className="inline-flex min-h-11 items-center gap-3">
+            <input
+              type="checkbox"
+              className="size-5 accent-(--color-orchid)"
+              checked={block.wide === true}
+              onChange={(e) => {
+                // stored only when on, like the mobile image
+                const copy = { ...block };
+                if (e.target.checked) copy.wide = true;
+                else delete copy.wide;
+                onChange(copy);
+              }}
+            />
+            Wide: the page&apos;s full width on desktop
+          </label>
+          <ImagePreview block={block} />
         </div>
       );
     case "video":

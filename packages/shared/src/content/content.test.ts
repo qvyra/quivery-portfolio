@@ -44,6 +44,32 @@ describe("blocksSchema", () => {
     expect(video).toMatchObject({ loop: false });
   });
 
+  it("leaves image blocks that don't use the new options as they were", () => {
+    // no defaults added, or a site built before them would refuse the block
+    const [image] = blocksSchema.parse([
+      { id: "i", type: "image", image: { mediaId } },
+    ]);
+    expect(image).toEqual({ id: "i", type: "image", image: { mediaId } });
+  });
+
+  it("accepts a mobile image, and rejects one without a media id", () => {
+    const block = { id: "i", type: "image", image: { mediaId }, wide: true };
+    expect(
+      blocksSchema.safeParse([{ ...block, mobileImage: { mediaId } }]).success,
+    ).toBe(true);
+    expect(
+      blocksSchema.safeParse([{ ...block, mobileImage: { mediaId: null } }])
+        .success,
+    ).toBe(false);
+    expect(
+      resolvedBlockSchema.safeParse({
+        ...block,
+        image: { mediaId, media: null },
+        mobileImage: { mediaId, media: null },
+      }).success,
+    ).toBe(true);
+  });
+
   it("rejects an unknown block type", () => {
     expect(blocksSchema.safeParse([{ id: "x", type: "marquee" }]).success).toBe(
       false,

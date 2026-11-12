@@ -48,7 +48,14 @@ function defineBlocks<MediaRef extends z.ZodType>(mediaRef: MediaRef) {
       id: blockId,
       type: z.literal("image"),
       image: mediaRef,
+      // shown instead on phones. It shares the main image's alt text and
+      // the caption, so it should show the same thing, cropped to fit
+      mobileImage: mediaRef.optional(),
       caption,
+      // spans the page's full width on desktop instead of the text column.
+      // Absent means off, with no default, so a block that doesn't use it
+      // stays readable by a site built before it (mid-deploy or rolled back)
+      wide: z.boolean().optional(),
     }),
     z.strictObject({
       id: blockId,

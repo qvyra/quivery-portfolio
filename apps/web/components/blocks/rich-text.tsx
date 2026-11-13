@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ComponentProps, ElementType } from "react";
-import Markdown, { type Components } from "react-markdown";
+import Markdown, { type Components, type ExtraProps } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 type Level = 2 | 3 | 4 | 5 | 6;
@@ -50,9 +50,12 @@ function MarkdownLink({ href = "", children }: ComponentProps<"a">) {
 export function RichText({
   markdown,
   headingLevel,
+  anchors,
 }: {
   markdown: string;
   headingLevel: Level;
+  /** Ids for headings, by where each starts in the markdown (lib/outline) */
+  anchors?: Record<number, string> | undefined;
 }) {
   // shift headings so the shallowest becomes headingLevel, keeping the page
   // outline right wherever the block sits
@@ -60,9 +63,11 @@ export function RichText({
   const heading = (depth: number) => {
     const level = Math.min(6, Math.max(2, depth + offset)) as Level;
     const Tag = `h${level}` as ElementType;
-    function Heading({ children }: ComponentProps<"h2">) {
+    function Heading({ children, node }: ComponentProps<"h2"> & ExtraProps) {
+      const offset = node?.position?.start.offset;
+      const id = offset === undefined ? undefined : anchors?.[offset];
       return (
-        <Tag className={`mt-10 mb-4 first:mt-0 ${headingClass[level]}`}>
+        <Tag id={id} className={`mt-10 mb-4 first:mt-0 ${headingClass[level]}`}>
           {children}
         </Tag>
       );

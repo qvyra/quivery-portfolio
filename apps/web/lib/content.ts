@@ -3,9 +3,13 @@
 // No visitor request ever waits on the API
 import "server-only";
 import {
+  parsePage,
+  parsePages,
   parseProject,
   parseProjects,
   parseSite,
+  type PageDetail,
+  type PageSummary,
   type ProjectDetail,
   type ProjectSummary,
   type Site,
@@ -21,6 +25,10 @@ export const tags = {
   projects: "projects",
   /** One project page */
   project: (slug: string) => `project:${slug}`,
+  /** Any standalone page or list of them */
+  pages: "pages",
+  /** One standalone page */
+  page: (slug: string) => `page:${slug}`,
 } as const;
 
 // unknown section and block types get skipped, so say so while developing
@@ -70,8 +78,9 @@ function parsed<T>(parse: () => T): T {
 export async function getSite(): Promise<Site> {
   "use cache";
   cacheLife("max");
-  // the homepage lists project summaries, so project changes refresh it too
-  cacheTag(tags.site, tags.projects);
+  // the homepage lists project summaries and links pages, so changes to
+  // either refresh it too
+  cacheTag(tags.site, tags.projects, tags.pages);
 
   const { status, json } = await request("/public/site");
   if (status !== 200) throw unexpected("/public/site", status, json);
@@ -136,6 +145,56 @@ export async function getBuiltProjects(): Promise<ProjectSummary[]> {
   return published
     ? projects.filter((project) => published.includes(project.slug))
     : projects;
+}
+
+export async function getPages(): Promise<PageSummary[]> {
+  "use cache";
+  cacheLife("max");
+  cacheTag(tags.pages);
+
+  const { status, json } = await request("/public/pages");
+  if (status !== 200) throw unexpected("/public/pages", status, json);
+  return parsed(() => parsePages(json));
+}
+
+/** A published page, or null if there's none with this slug */
+export async function getPage(slug: string): Promise<PageDetail | null> {
+  "use cache";
+  cacheLife("max");
+  cacheTag(tags.pages, tags.page(slug));
+
+  const path = `/public/pages/${encodeURIComponent(slug)}`;
+  const { status, json } = await request(path);
+  if (status === 404) return null;
+  if (status !== 200) throw unexpected(path, status, json);
+  return parsed(() => parsePage(json, reportSkip));
+}
+
+/**
+ * The page slugs published at build time, or null in dev. Same reason as
+ * publishedAtBuild: an unknown top-level URL mustn't wake the API
+ */
+export function pagesPublishedAtBuild(): string[] | null {
+  const value = process.env.PUBLISHED_PAGE_SLUGS;
+  return value ? (JSON.parse(value) as string[]) : null;
+}
+
+/** A page that exists in this build, or null */
+export async function getBuiltPage(slug: string): Promise<PageDetail | null> {
+  const published = pagesPublishedAtBuild();
+  const known = published
+    ? published.includes(slug)
+    : (await getPages()).some((page) => page.slug === slug);
+  return known ? getPage(slug) : null;
+}
+
+/** The pages that exist in this build */
+export async function getBuiltPages(): Promise<PageSummary[]> {
+  const published = pagesPublishedAtBuild();
+  const pages = await getPages();
+  return published
+    ? pages.filter((page) => published.includes(page.slug))
+    : pages;
 }
 
 /** Featured projects first, otherwise in stored order */

@@ -6,7 +6,11 @@
       // The build prerenders pages from the API's current content, which
       // Turbo can't see as an input, so a cached build is never replayed
       "cache": false,
-      "passThroughEnv": ["WAIT_FOR_API_TIMEOUT_MS", "PUBLISHED_PROJECT_SLUGS"]
+      "passThroughEnv": [
+        "WAIT_FOR_API_TIMEOUT_MS",
+        "PUBLISHED_PROJECT_SLUGS",
+        "PUBLISHED_PAGE_SLUGS"
+      ]
     },
     "test:a11y": {
       // checks a running site, see scripts/a11y.mjs

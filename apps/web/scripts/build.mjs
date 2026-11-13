@@ -1,10 +1,11 @@
-// Production build. Waits for the API, snapshots which project slugs are
-// published, then runs next build with that list baked in, so an unknown
-// project URL can 404 without asking the API (see next.config.ts)
+// Production build. Waits for the API, snapshots which project and page slugs
+// are published, then runs next build with those lists baked in, so an
+// unknown project or page URL can 404 without asking the API (see
+// next.config.ts)
 import { spawnSync } from "node:child_process";
 import { rmSync } from "node:fs";
 import process from "node:process";
-import { parseProjects } from "@repo/shared";
+import { parsePages, parseProjects } from "@repo/shared";
 
 function run(command, args, env = {}) {
   const result = spawnSync(command, args, {
@@ -40,8 +41,19 @@ const slugs = parseProjects(await response.json()).map(
 );
 console.log(`[build] Published projects: ${slugs.join(", ") || "none"}`);
 
+const pagesResponse = await fetch(`${apiUrl}/public/pages`, {
+  signal: AbortSignal.timeout(60_000),
+});
+const pageSlugs = parsePages(await pagesResponse.json()).map(
+  (page) => page.slug,
+);
+console.log(`[build] Published pages: ${pageSlugs.join(", ") || "none"}`);
+
 // API answers kept by an earlier build would be prerendered instead of the
 // content as it is now, so every build fetches afresh
 rmSync(".next/cache/fetch-cache", { recursive: true, force: true });
 
-run("next", ["build"], { PUBLISHED_PROJECT_SLUGS: JSON.stringify(slugs) });
+run("next", ["build"], {
+  PUBLISHED_PROJECT_SLUGS: JSON.stringify(slugs),
+  PUBLISHED_PAGE_SLUGS: JSON.stringify(pageSlugs),
+});

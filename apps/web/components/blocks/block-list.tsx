@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { BenchmarkBlock } from "@/components/benchmarks/benchmark-block";
 import { LinkIcon } from "@/components/ui/link-icon";
 import { Stat, StatList } from "@/components/ui/stat";
+import type { HeadingAnchors } from "@/lib/outline";
 import { ArtImage } from "./art-image";
 import { CopyButton } from "./copy-button";
 import { EmbedPlayer } from "./embed-player";
@@ -17,6 +18,8 @@ export type BlockContext = {
   headingLevel: 2 | 3;
   /** Where a benchmark block's run pages live, on a benchmarks page */
   benchmarkRunsPath?: string;
+  /** Heading ids by block, for a page's "On this page" rail (lib/outline) */
+  anchors?: HeadingAnchors;
 };
 
 type BlockOf<T extends ResolvedBlock["type"]> = Extract<
@@ -49,7 +52,11 @@ const providerNames = {
 // schema gains a block type
 const registry: { [T in ResolvedBlock["type"]]: Renderer<T> } = {
   richText: (block, context) => (
-    <RichText markdown={block.markdown} headingLevel={context.headingLevel} />
+    <RichText
+      markdown={block.markdown}
+      headingLevel={context.headingLevel}
+      anchors={context.anchors?.[block.id]}
+    />
   ),
 
   image: (block) =>
@@ -209,7 +216,12 @@ export function BlockList({
         if (!render) return null;
         const wide = block.type === "image" && block.wide;
         return (
-          <div key={block.id} className={wide ? undefined : measure}>
+          // data-wide lets a page's rail step aside, see page-toc.tsx
+          <div
+            key={block.id}
+            className={wide ? undefined : measure}
+            data-wide={wide ? "" : undefined}
+          >
             {render(block as never, context)}
           </div>
         );

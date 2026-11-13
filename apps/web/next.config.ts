@@ -23,11 +23,13 @@ export default function nextConfig(phase: string): NextConfig {
     // no AGENTS.md written by next dev
     agentRules: false,
 
-    // published project slugs, snapshot by scripts/build.mjs and inlined at
-    // build time. See app/(site)/projects/[slug]/page.tsx
-    env: process.env.PUBLISHED_PROJECT_SLUGS
-      ? { PUBLISHED_PROJECT_SLUGS: process.env.PUBLISHED_PROJECT_SLUGS }
-      : undefined,
+    // published project and page slugs, snapshot by scripts/build.mjs and
+    // inlined at build time. See app/(site)/projects/[slug]/page.tsx
+    env: Object.fromEntries(
+      ["PUBLISHED_PROJECT_SLUGS", "PUBLISHED_PAGE_SLUGS"].flatMap((key) =>
+        process.env[key] ? [[key, process.env[key]]] : [],
+      ),
+    ),
 
     // lets a phone on the local network load the dev server (npm run dev:lan)
     allowedDevOrigins: dev

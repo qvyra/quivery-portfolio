@@ -10,6 +10,7 @@ export * from "./content/blocks.js";
 export * from "./content/entities.js";
 export * from "./content/project.js";
 export * from "./content/section.js";
+export * from "./content/page.js";
 export * from "./content/public-api.js";
 export * from "./content/embeds.js";
 export * from "./benchmarks/v1.js";

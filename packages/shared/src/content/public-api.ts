@@ -2,6 +2,12 @@ import { z } from "zod";
 import { apiSuccessSchema } from "../api.js";
 import { blockTypeSchema } from "./blocks.js";
 import {
+  pageDetailSchema,
+  pageSummarySchema,
+  type PageDetail,
+  type PageSummary,
+} from "./page.js";
+import {
   projectDetailSchema,
   projectSummarySchema,
   type ProjectDetail,
@@ -131,4 +137,35 @@ export function parseProject(
       project.error,
     );
   return project.data;
+}
+
+/** GET /public/pages */
+export function parsePages(json: unknown): PageSummary[] {
+  const result = envelope(z.array(pageSummarySchema)).safeParse(json);
+  if (!result.success) {
+    throw new ContentSchemaError("GET /public/pages", result.error);
+  }
+  return result.data.data;
+}
+
+/** GET /public/pages/:slug */
+export function parsePage(
+  json: unknown,
+  onSkip: SkipReporter = () => {},
+): PageDetail {
+  const raw = envelope(
+    z.looseObject({ slug: z.string(), blocks: z.unknown() }),
+  ).safeParse(json);
+  if (!raw.success)
+    throw new ContentSchemaError("GET /public/pages/:slug", raw.error);
+
+  const where = `Page "${raw.data.data.slug}"`;
+  const blocks = dropUnknownBlocks(raw.data.data.blocks, where, onSkip);
+  const page = pageDetailSchema.safeParse({ ...raw.data.data, blocks });
+  if (!page.success)
+    throw new ContentSchemaError(
+      `GET /public/pages/${raw.data.data.slug}`,
+      page.error,
+    );
+  return page.data;
 }

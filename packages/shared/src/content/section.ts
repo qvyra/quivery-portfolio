@@ -41,6 +41,10 @@ export const sectionInputBaseSchema = z.strictObject({
   // short label for the site nav, defaults to the title
   navLabel: optionalText(24),
   blocks: blocksSchema.default([]),
+  // a button after the blocks to a standalone page (the slug of a Page). The
+  // section is then a teaser for that page, so its nav link goes there too
+  linkPage: slugSchema.nullable().optional(),
+  linkLabel: optionalText(60),
   ...listItemStateInput,
 });
 
@@ -61,8 +65,23 @@ export function checkTitleHighlight(
   }
 }
 
-export const sectionInputSchema =
-  sectionInputBaseSchema.superRefine(checkTitleHighlight);
+/** A section's page link needs both the page and the button's label */
+export function checkSectionLink(
+  section: { linkPage?: string | null; linkLabel?: string | null },
+  ctx: z.RefinementCtx,
+) {
+  if (Boolean(section.linkPage) !== Boolean(section.linkLabel)) {
+    ctx.addIssue({
+      code: "custom",
+      message: "A page link needs both the page and the button label",
+      path: [section.linkPage ? "linkLabel" : "linkPage"],
+    });
+  }
+}
+
+export const sectionInputSchema = sectionInputBaseSchema
+  .superRefine(checkTitleHighlight)
+  .superRefine(checkSectionLink);
 export type SectionInput = z.input<typeof sectionInputSchema>;
 
 const sectionBase = {
@@ -73,6 +92,12 @@ const sectionBase = {
   eyebrow: z.string().nullable(),
   navLabel: z.string().nullable(),
   blocks: z.array(resolvedBlockSchema),
+  // set only while the linked page is published. Defaults to null so this
+  // site still parses an API from before page links
+  link: z
+    .object({ label: z.string(), href: z.string() })
+    .nullable()
+    .default(null),
 };
 
 // Sections as the public API returns them. Sections with nothing to show (no

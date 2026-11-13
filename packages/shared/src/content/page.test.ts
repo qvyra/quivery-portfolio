@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { adminContentSchemas } from "../admin.js";
-import { pageInputSchema, reservedPageSlugs } from "./page.js";
+import { pageInputSchema, pageSlugSchema, reservedPageSlugs } from "./page.js";
 import { parsePage, parseSite } from "./public-api.js";
 import { sectionInputSchema } from "./section.js";
 
@@ -32,6 +32,19 @@ describe("pageInputSchema", () => {
 
   it.each(reservedPageSlugs)("refuses the reserved slug %s", (slug) => {
     expect(pageInputSchema.safeParse({ ...page, slug }).success).toBe(false);
+  });
+
+  it("refuses the hashed names of metadata images, and allows look-alikes", () => {
+    for (const slug of [
+      "opengraph-image-12o0cb",
+      "icon-abc",
+      "twitter-image",
+    ]) {
+      expect(pageSlugSchema.safeParse(slug).success).toBe(false);
+    }
+    for (const slug of ["icons-guide", "iconic", "architecture"]) {
+      expect(pageSlugSchema.safeParse(slug).success).toBe(true);
+    }
   });
 
   it("refuses unknown keys, a highlight outside the title and a missing description", () => {

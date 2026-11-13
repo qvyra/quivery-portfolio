@@ -29,8 +29,16 @@ export const reservedPageSlugs = [
 
 const reserved = new Set<string>(reservedPageSlugs);
 
+// Next serves metadata images under a hashed name, e.g. /opengraph-image-12o0cb
+const metadataRoute = /^(opengraph-image|twitter-image|apple-icon|icon)(-|$)/;
+
+/** Whether a top-level path belongs to the site itself rather than a page */
+export function isReservedPageSlug(slug: string): boolean {
+  return reserved.has(slug) || metadataRoute.test(slug);
+}
+
 export const pageSlugSchema = slugSchema.refine(
-  (slug) => !reserved.has(slug),
+  (slug) => !isReservedPageSlug(slug),
   "That URL is used by the site already, pick another",
 );
 

@@ -1,15 +1,13 @@
 // Runs before three kinds of routes. Project and page URLs that weren't
 // published at build time go straight to the static 404, and /admin gets its
 // redirect to the sign-in page and a noindex header
-import { reservedPageSlugs } from "@repo/shared";
+import { isReservedPageSlug } from "@repo/shared";
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE } from "@/lib/admin/cookie";
 
 // two segments, so neither /[slug] nor /projects/[slug] matches it and Next
 // serves the prerendered 404 page
 const NOT_FOUND = "/_unknown/page";
-
-const reserved = new Set<string>(reservedPageSlugs);
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -35,10 +33,11 @@ function project(request: NextRequest) {
 }
 
 // Same for standalone pages at /<slug>. Reserved slugs are the site's own
-// routes (or nothing), so they go on to Next's routing untouched
+// routes (or nothing), metadata images among them, so they go on to Next's
+// routing untouched
 function page(request: NextRequest) {
   const slug = request.nextUrl.pathname.slice(1);
-  if (reserved.has(slug)) return NextResponse.next();
+  if (isReservedPageSlug(slug)) return NextResponse.next();
   return publishedAtBuild(process.env.PUBLISHED_PAGE_SLUGS, slug)
     ? NextResponse.next()
     : NextResponse.rewrite(new URL(NOT_FOUND, request.url));

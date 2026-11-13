@@ -28,7 +28,7 @@ export type Field = Base &
     | { kind: "select"; options: Option[] }
     | { kind: "media"; accept: MediaKind }
     | { kind: "strings"; max?: number }
-    | { kind: "links" | "blocks" | "date" | "project" | "page" }
+    | { kind: "links" | "blocks" | "date" | "project" | "page" | "width" }
   );
 
 export type Option = { value: string; label: string };
@@ -106,6 +106,13 @@ export const collections: Record<AdminCollection, CollectionConfig> = {
         options: options(sectionTypeSchema.options),
         help: "A typed section shows its list (projects, skills...) after its blocks. Custom shows only the blocks",
       },
+      {
+        name: "textWidth",
+        label: "Text width",
+        kind: "width",
+        optional: true,
+        help: "How wide the section's text runs on screens 1280px and up, unless a text block picks its own. Narrower screens always use the reading column",
+      },
       { name: "blocks", label: "Blocks", kind: "blocks" },
       {
         name: "linkPage",
@@ -169,6 +176,13 @@ export const collections: Record<AdminCollection, CollectionConfig> = {
         rows: 3,
         max: 200,
         help: "The search result and link preview text",
+      },
+      {
+        name: "textWidth",
+        label: "Text width",
+        kind: "width",
+        optional: true,
+        help: "How wide the page's text runs on screens 1280px and up, unless a text block picks its own. Narrower screens always use the reading column",
       },
       {
         name: "blocks",
@@ -452,6 +466,7 @@ export function emptyValue(field: Field): unknown {
     case "date":
     case "project":
     case "page":
+    case "width":
       return null;
     default:
       return field.optional ? null : "";

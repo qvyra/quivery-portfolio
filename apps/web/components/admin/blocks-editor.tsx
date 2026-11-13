@@ -12,6 +12,7 @@ import {
   type Values,
 } from "./form";
 import { MediaField, useMediaLibrary, type AdminMedia } from "./media";
+import { toTextWidth, WidthControl } from "./width-control";
 
 const blockLabels: Record<BlockType, string> = {
   richText: "Text",
@@ -387,14 +388,28 @@ function BlockFields({
   switch (block.type as BlockType) {
     case "richText":
       return (
-        <Text
-          label="Markdown"
-          multiline
-          mono
-          value={block.markdown}
-          error={at("markdown")}
-          onChange={(markdown) => onChange({ ...block, markdown })}
-        />
+        <div className="space-y-4">
+          <Text
+            label="Markdown"
+            multiline
+            mono
+            value={block.markdown}
+            error={at("markdown")}
+            onChange={(markdown) => onChange({ ...block, markdown })}
+          />
+          <WidthControl
+            label="Width"
+            inherits
+            value={toTextWidth(block.width)}
+            onChange={(width) => {
+              // stored only when the block picks its own, like wide images
+              const copy = { ...block };
+              if (width) copy.width = width;
+              else delete copy.width;
+              onChange(copy);
+            }}
+          />
+        </div>
       );
     case "image":
       return (

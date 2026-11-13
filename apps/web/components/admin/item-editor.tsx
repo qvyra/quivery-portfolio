@@ -3,7 +3,9 @@
 import { adminCollectionSchema, type AdminCollection } from "@repo/shared";
 import {
   ArrowLeft,
+  Check,
   LoaderCircle,
+  Monitor,
   PanelRightClose,
   PanelRightOpen,
 } from "lucide-react";
@@ -20,7 +22,13 @@ import {
   type AdminChange,
   type AdminItem,
 } from "./items";
+import { applyTextWidths } from "./live-widths";
 import { deployNotice, useNotice, useUnsavedGuard } from "./shell";
+
+// the preview's desktop width, scaled down to fit. The site's wide-screen
+// layout (text widths, wide images, the On this page rail) starts at 1280px,
+// wider than the preview pane
+const DESKTOP = 1440;
 
 export function ItemEditor() {
   const params = useParams<{ collection: string; id: string }>();
@@ -64,7 +72,26 @@ function Editor({
   const [preview, setPreview] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const paneRef = useRef<HTMLDivElement>(null);
+  const [desktop, setDesktop] = useState(true);
+  const [scale, setScale] = useState(1);
+  const savedSlug = (item?.draft ?? item?.content)?.slug;
   useUnsavedGuard(dirty);
+
+  useEffect(() => {
+    applyTextWidths(frameRef.current, collection, savedSlug, values);
+  }, [collection, savedSlug, values, preview, desktop]);
+
+  useEffect(() => {
+    const pane = paneRef.current;
+    if (!pane) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setScale(Math.min(1, entry.contentRect.width / DESKTOP));
+    });
+    observer.observe(pane);
+    return () => observer.disconnect();
+  }, [preview, creating]);
 
   useEffect(() => {
     if (creating) return;
@@ -286,18 +313,59 @@ function Editor({
       </div>
       {preview && (
         <div className="min-w-0 xl:sticky xl:top-4 xl:h-[calc(100dvh-2rem)]">
-          <p className="mb-2 text-sm text-white/60">
-            {creating
-              ? "Save first to preview."
-              : "The site as it will look once published, saved changes included. Updates on every save."}
-          </p>
+          <div className="mb-2 flex min-h-10 items-center justify-between gap-3">
+            <p className="text-sm text-white/60">
+              {creating
+                ? "Save first to preview."
+                : "The site as it will look once published. Text widths change as you pick them, everything else on save."}
+            </p>
+            {!creating && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm shrink-0"
+                aria-pressed={desktop}
+                onClick={() => setDesktop((d) => !d)}
+              >
+                {desktop ? (
+                  <Check aria-hidden="true" />
+                ) : (
+                  <Monitor aria-hidden="true" />
+                )}
+                Desktop width
+              </button>
+            )}
+          </div>
           {!creating && (
-            <iframe
-              key={previewKey}
-              src={previewUrl}
-              title="Preview"
-              className="h-[70vh] w-full rounded-xl bg-ink ring-1 ring-white/15 xl:h-[calc(100%-2rem)]"
-            />
+            <div
+              ref={paneRef}
+              className="relative h-[70vh] overflow-hidden rounded-xl bg-ink ring-1 ring-white/15 xl:h-[calc(100%-3rem)]"
+            >
+              <iframe
+                key={previewKey}
+                ref={frameRef}
+                src={previewUrl}
+                title="Preview"
+                onLoad={() =>
+                  applyTextWidths(
+                    frameRef.current,
+                    collection,
+                    savedSlug,
+                    values,
+                  )
+                }
+                className="absolute top-0 left-0 h-full w-full"
+                style={
+                  desktop
+                    ? {
+                        width: DESKTOP,
+                        height: `${100 / scale}%`,
+                        transform: `scale(${scale})`,
+                        transformOrigin: "0 0",
+                      }
+                    : undefined
+                }
+              />
+            </div>
           )}
         </div>
       )}

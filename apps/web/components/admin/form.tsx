@@ -6,6 +6,7 @@ import { adminFetch } from "./api";
 import { BlocksEditor } from "./blocks-editor";
 import { linkTypes, type Field } from "./fields";
 import { MediaField } from "./media";
+import { InheritedWidth, toTextWidth, WidthControl } from "./width-control";
 
 export type Values = Record<string, unknown>;
 /** Errors by path, "links.0.url" style, from the schema's issues */
@@ -97,19 +98,28 @@ export function FieldsForm({
   /** Error path prefix, for nested forms */
   prefix?: string;
 }) {
+  // text blocks follow the form's text width, when it has one
+  const width = fields.find((field) => field.kind === "width");
   return (
-    <div className="space-y-5">
-      {fields.map((field) => (
-        <FieldInput
-          key={field.name}
-          field={field}
-          value={values[field.name]}
-          errors={errors}
-          path={`${prefix}${field.name}`}
-          onChange={(value) => onChange(field.name, value)}
-        />
-      ))}
-    </div>
+    <InheritedWidth
+      value={{
+        width: (width && toTextWidth(values[width.name])) ?? "narrow",
+        from: width ? "the text width above" : null,
+      }}
+    >
+      <div className="space-y-5">
+        {fields.map((field) => (
+          <FieldInput
+            key={field.name}
+            field={field}
+            value={values[field.name]}
+            errors={errors}
+            path={`${prefix}${field.name}`}
+            onChange={(value) => onChange(field.name, value)}
+          />
+        ))}
+      </div>
+    </InheritedWidth>
   );
 }
 
@@ -273,6 +283,15 @@ function FieldInput({
           links={Array.isArray(value) ? (value as Link[]) : []}
           errors={errors}
           path={path}
+          onChange={onChange}
+        />
+      );
+    case "width":
+      return (
+        <WidthControl
+          label={field.label}
+          help={field.help}
+          value={toTextWidth(value)}
           onChange={onChange}
         />
       );

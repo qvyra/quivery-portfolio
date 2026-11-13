@@ -108,6 +108,9 @@ model Section {
   // page is published, so a renamed or hidden page never leaves a dead link
   linkPage       String?
   linkLabel      String?
+  // the width its text follows unless a block sets its own (narrow, medium,
+  // full), null is narrow
+  textWidth      String?
   draft          Json?
   publishStatus  PublishStatus @default(DRAFT)
   visible        Boolean       @default(true)
@@ -130,6 +133,8 @@ model Page {
   seoDescription String
   // Zod-validated array of content blocks
   blocks         Json          @default("[]")
+  // as on Section
+  textWidth      String?
   draft          Json?
   publishStatus  PublishStatus @default(DRAFT)
   visible        Boolean       @default(true)

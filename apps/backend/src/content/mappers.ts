@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   contactLinkTypeSchema,
   linkSchema,
+  textWidthSchema,
   type ContactLink,
   type Media,
   type Profile,
@@ -12,6 +13,7 @@ import {
   type Skill,
   type Stat,
   type Testimonial,
+  type TextWidth,
 } from '@repo/shared';
 import type { Prisma } from '../generated/prisma/client.js';
 
@@ -115,6 +117,12 @@ export const toContactLink = (row: Prisma.ContactLinkModel): ContactLink => ({
   url: row.url,
   featured: row.featured,
 });
+
+/** A stored text width, null when unset (narrow) or not one this API knows */
+export const toTextWidth = (value: string | null): TextWidth | null => {
+  const parsed = textWidthSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+};
 
 export const toPageSummary = (row: {
   id: string;

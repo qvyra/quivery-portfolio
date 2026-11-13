@@ -296,5 +296,25 @@ describe('PublicContentService', () => {
       const preview = await service.getPagePreview(page.id);
       expect(preview.title).toBe('How I build things');
     });
+
+    it('serves the text width of sections and pages, null when unset', async () => {
+      const text = [{ id: 't', type: 'richText', markdown: 'Hi' }];
+      const { service } = setup({
+        sections: [
+          { ...section(1, 'custom', text), textWidth: 'medium' },
+          { ...section(2, 'custom', text), textWidth: null },
+          // a value this API doesn't know reads as unset
+          { ...section(3, 'custom', text), textWidth: 'huge' },
+        ],
+        pages: [{ ...page, textWidth: 'full' }],
+      });
+      const site = await service.getSite();
+      expect(site.sections.map((s) => s.textWidth)).toEqual([
+        'medium',
+        null,
+        null,
+      ]);
+      expect((await service.getPage('architecture')).textWidth).toBe('full');
+    });
   });
 });

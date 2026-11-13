@@ -16,6 +16,7 @@ import {
   type Skill,
   type Stat,
   type Testimonial,
+  type TextWidth,
 } from '@repo/shared';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -33,6 +34,7 @@ import {
   toSkill,
   toStat,
   toTestimonial,
+  toTextWidth,
 } from './mappers.js';
 
 // what the public may see: published and not hidden
@@ -168,6 +170,7 @@ export class PublicContentService {
           linkable.has(section.linkPage)
             ? { label: section.linkLabel, href: `/${section.linkPage}` }
             : null,
+        textWidth: toTextWidth(section.textWidth),
       };
       const built = buildSection(type.data, base, lists);
       return built ? [built] : [];
@@ -221,6 +224,7 @@ export class PublicContentService {
       titleHighlight: page.titleHighlight,
       eyebrow: page.eyebrow,
       blocks: attachMedia(blocks, media) as ResolvedBlock[],
+      textWidth: toTextWidth(page.textWidth),
     };
   }
 
@@ -353,6 +357,7 @@ type SectionBase = {
   navLabel: string | null;
   blocks: ResolvedBlock[];
   link: { label: string; href: string } | null;
+  textWidth: TextWidth | null;
 };
 
 type Lists = {

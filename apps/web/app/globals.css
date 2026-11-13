@@ -582,7 +582,8 @@
         opacity: 1;
       }
 
-      &[aria-current="true"]::before {
+      &[aria-current="true"]::before,
+      &[aria-current="page"]::before {
         background-color: transparent;
         background-image: linear-gradient(
           100deg,
@@ -616,7 +617,8 @@
         height: 1.25rem;
       }
     }
-    [aria-current="true"] > .nav-link-icon {
+    [aria-current="true"] > .nav-link-icon,
+    [aria-current="page"] > .nav-link-icon {
       background-image: linear-gradient(
         100deg,
         var(--color-plum),
@@ -642,7 +644,8 @@
         opacity var(--motion-base) var(--ease-out-quart),
         transform var(--motion-slow) var(--ease-out-quart);
     }
-    [aria-current="true"] > .nav-link-dot {
+    [aria-current="true"] > .nav-link-dot,
+    [aria-current="page"] > .nav-link-dot {
       opacity: 1;
       transform: none;
     }

@@ -171,7 +171,13 @@ const registry: { [T in ResolvedBlock["type"]]: Renderer<T> } = {
         </span>
         <CopyButton text={block.code} />
       </div>
-      <pre className="overflow-x-auto p-4 font-mono text-sm leading-relaxed">
+      <pre
+        // long lines scroll sideways on a phone, so the keyboard has to reach
+        // it too
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+        tabIndex={0}
+        className="overflow-x-auto p-4 font-mono text-sm leading-relaxed"
+      >
         <code data-language={block.language}>{block.code}</code>
       </pre>
       {block.caption && (

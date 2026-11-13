@@ -1,10 +1,12 @@
 import type { PageDetail } from "@repo/shared";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { preload } from "react-dom";
 import { BlockList } from "@/components/blocks/block-list";
 import { Container } from "@/components/ui/container";
 import { HighlightedText } from "@/components/ui/highlighted-text";
 import { Eyebrow } from "@/components/ui/section-heading";
+import { poppinsFiles } from "@/lib/fonts";
 import { pageOutline } from "@/lib/outline";
 import { PageToc } from "./page-toc";
 
@@ -22,6 +24,15 @@ export function PageArticle({
   backLabel?: string;
 }) {
   const { entries, anchors } = pageOutline(page.blocks);
+  // body text and lists sit in the first screen here, unlike the homepage,
+  // so their weights load with the page rather than swapping in after it
+  for (const weight of [400, 500] as const) {
+    preload(poppinsFiles[weight], {
+      as: "font",
+      type: "font/woff2",
+      crossOrigin: "anonymous",
+    });
+  }
   return (
     <article>
       <Container className="pt-[clamp(1.5rem,5svh,3.5rem)] pb-section">

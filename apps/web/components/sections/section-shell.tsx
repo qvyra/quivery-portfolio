@@ -1,6 +1,8 @@
 import type { SiteSection } from "@repo/shared";
+import { ArrowRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { BlockList } from "@/components/blocks/block-list";
+import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Reveal } from "@/components/ui/reveal";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -37,7 +39,16 @@ export function SectionShell({
             description={description}
           />
         </Reveal>
-        <BlockList blocks={section.blocks} context={{ headingLevel: 3 }} />
+        <BlockList
+          blocks={section.blocks}
+          context={{ headingLevel: 3, textWidth: section.textWidth }}
+        />
+        {section.link && (
+          <ButtonLink href={section.link.href} size="md">
+            {section.link.label}
+            <ArrowRight data-icon="end" />
+          </ButtonLink>
+        )}
         {children}
       </Container>
     </section>

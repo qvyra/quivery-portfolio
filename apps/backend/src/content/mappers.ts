@@ -3,14 +3,17 @@ import { z } from 'zod';
 import {
   contactLinkTypeSchema,
   linkSchema,
+  textWidthSchema,
   type ContactLink,
   type Media,
   type Profile,
+  type PageSummary,
   type ProjectSummary,
   type Service,
   type Skill,
   type Stat,
   type Testimonial,
+  type TextWidth,
 } from '@repo/shared';
 import type { Prisma } from '../generated/prisma/client.js';
 
@@ -113,6 +116,28 @@ export const toContactLink = (row: Prisma.ContactLinkModel): ContactLink => ({
   value: row.value,
   url: row.url,
   featured: row.featured,
+});
+
+/** A stored text width, null when unset (narrow) or not one this API knows */
+export const toTextWidth = (value: string | null): TextWidth | null => {
+  const parsed = textWidthSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+};
+
+export const toPageSummary = (row: {
+  id: string;
+  slug: string;
+  title: string;
+  seoTitle: string | null;
+  seoDescription: string;
+  updatedAt: Date;
+}): PageSummary => ({
+  id: row.id,
+  slug: row.slug,
+  title: row.title,
+  seoTitle: row.seoTitle,
+  seoDescription: row.seoDescription,
+  updatedAt: row.updatedAt.toISOString(),
 });
 
 export const toProjectSummary = (

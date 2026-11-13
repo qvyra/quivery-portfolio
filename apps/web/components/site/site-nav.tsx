@@ -16,7 +16,10 @@ import { ButtonLink } from "@/components/ui/button";
 import { socialLinks } from "@/lib/contact";
 import { SocialLinks } from "./social-links";
 
-/** `href` points at a section (`/#id`). The icon shows in the phone menu */
+/**
+ * `href` points at a section (`/#id`) or a page (`/architecture`). The icon
+ * shows in the phone menu
+ */
 export type NavItem = { label: string; href: string; icon?: ReactNode };
 
 const anchorId = (href: string) =>
@@ -86,6 +89,7 @@ export function SiteNav({
   const drawerRef = useRef<HTMLDivElement>(null);
   const drawerId = useId();
   const active = useActiveSection(items.map((item) => item.href));
+  const pathname = usePathname();
   const socials = socialLinks(contactLinks);
 
   useEffect(() => {
@@ -166,7 +170,10 @@ export function SiteNav({
         </p>
         <ul className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-0">
           {items.map((item, index) => {
-            const current = active !== null && anchorId(item.href) === active;
+            // a section link is current while its section is in view, a
+            // page link while that page is open
+            const anchor = anchorId(item.href);
+            const current = anchor ? active === anchor : pathname === item.href;
             return (
               <li
                 key={item.href}
@@ -176,7 +183,9 @@ export function SiteNav({
                 <Link
                   href={item.href}
                   className="nav-link"
-                  aria-current={current ? "true" : undefined}
+                  aria-current={
+                    current ? (anchor ? "true" : "page") : undefined
+                  }
                   onClick={close}
                 >
                   {item.icon && (

@@ -30,6 +30,8 @@ const section = (n: number, type: string, blocks: unknown = []) => ({
   eyebrow: null,
   navLabel: null,
   blocks,
+  linkPage: null,
+  linkLabel: null,
   publishStatus: 'PUBLISHED',
   visible: true,
   sortOrder: n,
@@ -67,6 +69,7 @@ function setup({
   projects = [] as unknown[],
   profileRow = profile as unknown,
   media = [] as unknown[],
+  pages = [] as unknown[],
 } = {}) {
   const db = {
     $transaction: (queries: Promise<unknown>[]) => Promise.all(queries),
@@ -82,6 +85,10 @@ function setup({
     skill: { findMany: vi.fn().mockResolvedValue([]) },
     testimonial: { findMany: vi.fn().mockResolvedValue([]) },
     media: { findMany: vi.fn().mockResolvedValue(media) },
+    page: {
+      findMany: vi.fn().mockResolvedValue(pages),
+      findFirst: vi.fn().mockResolvedValue(pages[0] ?? null),
+    },
   };
   const config = {
     get: () => nodeEnv,
@@ -97,7 +104,13 @@ describe('PublicContentService', () => {
   it('only queries published, visible content', async () => {
     const { db, service } = setup();
     await service.getSite();
-    for (const model of ['section', 'stat', 'skill', 'testimonial'] as const) {
+    for (const model of [
+      'section',
+      'stat',
+      'skill',
+      'testimonial',
+      'page',
+    ] as const) {
       expect(db[model].findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { publishStatus: 'PUBLISHED', visible: true },
@@ -197,5 +210,111 @@ describe('PublicContentService', () => {
     await expect(service.getProject('nope')).rejects.toBeInstanceOf(
       NotFoundException,
     );
+  });
+
+  describe('pages', () => {
+    const page = {
+      id: id(200),
+      slug: 'architecture',
+      title: 'How I build systems',
+      titleHighlight: 'systems',
+      eyebrow: 'Architecture',
+      seoTitle: null,
+      seoDescription: 'How I build',
+      blocks: [
+        { id: 'a', type: 'image', image: { mediaId: id(300) }, wide: true },
+      ],
+      draft: null,
+      updatedAt: now,
+    };
+    const media = {
+      id: id(300),
+      kind: 'IMAGE',
+      url: '/uploads/a.png',
+      alt: 'Diagram',
+      width: 2400,
+      height: 1400,
+      mimeType: 'image/png',
+      captions: null,
+    };
+
+    it('links a section to its page only while the page is live', async () => {
+      const linked = {
+        ...section(1, 'custom', [
+          { id: 't', type: 'richText', markdown: 'Hi' },
+        ]),
+        linkPage: 'architecture',
+        linkLabel: 'Read more',
+      };
+      const live = await setup({
+        sections: [linked],
+        pages: [page],
+      }).service.getSite();
+      expect(live.sections[0]!.link).toEqual({
+        label: 'Read more',
+        href: '/architecture',
+      });
+
+      const gone = await setup({
+        sections: [linked],
+        pages: [],
+      }).service.getSite();
+      expect(gone.sections[0]!.link).toBeNull();
+    });
+
+    it('serves a live page with its media attached', async () => {
+      const { db, service } = setup({ pages: [page], media: [media] });
+      const detail = await service.getPage('architecture');
+      expect(db.page.findFirst).toHaveBeenCalledWith({
+        where: {
+          publishStatus: 'PUBLISHED',
+          visible: true,
+          slug: 'architecture',
+        },
+      });
+      expect(detail).toMatchObject({
+        slug: 'architecture',
+        titleHighlight: 'systems',
+        eyebrow: 'Architecture',
+        updatedAt: now.toISOString(),
+      });
+      const block = detail.blocks[0] as { image: { media: { url: string } } };
+      expect(block.image.media.url).toBe('/uploads/a.png');
+    });
+
+    it('throws PAGE_NOT_FOUND for a page that is not live', async () => {
+      const { service } = setup({ pages: [] });
+      await expect(service.getPage('nope')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it('previews a page with its draft applied', async () => {
+      const { service } = setup({
+        pages: [{ ...page, draft: { title: 'How I build things' } }],
+      });
+      const preview = await service.getPagePreview(page.id);
+      expect(preview.title).toBe('How I build things');
+    });
+
+    it('serves the text width of sections and pages, null when unset', async () => {
+      const text = [{ id: 't', type: 'richText', markdown: 'Hi' }];
+      const { service } = setup({
+        sections: [
+          { ...section(1, 'custom', text), textWidth: 'medium' },
+          { ...section(2, 'custom', text), textWidth: null },
+          // a value this API doesn't know reads as unset
+          { ...section(3, 'custom', text), textWidth: 'huge' },
+        ],
+        pages: [{ ...page, textWidth: 'full' }],
+      });
+      const site = await service.getSite();
+      expect(site.sections.map((s) => s.textWidth)).toEqual([
+        'medium',
+        null,
+        null,
+      ]);
+      expect((await service.getPage('architecture')).textWidth).toBe('full');
+    });
   });
 });

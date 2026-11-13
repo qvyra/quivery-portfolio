@@ -38,7 +38,12 @@ export function HeroSection({
               highlight={section.titleHighlight}
             />
           </h1>
-          <p className="mt-6 max-w-[36rem] animate-enter text-lead text-white/75 [--i:2]">
+          {/* a wider text width lets it fill the hero's text column, which
+              stays as it is */}
+          <p
+            data-text-width={section.textWidth ?? "narrow"}
+            className="mt-6 max-w-[36rem] animate-enter text-lead text-white/75 [--i:2] xl:data-[text-width=full]:max-w-none xl:data-[text-width=medium]:max-w-none"
+          >
             {site.profile.tagline}
           </p>
           {(contact || projects) && (
@@ -62,7 +67,7 @@ export function HeroSection({
           )}
           <BlockList
             blocks={section.blocks}
-            context={{ headingLevel: 2 }}
+            context={{ headingLevel: 2, textWidth: section.textWidth }}
             className="mt-10"
           />
         </div>

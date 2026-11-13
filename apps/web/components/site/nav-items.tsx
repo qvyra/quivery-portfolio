@@ -15,7 +15,8 @@ const icons: Partial<Record<SiteSection["type"], typeof Layers>> = {
 
 /**
  * Nav links for rendered sections (the API leaves out empty and unpublished
- * ones). Links point at the homepage so they work from project pages too
+ * ones). Links point at the homepage so they work from project pages too. A
+ * section that links to a page is a teaser for it, so its link goes there
  */
 export function navItems(sections: SiteSection[]): NavItem[] {
   return sections
@@ -24,7 +25,7 @@ export function navItems(sections: SiteSection[]): NavItem[] {
       const Icon = icons[section.type] ?? Layers;
       return {
         label: section.navLabel ?? section.title,
-        href: `/#${section.slug}`,
+        href: section.link?.href ?? `/#${section.slug}`,
         icon: <Icon />,
       };
     });

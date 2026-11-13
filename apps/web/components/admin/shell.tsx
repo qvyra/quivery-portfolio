@@ -53,11 +53,11 @@ export const useNotice = () => useContext(NoticeContext);
 export function deployNotice(deploy: DeployOutcome | undefined): string | null {
   switch (deploy) {
     case "started":
-      return "The project URLs changed, so a deploy started. The site updates in about 5 minutes.";
+      return "The site's project or page URLs changed, so a deploy started. The site updates in about 5 minutes.";
     case "not-configured":
-      return "The project URLs changed: run the Deploy workflow on GitHub to update them (no deploy token is set).";
+      return "The site's project or page URLs changed: run the Deploy workflow on GitHub to update them (no deploy token is set).";
     case "failed":
-      return "The project URLs changed, but starting the deploy failed. Run the Deploy workflow on GitHub.";
+      return "The site's project or page URLs changed, but starting the deploy failed. Run the Deploy workflow on GitHub.";
     default:
       return null;
   }

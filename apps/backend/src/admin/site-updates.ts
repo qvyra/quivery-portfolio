@@ -7,9 +7,10 @@ export type DeployOutcome = 'started' | 'not-configured' | 'failed';
 
 /**
  * Tells the live site about admin changes. Content edits refresh cached pages
- * by tag. Publishing, unpublishing, hiding or renaming a project changes which
- * project URLs exist, and those are fixed at build time (apps/web/proxy.ts),
- * so that needs a full deploy through the Deploy workflow, CI included
+ * by tag. Publishing, unpublishing, hiding or renaming a project or a page
+ * changes which URLs exist, and those are fixed at build time
+ * (apps/web/proxy.ts), so that needs a full deploy through the Deploy
+ * workflow, CI included
  */
 @Injectable()
 export class SiteUpdates implements OnModuleInit {
@@ -29,21 +30,21 @@ export class SiteUpdates implements OnModuleInit {
   onModuleInit() {
     if (!this.deployToken) {
       this.logger.warn(
-        'GITHUB_DEPLOY_TOKEN is not set: publishing a project will ask for a manual deploy',
+        'GITHUB_DEPLOY_TOKEN is not set: publishing a project or page will ask for a manual deploy',
       );
     }
   }
 
   /**
    * Refreshes every cached page. There are few, and the homepage lists
-   * projects while every project page shows the site chrome, so a narrower
-   * tag would save nothing. Runs in the background and never throws
+   * projects and links pages while every page shows the site chrome, so a
+   * narrower tag would save nothing. Runs in the background and never throws
    */
   refresh(): void {
     if (!this.revalidateSecret) return;
     void this.post(`${this.webOrigin}/api/revalidate`, {
       headers: { 'x-revalidate-secret': this.revalidateSecret },
-      body: { tags: ['site', 'projects'] },
+      body: { tags: ['site', 'projects', 'pages'] },
     }).then((status) => {
       if (status !== 200) {
         this.logger.error(`Refreshing the site's pages failed (${status})`);

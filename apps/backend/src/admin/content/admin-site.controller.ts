@@ -12,6 +12,7 @@ import {
   adminProfileSchema,
   type ApiError,
   type ApiSuccess,
+  type PageDetail,
   type ProjectDetail,
   type Site,
 } from '@repo/shared';
@@ -26,8 +27,8 @@ class IdParams extends createZodDto(z.strictObject({ id: z.uuid() })) {}
 
 type ProfileContent = z.output<typeof adminProfileSchema>;
 
-// The profile singleton, and the live preview: the site and project pages as
-// they'll look once every draft is published
+// The profile singleton, and the live preview: the site, project pages and
+// standalone pages as they'll look once every draft is published
 @Controller('admin')
 @UseGuards(AdminSecretGuard, AdminSessionGuard)
 export class AdminSiteController {
@@ -80,6 +81,18 @@ export class AdminSiteController {
     return {
       status: 200,
       data: await this.content.getSite({ preview: true }),
+      message: 'Preview.',
+      code: 'ADMIN_PREVIEW',
+    };
+  }
+
+  @Get('preview/pages/:id')
+  async previewPage(
+    @Param() { id }: IdParams,
+  ): Promise<ApiSuccess<PageDetail>> {
+    return {
+      status: 200,
+      data: await this.content.getPagePreview(id),
       message: 'Preview.',
       code: 'ADMIN_PREVIEW',
     };

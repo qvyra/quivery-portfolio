@@ -29,7 +29,7 @@ export type AdminItem = {
 
 export type AdminChange = {
   item: AdminItem | null;
-  /** Set when the change needed a deploy (project URLs changed) */
+  /** Set when the change needed a deploy (project or page URLs changed) */
   deploy?: DeployOutcome;
 };
 
@@ -167,7 +167,7 @@ export class AdminContentService {
 
   async remove(collection: AdminCollection, id: string): Promise<AdminChange> {
     const row = await this.find(collection, id);
-    const before = await this.liveProjectUrls(collection);
+    const before = await this.liveUrls(collection);
     await delegateFor(this.db, collection).delete({ where: { id } });
     if (row.publishStatus === 'PUBLISHED') this.site.refresh();
     return {
@@ -177,13 +177,13 @@ export class AdminContentService {
   }
 
   // Any change that can show on the site: refresh the pages, and deploy when
-  // the set of live project URLs changed
+  // the set of live project or page URLs changed
   private async change(
     collection: AdminCollection,
     id: string,
     data: object,
   ): Promise<AdminChange> {
-    const before = await this.liveProjectUrls(collection);
+    const before = await this.liveUrls(collection);
     const row = await delegateFor(this.db, collection).update({
       where: { id },
       data,
@@ -200,18 +200,34 @@ export class AdminContentService {
     before: string | null,
   ): Promise<DeployOutcome | undefined> {
     if (before === null) return undefined;
-    const after = await this.liveProjectUrls(collection);
+    const after = await this.liveUrls(collection);
     return after === before
       ? undefined
-      : this.site.deploy('the published project pages changed');
+      : this.site.deploy(`the published ${collection} changed`);
+  }
+
+  // the URLs a collection gives the public site, null when it gives none
+  private async liveUrls(collection: AdminCollection): Promise<string | null> {
+    if (collection === 'pages') return this.livePageUrls();
+    if (collection === 'projects') return this.liveProjectUrls();
+    return null;
+  }
+
+  // the standalone pages the public site serves, mirroring PublicContentService
+  private async livePageUrls(): Promise<string> {
+    const rows = await this.db.page.findMany({
+      where: { publishStatus: 'PUBLISHED', visible: true },
+      select: { slug: true },
+    });
+    return rows
+      .map((row) => row.slug)
+      .sort()
+      .join(',');
   }
 
   // the project pages the public site serves, mirroring PublicContentService:
   // each slug, and its benchmarks page when it has blocks
-  private async liveProjectUrls(
-    collection: AdminCollection,
-  ): Promise<string | null> {
-    if (collection !== 'projects') return null;
+  private async liveProjectUrls(): Promise<string> {
     const production =
       this.config.get('NODE_ENV', { infer: true }) === 'production';
     const rows = await this.db.project.findMany({

@@ -7,10 +7,13 @@ import { z } from "zod";
 import { env } from "@/lib/env";
 
 // only tags the site actually uses (see lib/content.ts): site, projects,
-// project:<slug>
+// project:<slug>, pages, page:<slug>
 const tagSchema = z
   .string()
-  .regex(/^(site|projects|project:[a-z0-9]+(?:-[a-z0-9]+)*)$/, "Unknown tag");
+  .regex(
+    /^(site|projects|pages|(project|page):[a-z0-9]+(?:-[a-z0-9]+)*)$/,
+    "Unknown tag",
+  );
 
 const bodySchema = z.strictObject({
   tags: z.array(tagSchema).min(1).max(50),

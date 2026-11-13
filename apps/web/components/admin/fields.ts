@@ -28,7 +28,7 @@ export type Field = Base &
     | { kind: "select"; options: Option[] }
     | { kind: "media"; accept: MediaKind }
     | { kind: "strings"; max?: number }
-    | { kind: "links" | "blocks" | "date" | "project" }
+    | { kind: "links" | "blocks" | "date" | "project" | "page" | "width" }
   );
 
 export type Option = { value: string; label: string };
@@ -51,7 +51,7 @@ export type CollectionConfig = {
   /** The name shown in lists */
   label: (content: Record<string, unknown>) => string;
   /** What the preview pane shows for an item */
-  preview: "site" | "project";
+  preview: "site" | "project" | "page";
   /** Where new items start */
   defaults?: Record<string, unknown>;
 };
@@ -106,7 +106,90 @@ export const collections: Record<AdminCollection, CollectionConfig> = {
         options: options(sectionTypeSchema.options),
         help: "A typed section shows its list (projects, skills...) after its blocks. Custom shows only the blocks",
       },
+      {
+        name: "textWidth",
+        label: "Text width",
+        kind: "width",
+        optional: true,
+        help: "How wide the section's text runs on screens 1280px and up, unless a text block picks its own. Narrower screens always use the reading column",
+      },
       { name: "blocks", label: "Blocks", kind: "blocks" },
+      {
+        name: "linkPage",
+        label: "Link to a page",
+        kind: "page",
+        optional: true,
+        help: "Adds a button to this page after the blocks, and the nav links to the page instead of the section. Shown only while the page is published",
+      },
+      {
+        name: "linkLabel",
+        label: "Button label",
+        kind: "text",
+        optional: true,
+        max: 60,
+        help: "e.g. Read how I build systems. The button adds its own arrow",
+      },
+    ],
+  },
+  pages: {
+    title: "Pages",
+    singular: "page",
+    preview: "page",
+    label: (c) => text(c, "title"),
+    fields: [
+      { name: "title", label: "Title", kind: "text", max: 80 },
+      {
+        name: "titleHighlight",
+        label: "Highlighted phrase",
+        kind: "text",
+        optional: true,
+        max: 80,
+        help: "Part of the title, exactly as written, shown in the accent gradient",
+      },
+      {
+        name: "eyebrow",
+        label: "Eyebrow",
+        kind: "text",
+        optional: true,
+        max: 60,
+        help: "Small heading above the title",
+      },
+      {
+        name: "slug",
+        label: "URL",
+        kind: "text",
+        max: 80,
+        help: "/<this>, e.g. architecture. Changing it on a published page starts a deploy",
+      },
+      {
+        name: "seoTitle",
+        label: "SEO title",
+        kind: "text",
+        optional: true,
+        max: 70,
+        help: "The browser tab and search result title. Empty uses the title",
+      },
+      {
+        name: "seoDescription",
+        label: "SEO description",
+        kind: "textarea",
+        rows: 3,
+        max: 200,
+        help: "The search result and link preview text",
+      },
+      {
+        name: "textWidth",
+        label: "Text width",
+        kind: "width",
+        optional: true,
+        help: "How wide the page's text runs on screens 1280px and up, unless a text block picks its own. Narrower screens always use the reading column",
+      },
+      {
+        name: "blocks",
+        label: "Blocks",
+        kind: "blocks",
+        help: "The top headings of rich text blocks (### in a block) make the On this page list beside the text on wide screens",
+      },
     ],
   },
   projects: {
@@ -382,6 +465,8 @@ export function emptyValue(field: Field): unknown {
     case "number":
     case "date":
     case "project":
+    case "page":
+    case "width":
       return null;
     default:
       return field.optional ? null : "";

@@ -1,17 +1,24 @@
 import type { MetadataRoute } from "next";
 import { connection } from "next/server";
 import { benchmarkSlugs, projectRunSources } from "@/lib/benchmarks";
-import { getBuiltProject, getBuiltProjects } from "@/lib/content";
+import {
+  getBuiltPages,
+  getBuiltProject,
+  getBuiltProjects,
+} from "@/lib/content";
 import { env } from "@/lib/env";
 
-// the homepage, every project page in this build and the benchmarks pages
-// with their runs. Refreshed with the content, and never lists the admin
+// the homepage, every project and standalone page in this build and the
+// benchmarks pages with their runs. Refreshed with the content, and never lists the admin
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // metadata routes are prerendered once and never revalidated, tag or path,
   // so this renders on request from the cached projects, which do refresh
   await connection();
   const { siteUrl } = env();
-  const projects = await getBuiltProjects();
+  const [projects, pages] = await Promise.all([
+    getBuiltProjects(),
+    getBuiltPages(),
+  ]);
   const latest = projects
     .map((project) => project.updatedAt)
     .sort()
@@ -51,6 +58,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: project.updatedAt,
       changeFrequency: "monthly" as const,
       priority: 0.8,
+    })),
+    ...pages.map((page) => ({
+      url: `${siteUrl}/${page.slug}`,
+      lastModified: page.updatedAt,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
     })),
     ...benchmarks.flat(),
   ];

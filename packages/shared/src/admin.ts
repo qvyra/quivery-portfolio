@@ -9,8 +9,10 @@ import {
   testimonialInputSchema,
 } from "./content/entities.js";
 import { mediaKindSchema, mediaUrlSchema } from "./content/media.js";
+import { pageInputBaseSchema } from "./content/page.js";
 import { projectInputSchema } from "./content/project.js";
 import {
+  checkSectionLink,
   checkTitleHighlight,
   sectionInputBaseSchema,
 } from "./content/section.js";
@@ -23,6 +25,7 @@ import {
 export const adminCollectionSchema = z.enum([
   "sections",
   "projects",
+  "pages",
   "stats",
   "skills",
   "services",
@@ -47,8 +50,10 @@ const stateFields = {
 export const adminContentSchemas = {
   sections: sectionInputBaseSchema
     .omit(stateFields)
-    .superRefine(checkTitleHighlight),
+    .superRefine(checkTitleHighlight)
+    .superRefine(checkSectionLink),
   projects: projectInputSchema.omit(stateFields),
+  pages: pageInputBaseSchema.omit(stateFields).superRefine(checkTitleHighlight),
   stats: statInputSchema.omit(stateFields),
   skills: skillInputSchema.omit(stateFields),
   services: serviceInputSchema.omit(stateFields),

@@ -1,9 +1,10 @@
-import { embedPlayer, type ResolvedBlock } from "@repo/shared";
+import { embedPlayer, type ResolvedBlock, type TextWidth } from "@repo/shared";
 import { ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { BenchmarkBlock } from "@/components/benchmarks/benchmark-block";
 import { LinkIcon } from "@/components/ui/link-icon";
 import { Stat, StatList } from "@/components/ui/stat";
+import type { HeadingAnchors } from "@/lib/outline";
 import { ArtImage } from "./art-image";
 import { CopyButton } from "./copy-button";
 import { EmbedPlayer } from "./embed-player";
@@ -17,6 +18,11 @@ export type BlockContext = {
   headingLevel: 2 | 3;
   /** Where a benchmark block's run pages live, on a benchmarks page */
   benchmarkRunsPath?: string;
+  /** Heading ids by block, for a page's "On this page" rail (lib/outline) */
+  anchors?: HeadingAnchors;
+  /** The section or page default for text blocks without their own, narrow
+   *  when unset */
+  textWidth?: TextWidth | null | undefined;
 };
 
 type BlockOf<T extends ResolvedBlock["type"]> = Extract<
@@ -49,7 +55,11 @@ const providerNames = {
 // schema gains a block type
 const registry: { [T in ResolvedBlock["type"]]: Renderer<T> } = {
   richText: (block, context) => (
-    <RichText markdown={block.markdown} headingLevel={context.headingLevel} />
+    <RichText
+      markdown={block.markdown}
+      headingLevel={context.headingLevel}
+      anchors={context.anchors?.[block.id]}
+    />
   ),
 
   image: (block) =>
@@ -164,7 +174,13 @@ const registry: { [T in ResolvedBlock["type"]]: Renderer<T> } = {
         </span>
         <CopyButton text={block.code} />
       </div>
-      <pre className="overflow-x-auto p-4 font-mono text-sm leading-relaxed">
+      <pre
+        // long lines scroll sideways on a phone, so the keyboard has to reach
+        // it too
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+        tabIndex={0}
+        className="overflow-x-auto p-4 font-mono text-sm leading-relaxed"
+      >
         <code data-language={block.language}>{block.code}</code>
       </pre>
       {block.caption && (
@@ -197,7 +213,8 @@ export function BlockList({
   blocks: ResolvedBlock[];
   context: BlockContext;
   className?: string;
-  /** Caps each block at the text column, except wide images */
+  /** Caps each block at the text column, except wide images and text,
+   *  which sizes itself */
   measure?: string;
 }) {
   if (blocks.length === 0) return null;
@@ -207,9 +224,29 @@ export function BlockList({
         const render = registry[block.type] as
           Renderer<typeof block.type> | undefined;
         if (!render) return null;
+        if (block.type === "richText") {
+          // text sets its own width (rich-text.tsx), from 68ch up to the
+          // page's full width. data-block-id lets the admin preview change it
+          // live, and full text makes a page's rail step aside like a wide
+          // image (page-toc.tsx)
+          return (
+            <div
+              key={block.id}
+              data-block-id={block.id}
+              data-text-width={block.width ?? context.textWidth ?? "narrow"}
+            >
+              {render(block, context)}
+            </div>
+          );
+        }
         const wide = block.type === "image" && block.wide;
         return (
-          <div key={block.id} className={wide ? undefined : measure}>
+          // data-wide lets a page's rail step aside, see page-toc.tsx
+          <div
+            key={block.id}
+            className={wide ? undefined : measure}
+            data-wide={wide ? "" : undefined}
+          >
             {render(block as never, context)}
           </div>
         );

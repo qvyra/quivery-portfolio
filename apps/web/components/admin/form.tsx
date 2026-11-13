@@ -6,6 +6,7 @@ import { adminFetch } from "./api";
 import { BlocksEditor } from "./blocks-editor";
 import { linkTypes, type Field } from "./fields";
 import { MediaField } from "./media";
+import { InheritedWidth, toTextWidth, WidthControl } from "./width-control";
 
 export type Values = Record<string, unknown>;
 /** Errors by path, "links.0.url" style, from the schema's issues */
@@ -97,19 +98,28 @@ export function FieldsForm({
   /** Error path prefix, for nested forms */
   prefix?: string;
 }) {
+  // text blocks follow the form's text width, when it has one
+  const width = fields.find((field) => field.kind === "width");
   return (
-    <div className="space-y-5">
-      {fields.map((field) => (
-        <FieldInput
-          key={field.name}
-          field={field}
-          value={values[field.name]}
-          errors={errors}
-          path={`${prefix}${field.name}`}
-          onChange={(value) => onChange(field.name, value)}
-        />
-      ))}
-    </div>
+    <InheritedWidth
+      value={{
+        width: (width && toTextWidth(values[width.name])) ?? "narrow",
+        from: width ? "the text width above" : null,
+      }}
+    >
+      <div className="space-y-5">
+        {fields.map((field) => (
+          <FieldInput
+            key={field.name}
+            field={field}
+            value={values[field.name]}
+            errors={errors}
+            path={`${prefix}${field.name}`}
+            onChange={(value) => onChange(field.name, value)}
+          />
+        ))}
+      </div>
+    </InheritedWidth>
   );
 }
 
@@ -227,10 +237,15 @@ function FieldInput({
         </Labelled>
       );
     case "project":
+    case "page":
       return (
         <Labelled id={id} label={label} help={field.help} error={error}>
-          <ProjectSelect
+          <ItemSelect
             {...common}
+            // a testimonial points at a project by id, a section at a page by
+            // its slug (the URL it links to)
+            collection={field.kind === "page" ? "pages" : "projects"}
+            valueKey={field.kind === "page" ? "slug" : "id"}
             value={typeof value === "string" ? value : null}
             onChange={onChange}
           />
@@ -271,6 +286,15 @@ function FieldInput({
           onChange={onChange}
         />
       );
+    case "width":
+      return (
+        <WidthControl
+          label={field.label}
+          help={field.help}
+          value={toTextWidth(value)}
+          onChange={onChange}
+        />
+      );
     case "blocks":
       return (
         <BlocksEditor
@@ -285,25 +309,35 @@ function FieldInput({
   }
 }
 
-function ProjectSelect({
+/** Picks an item of another collection, by its id or its slug */
+function ItemSelect({
+  collection,
+  valueKey,
   value,
   onChange,
   ...props
 }: {
   id: string;
+  collection: "projects" | "pages";
+  valueKey: "id" | "slug";
   value: string | null;
   onChange: (value: string | null) => void;
 }) {
-  const [projects, setProjects] = useState<{ id: string; title: string }[]>([]);
+  const [items, setItems] = useState<{ value: string; title: string }[]>([]);
   useEffect(() => {
-    adminFetch<{ id: string; content: { title: string } }[]>(
-      "/collections/projects",
+    adminFetch<{ id: string; content: { title: string; slug: string } }[]>(
+      `/collections/${collection}`,
     )
-      .then((items) =>
-        setProjects(items.map((i) => ({ id: i.id, title: i.content.title }))),
+      .then((list) =>
+        setItems(
+          list.map((item) => ({
+            value: valueKey === "id" ? item.id : item.content.slug,
+            title: item.content.title,
+          })),
+        ),
       )
-      .catch(() => setProjects([]));
-  }, []);
+      .catch(() => setItems([]));
+  }, [collection, valueKey]);
   return (
     <select
       {...props}
@@ -312,9 +346,9 @@ function ProjectSelect({
       onChange={(e) => onChange(e.target.value || null)}
     >
       <option value="">None</option>
-      {projects.map((project) => (
-        <option key={project.id} value={project.id}>
-          {project.title}
+      {items.map((item) => (
+        <option key={item.value} value={item.value}>
+          {item.title}
         </option>
       ))}
     </select>

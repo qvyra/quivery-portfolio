@@ -69,7 +69,7 @@ export function PageArticle({
           )}
           <BlockList
             blocks={page.blocks}
-            context={{ headingLevel: 2, anchors }}
+            context={{ headingLevel: 2, anchors, textWidth: page.textWidth }}
             measure="max-w-[60rem]"
           />
         </div>

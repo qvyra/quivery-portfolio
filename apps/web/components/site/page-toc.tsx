@@ -25,10 +25,7 @@ export function PageToc({ entries }: { entries: OutlineEntry[] }) {
       .split(" ")
       .map((id) => document.getElementById(id))
       .filter((el): el is HTMLElement => el !== null);
-    const wide = [
-      ...(rail?.closest("[data-page-body]")?.querySelectorAll("[data-wide]") ??
-        []),
-    ];
+    const body = rail?.closest("[data-page-body]");
     let frame = 0;
 
     const measure = () => {
@@ -42,8 +39,12 @@ export function PageToc({ entries }: { entries: OutlineEntry[] }) {
       }
       setActive(current);
       const box = rail.getBoundingClientRect();
+      // looked up each time, since the admin preview changes text widths live
+      const wide = body?.querySelectorAll(
+        "[data-wide], [data-text-width=full]",
+      );
       setCovered(
-        wide.some((el) => {
+        [...(wide ?? [])].some((el) => {
           const block = el.getBoundingClientRect();
           return block.top < box.bottom && block.bottom > box.top;
         }),

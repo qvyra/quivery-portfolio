@@ -39,7 +39,10 @@ export function SectionShell({
             description={description}
           />
         </Reveal>
-        <BlockList blocks={section.blocks} context={{ headingLevel: 3 }} />
+        <BlockList
+          blocks={section.blocks}
+          context={{ headingLevel: 3, textWidth: section.textWidth }}
+        />
         {section.link && (
           <ButtonLink href={section.link.href} size="md">
             {section.link.label}

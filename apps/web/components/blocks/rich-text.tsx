@@ -138,8 +138,11 @@ export function RichText({
     ),
   };
 
+  // the reading column, unless the block list sets a wider text width
+  // (block-list.tsx): from 1280px, medium ends where code blocks do, beside a
+  // page's rail, and full spans the page. Narrower screens keep the column
   return (
-    <div className="max-w-[68ch] text-white/80">
+    <div className="max-w-[68ch] text-white/80 xl:[[data-text-width=full]>&]:max-w-none xl:[[data-text-width=medium]>&]:max-w-[60rem]">
       <Markdown
         remarkPlugins={[remarkGfm]}
         components={components}

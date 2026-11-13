@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { listItemStateInput, optionalText, slugSchema } from "./common.js";
-import { blocksSchema, resolvedBlockSchema } from "./blocks.js";
+import {
+  blocksSchema,
+  resolvedBlockSchema,
+  textWidthSchema,
+} from "./blocks.js";
 import { checkTitleHighlight } from "./section.js";
 
 // Standalone pages at /<slug>, made of the same blocks as a custom section.
@@ -55,6 +59,8 @@ export const pageInputBaseSchema = z.strictObject({
   // the search result and link preview text
   seoDescription: z.string().trim().min(1).max(200),
   blocks: blocksSchema.default([]),
+  // the width its text blocks follow unless they set their own, null is narrow
+  textWidth: textWidthSchema.nullable().optional(),
   ...listItemStateInput,
 });
 
@@ -77,5 +83,7 @@ export const pageDetailSchema = pageSummarySchema.extend({
   titleHighlight: z.string().nullable(),
   eyebrow: z.string().nullable(),
   blocks: z.array(resolvedBlockSchema),
+  // null (or a value this site doesn't know yet) is narrow
+  textWidth: textWidthSchema.nullable().catch(null),
 });
 export type PageDetail = z.infer<typeof pageDetailSchema>;

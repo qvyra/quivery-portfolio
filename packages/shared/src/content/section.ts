@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { listItemStateInput, optionalText, slugSchema } from "./common.js";
-import { blocksSchema, resolvedBlockSchema } from "./blocks.js";
+import {
+  blocksSchema,
+  resolvedBlockSchema,
+  textWidthSchema,
+} from "./blocks.js";
 import {
   contactLinkSchema,
   profileSchema,
@@ -45,6 +49,9 @@ export const sectionInputBaseSchema = z.strictObject({
   // section is then a teaser for that page, so its nav link goes there too
   linkPage: slugSchema.nullable().optional(),
   linkLabel: optionalText(60),
+  // the width its text blocks (and a typed section's intro) follow unless
+  // they set their own, null is narrow
+  textWidth: textWidthSchema.nullable().optional(),
   ...listItemStateInput,
 });
 
@@ -98,6 +105,8 @@ const sectionBase = {
     .object({ label: z.string(), href: z.string() })
     .nullable()
     .default(null),
+  // null (or a value this site doesn't know yet) is narrow
+  textWidth: textWidthSchema.nullable().catch(null),
 };
 
 // Sections as the public API returns them. Sections with nothing to show (no

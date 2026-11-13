@@ -32,6 +32,12 @@ const benchId = z
   .trim()
   .regex(/^[a-z0-9][a-z0-9.+-]*$/, "Use the id from the bench data");
 
+// how wide text runs on screens 1280px and up (narrower ones always use the
+// reading column): narrow is the reading column, medium ends where code blocks
+// and the "On this page" rail meet, full spans the page like a wide image
+export const textWidthSchema = z.enum(["narrow", "medium", "full"]);
+export type TextWidth = z.infer<typeof textWidthSchema>;
+
 const embedProviderSchema = z.enum(
   Object.keys(embedProviderHosts) as [EmbedProvider, ...EmbedProvider[]],
 );
@@ -43,6 +49,9 @@ function defineBlocks<MediaRef extends z.ZodType>(mediaRef: MediaRef) {
       type: z.literal("richText"),
       // markdown, rendered without raw HTML
       markdown: z.string().trim().min(1).max(20_000),
+      // absent follows the section or page default. No default value, so a
+      // block that doesn't set it stays readable by an older site build
+      width: textWidthSchema.optional(),
     }),
     z.strictObject({
       id: blockId,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { adminContentSchemas } from "../admin.js";
+import { blocksSchema } from "./blocks.js";
 import { pageInputSchema, pageSlugSchema, reservedPageSlugs } from "./page.js";
 import { parsePage, parseSite } from "./public-api.js";
 import { sectionInputSchema } from "./section.js";
@@ -155,5 +156,70 @@ describe("parsePage", () => {
     expect(skipped).toEqual([
       'Page "architecture": block 1 has unknown type "hologram", skipped',
     ]);
+  });
+});
+
+describe("text width", () => {
+  const section = { slug: "about", type: "custom", title: "About" };
+  const text = { id: "t", type: "richText", markdown: "Hi" };
+
+  it("writes no width into content that doesn't set one", () => {
+    // a default would reach every stored block, and a site built before the
+    // field refuses blocks with keys it doesn't know
+    const parsed = sectionInputSchema.parse({ ...section, blocks: [text] });
+    expect(parsed).not.toHaveProperty("textWidth");
+    expect(parsed.blocks[0]).toEqual(text);
+    expect(pageInputSchema.parse(page)).not.toHaveProperty("textWidth");
+  });
+
+  it("takes a width on text blocks, sections and pages, and nothing else", () => {
+    expect(
+      sectionInputSchema.safeParse({
+        ...section,
+        textWidth: "medium",
+        blocks: [{ ...text, width: "full" }],
+      }).success,
+    ).toBe(true);
+    expect(
+      pageInputSchema.safeParse({ ...page, textWidth: null }).success,
+    ).toBe(true);
+    expect(
+      sectionInputSchema.safeParse({ ...section, textWidth: "wide" }).success,
+    ).toBe(false);
+    expect(
+      blocksSchema.safeParse([{ ...text, width: "inherit" }]).success,
+    ).toBe(false);
+    expect(
+      blocksSchema.safeParse([
+        {
+          id: "c",
+          type: "codeSnippet",
+          language: "lua",
+          code: "x",
+          width: "full",
+        },
+      ]).success,
+    ).toBe(false);
+  });
+
+  it("reads a missing or unknown public width as narrow (null)", () => {
+    const detail = {
+      id: uuid(3),
+      slug: "architecture",
+      title: "How I build systems",
+      titleHighlight: null,
+      eyebrow: null,
+      seoTitle: null,
+      seoDescription: "How I build",
+      updatedAt: "2026-11-13T10:00:00.000Z",
+      blocks: [],
+    };
+    expect(parsePage(ok(detail)).textWidth).toBeNull();
+    expect(
+      parsePage(ok({ ...detail, textWidth: "huge" })).textWidth,
+    ).toBeNull();
+    expect(parsePage(ok({ ...detail, textWidth: "medium" })).textWidth).toBe(
+      "medium",
+    );
   });
 });

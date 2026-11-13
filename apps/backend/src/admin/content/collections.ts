@@ -34,6 +34,7 @@ export type ContentDelegate = {
 const models: Record<AdminCollection, string> = {
   sections: 'section',
   projects: 'project',
+  pages: 'page',
   stats: 'stat',
   skills: 'skill',
   services: 'service',

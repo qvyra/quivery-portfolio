@@ -104,6 +104,32 @@ model Section {
   navLabel       String?
   // Zod-validated array of content blocks
   blocks         Json          @default("[]")
+  // a button to a standalone page, by the page's slug. Shown only while that
+  // page is published, so a renamed or hidden page never leaves a dead link
+  linkPage       String?
+  linkLabel      String?
+  draft          Json?
+  publishStatus  PublishStatus @default(DRAFT)
+  visible        Boolean       @default(true)
+  sortOrder      Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([publishStatus, visible, sortOrder])
+}
+
+// A standalone page at /<slug>, made of the same blocks as a custom section
+model Page {
+  id             String        @id @default(uuid())
+  slug           String        @unique
+  title          String
+  titleHighlight String?
+  eyebrow        String?
+  // null falls back to the title
+  seoTitle       String?
+  seoDescription String
+  // Zod-validated array of content blocks
+  blocks         Json          @default("[]")
   draft          Json?
   publishStatus  PublishStatus @default(DRAFT)
   visible        Boolean       @default(true)

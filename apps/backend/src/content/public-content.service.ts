@@ -5,6 +5,8 @@ import {
   sectionTypeSchema,
   type ContactLink,
   type Media,
+  type PageDetail,
+  type PageSummary,
   type ProjectDetail,
   type ProjectSummary,
   type ResolvedBlock,
@@ -24,6 +26,7 @@ import {
   parseJsonList,
   toContactLink,
   toMedia,
+  toPageSummary,
   toProfile,
   toProjectSummary,
   toService,
@@ -71,6 +74,7 @@ export class PublicContentService {
       projects,
       skills,
       testimonials,
+      pages,
     ] = await this.db.$transaction([
       this.db.profile.findUnique({
         where: { id: 1 },
@@ -99,6 +103,8 @@ export class PublicContentService {
         orderBy: [...ordered],
         include: { avatar: true },
       }),
+      // the pages a section may link to
+      this.db.page.findMany({ where, select: { slug: true, draft: true } }),
     ]);
 
     if (!profile) {
@@ -137,6 +143,7 @@ export class PublicContentService {
       ),
     }));
     const media = await this.findMedia(parsed.map(({ blocks }) => blocks));
+    const linkable = new Set(draft(pages).map((page) => page.slug));
 
     const siteSections = parsed.flatMap(({ section, blocks }) => {
       const type = sectionTypeSchema.safeParse(section.type);
@@ -154,6 +161,13 @@ export class PublicContentService {
         eyebrow: section.eyebrow,
         navLabel: section.navLabel,
         blocks: attachMedia(blocks, media) as ResolvedBlock[],
+        // a link to a page that isn't live is left out, never a dead button
+        link:
+          section.linkPage &&
+          section.linkLabel &&
+          linkable.has(section.linkPage)
+            ? { label: section.linkLabel, href: `/${section.linkPage}` }
+            : null,
       };
       const built = buildSection(type.data, base, lists);
       return built ? [built] : [];
@@ -163,6 +177,50 @@ export class PublicContentService {
       profile: toProfile(profile),
       contactLinks: lists.contactLinks,
       sections: siteSections,
+    };
+  }
+
+  async getPages(): Promise<PageSummary[]> {
+    const pages = await this.db.page.findMany({
+      where: live,
+      orderBy: [...ordered],
+    });
+    return pages.map(toPageSummary);
+  }
+
+  async getPage(slug: string): Promise<PageDetail> {
+    return this.loadPage({ ...live, slug }, false);
+  }
+
+  /** A page as it will be once published, by id since a draft can rename it */
+  async getPagePreview(id: string): Promise<PageDetail> {
+    return this.loadPage({ id }, true);
+  }
+
+  private async loadPage(
+    where: Prisma.PageWhereInput,
+    preview: boolean,
+  ): Promise<PageDetail> {
+    const row = await this.db.page.findFirst({ where });
+    const page = row && preview ? withDraft(row) : row;
+    if (!page) {
+      throw new NotFoundException({
+        status: 404,
+        message: 'Page not found!',
+        code: 'PAGE_NOT_FOUND',
+      });
+    }
+    const blocks = parseJsonList(
+      blockSchema,
+      page.blocks,
+      `Page(${page.slug}).blocks`,
+    );
+    const media = await this.findMedia([blocks]);
+    return {
+      ...toPageSummary(page),
+      titleHighlight: page.titleHighlight,
+      eyebrow: page.eyebrow,
+      blocks: attachMedia(blocks, media) as ResolvedBlock[],
     };
   }
 
@@ -294,6 +352,7 @@ type SectionBase = {
   eyebrow: string | null;
   navLabel: string | null;
   blocks: ResolvedBlock[];
+  link: { label: string; href: string } | null;
 };
 
 type Lists = {

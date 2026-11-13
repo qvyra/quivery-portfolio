@@ -6,6 +6,7 @@ import {
   type ContactLink,
   type Media,
   type Profile,
+  type PageSummary,
   type ProjectSummary,
   type Service,
   type Skill,
@@ -113,6 +114,22 @@ export const toContactLink = (row: Prisma.ContactLinkModel): ContactLink => ({
   value: row.value,
   url: row.url,
   featured: row.featured,
+});
+
+export const toPageSummary = (row: {
+  id: string;
+  slug: string;
+  title: string;
+  seoTitle: string | null;
+  seoDescription: string;
+  updatedAt: Date;
+}): PageSummary => ({
+  id: row.id,
+  slug: row.slug,
+  title: row.title,
+  seoTitle: row.seoTitle,
+  seoDescription: row.seoDescription,
+  updatedAt: row.updatedAt.toISOString(),
 });
 
 export const toProjectSummary = (

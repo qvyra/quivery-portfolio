@@ -17,6 +17,52 @@ const aliases = (process.env.SITE_ALIASES ?? "")
   .map((alias) => alias.trim().replace(/\/+$/, ""))
   .filter(Boolean);
 
+// the API might be asleep, and takes about a minute to wake
+const TIMEOUT_MS = 120_000;
+
+// every published standalone page, from the API: each is checked like a
+// project page and must be in the sitemap. Unlisted, a page that 404s or lost
+// its card would only be noticed by a visitor
+async function publishedPages() {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const response = await fetch(`${api}/public/pages`, {
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+      if (!response.ok) throw new Error(`answered ${response.status}`);
+      const { data } = await response.json();
+      return data;
+    } catch (error) {
+      if (attempt === 3) {
+        console.error(
+          `::error::Couldn't list the published pages: ${error instanceof Error ? error.message : error}`,
+        );
+        process.exit(1);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 15_000));
+    }
+  }
+}
+
+// how React writes text into the page, so a title with & or quotes matches
+const escapeHtml = (text) =>
+  text.replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#x27;",
+      })[c],
+  );
+
+const pages = await publishedPages();
+console.log(
+  `published pages: ${pages.map((page) => page.slug).join(", ") || "none"}`,
+);
+
 const checks = [
   {
     url: `${site}/`,
@@ -51,10 +97,23 @@ const checks = [
     ogImage: true,
   },
   { url: `${site}/projects/geode/benchmarks/runs/ffffffff`, status: 404 },
+  ...pages.map((page) => ({
+    url: `${site}/${page.slug}`,
+    status: 200,
+    present: [
+      `<title>${escapeHtml(page.seoTitle ?? page.title)} · Quivery</title>`,
+      `<link rel="canonical" href="${site}/${page.slug}"/>`,
+    ],
+    ogImage: true,
+  })),
   {
     url: `${site}/sitemap.xml`,
     status: 200,
-    present: ["/projects/geode", "/projects/geode/benchmarks/runs/"],
+    present: [
+      "/projects/geode",
+      "/projects/geode/benchmarks/runs/",
+      ...pages.map((page) => `<loc>${site}/${page.slug}</loc>`),
+    ],
   },
   {
     url: `${site}/robots.txt`,
@@ -105,7 +164,6 @@ const checks = [
 
 async function run(check) {
   try {
-    // the API might be asleep, and takes about a minute to wake
     const response = await fetch(check.url, {
       method: check.method ?? "GET",
       ...(check.body && {
@@ -113,7 +171,7 @@ async function run(check) {
         body: JSON.stringify(check.body),
       }),
       redirect: "manual",
-      signal: AbortSignal.timeout(120_000),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     const body = await response.text();
     const found = (check.absent ?? []).filter((text) => body.includes(text));

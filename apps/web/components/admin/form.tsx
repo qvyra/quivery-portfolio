@@ -227,10 +227,15 @@ function FieldInput({
         </Labelled>
       );
     case "project":
+    case "page":
       return (
         <Labelled id={id} label={label} help={field.help} error={error}>
-          <ProjectSelect
+          <ItemSelect
             {...common}
+            // a testimonial points at a project by id, a section at a page by
+            // its slug (the URL it links to)
+            collection={field.kind === "page" ? "pages" : "projects"}
+            valueKey={field.kind === "page" ? "slug" : "id"}
             value={typeof value === "string" ? value : null}
             onChange={onChange}
           />
@@ -285,25 +290,35 @@ function FieldInput({
   }
 }
 
-function ProjectSelect({
+/** Picks an item of another collection, by its id or its slug */
+function ItemSelect({
+  collection,
+  valueKey,
   value,
   onChange,
   ...props
 }: {
   id: string;
+  collection: "projects" | "pages";
+  valueKey: "id" | "slug";
   value: string | null;
   onChange: (value: string | null) => void;
 }) {
-  const [projects, setProjects] = useState<{ id: string; title: string }[]>([]);
+  const [items, setItems] = useState<{ value: string; title: string }[]>([]);
   useEffect(() => {
-    adminFetch<{ id: string; content: { title: string } }[]>(
-      "/collections/projects",
+    adminFetch<{ id: string; content: { title: string; slug: string } }[]>(
+      `/collections/${collection}`,
     )
-      .then((items) =>
-        setProjects(items.map((i) => ({ id: i.id, title: i.content.title }))),
+      .then((list) =>
+        setItems(
+          list.map((item) => ({
+            value: valueKey === "id" ? item.id : item.content.slug,
+            title: item.content.title,
+          })),
+        ),
       )
-      .catch(() => setProjects([]));
-  }, []);
+      .catch(() => setItems([]));
+  }, [collection, valueKey]);
   return (
     <select
       {...props}
@@ -312,9 +327,9 @@ function ProjectSelect({
       onChange={(e) => onChange(e.target.value || null)}
     >
       <option value="">None</option>
-      {projects.map((project) => (
-        <option key={project.id} value={project.id}>
-          {project.title}
+      {items.map((item) => (
+        <option key={item.value} value={item.value}>
+          {item.title}
         </option>
       ))}
     </select>

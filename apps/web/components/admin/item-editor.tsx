@@ -177,7 +177,9 @@ function Editor({
   const previewUrl =
     config.preview === "project" && item
       ? `/admin/preview/projects/${item.id}`
-      : `/admin/preview${collection === "sections" && typeof values?.slug === "string" ? `#${values.slug}` : ""}`;
+      : config.preview === "page" && item
+        ? `/admin/preview/pages/${item.id}`
+        : `/admin/preview${collection === "sections" && typeof values?.slug === "string" ? `#${values.slug}` : ""}`;
 
   return (
     <div className={preview ? "grid gap-6 xl:grid-cols-2" : "max-w-3xl"}>

@@ -114,7 +114,9 @@ describe('admin content (database)', () => {
       content: { value: '7' },
       draft: null,
     });
-    expect(refreshes().at(-1)?.body).toEqual({ tags: ['site', 'projects'] });
+    expect(refreshes().at(-1)?.body).toEqual({
+      tags: ['site', 'projects', 'pages'],
+    });
   });
 
   it('discards a draft and keeps the live content', async () => {

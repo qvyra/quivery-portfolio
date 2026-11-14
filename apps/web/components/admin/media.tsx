@@ -1,7 +1,14 @@
 "use client";
 
 import type { MediaKind } from "@repo/shared";
-import { FileText, ImagePlus, LoaderCircle, Upload, X } from "lucide-react";
+import {
+  FileText,
+  ImagePlus,
+  LoaderCircle,
+  TriangleAlert,
+  Upload,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AdminError, adminFetch } from "./api";
 import { FieldError } from "./form";
@@ -366,6 +373,117 @@ export function MediaField({
           setPicking(false);
         }}
       />
+    </div>
+  );
+}
+
+// one version as the site sizes it: its own shape, the shared alt text and
+// caption under it
+export function PreviewFrame({
+  label,
+  media,
+  caption,
+  className,
+}: {
+  label: string;
+  media: AdminMedia;
+  caption?: unknown;
+  className: string;
+}) {
+  return (
+    <figure className={className}>
+      <figcaption className="mb-1.5 text-xs font-medium text-white/60">
+        {label}
+      </figcaption>
+      {/* admin preview, from any origin and never on the public site */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={media.url}
+        alt={media.alt}
+        style={{
+          aspectRatio:
+            media.width && media.height
+              ? `${media.width} / ${media.height}`
+              : "16 / 9",
+        }}
+        className="h-auto w-full rounded-lg object-contain ring-1 ring-white/10"
+      />
+      {typeof caption === "string" && caption.trim() && (
+        <p className="mt-1.5 text-xs text-white/60">{caption}</p>
+      )}
+    </figure>
+  );
+}
+
+/**
+ * A cover and its phone version side by side, as the project page shows
+ * them. Nothing stops a landscape phone version, it's only flagged
+ */
+export function CoverPreview({
+  main,
+  phone,
+}: {
+  /** The two media ids */
+  main: unknown;
+  phone: unknown;
+}) {
+  const library = useMediaLibrary();
+  const find = (id: unknown) =>
+    (typeof id === "string" && library?.find((media) => media.id === id)) ||
+    null;
+  const cover = find(main);
+  const mobile = find(phone);
+  if (!cover && !mobile) return null;
+  const landscape =
+    mobile?.width && mobile.height && mobile.height <= mobile.width
+      ? `${mobile.width} × ${mobile.height}`
+      : null;
+
+  return (
+    <div className="space-y-3 rounded-lg bg-black/20 p-3 ring-1 ring-white/10 ring-inset">
+      <div className="flex items-start gap-4">
+        {cover ? (
+          <PreviewFrame
+            label="Wide screens and cards"
+            media={cover}
+            className="min-w-0 flex-1"
+          />
+        ) : (
+          <p className="min-w-0 flex-1 text-sm text-white/60">
+            No cover yet. The mobile cover only shows together with one.
+          </p>
+        )}
+        {(mobile ?? cover) && (
+          <PreviewFrame
+            label={mobile ? "Phones, page top" : "Phones (same as the cover)"}
+            media={(mobile ?? cover)!}
+            className="w-[7.5rem] shrink-0 sm:w-[9rem]"
+          />
+        )}
+      </div>
+      {/* a warning, not an error: saving still works */}
+      <p aria-live="polite">
+        {landscape && (
+          <span className="flex gap-2 text-sm text-white/80">
+            <TriangleAlert
+              aria-hidden="true"
+              className="mt-0.5 size-4 shrink-0 text-focus"
+            />
+            <span>
+              <span className="sr-only">Warning: </span>The mobile cover is{" "}
+              {landscape}, so it isn&rsquo;t portrait. It still saves and shows
+              on phones, but a taller image suits narrow screens.
+            </span>
+          </span>
+        )}
+      </p>
+      {cover && (
+        <p className="text-xs text-white/60">
+          {cover.alt
+            ? `Alt text, for both: ${cover.alt}`
+            : "No alt text, so both are treated as decorative. Add it in Media."}
+        </p>
+      )}
     </div>
   );
 }

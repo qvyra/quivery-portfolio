@@ -11,7 +11,7 @@ import {
   type Errors,
   type Values,
 } from "./form";
-import { MediaField, useMediaLibrary, type AdminMedia } from "./media";
+import { MediaField, PreviewFrame, useMediaLibrary } from "./media";
 import { toTextWidth, WidthControl } from "./width-control";
 
 const blockLabels: Record<BlockType, string> = {
@@ -290,44 +290,6 @@ function MediaRef({
       error={error}
       onChange={(next) => onChange({ mediaId: next })}
     />
-  );
-}
-
-// one version as the site sizes it: its own shape, the shared alt text and
-// caption under it
-function PreviewFrame({
-  label,
-  media,
-  caption,
-  className,
-}: {
-  label: string;
-  media: AdminMedia;
-  caption: unknown;
-  className: string;
-}) {
-  return (
-    <figure className={className}>
-      <figcaption className="mb-1.5 text-xs font-medium text-white/60">
-        {label}
-      </figcaption>
-      {/* admin preview, from any origin and never on the public site */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={media.url}
-        alt={media.alt}
-        style={{
-          aspectRatio:
-            media.width && media.height
-              ? `${media.width} / ${media.height}`
-              : "16 / 9",
-        }}
-        className="h-auto w-full rounded-lg object-contain ring-1 ring-white/10"
-      />
-      {typeof caption === "string" && caption.trim() && (
-        <p className="mt-1.5 text-xs text-white/60">{caption}</p>
-      )}
-    </figure>
   );
 }
 

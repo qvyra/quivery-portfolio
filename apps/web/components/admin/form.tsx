@@ -1,11 +1,11 @@
 "use client";
 
 import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useId, useState, type ReactNode } from "react";
 import { adminFetch } from "./api";
 import { BlocksEditor } from "./blocks-editor";
 import { linkTypes, type Field } from "./fields";
-import { MediaField } from "./media";
+import { CoverPreview, MediaField } from "./media";
 import { InheritedWidth, toTextWidth, WidthControl } from "./width-control";
 
 export type Values = Record<string, unknown>;
@@ -109,14 +109,21 @@ export function FieldsForm({
     >
       <div className="space-y-5">
         {fields.map((field) => (
-          <FieldInput
-            key={field.name}
-            field={field}
-            value={values[field.name]}
-            errors={errors}
-            path={`${prefix}${field.name}`}
-            onChange={(value) => onChange(field.name, value)}
-          />
+          <Fragment key={field.name}>
+            <FieldInput
+              field={field}
+              value={values[field.name]}
+              errors={errors}
+              path={`${prefix}${field.name}`}
+              onChange={(value) => onChange(field.name, value)}
+            />
+            {field.kind === "media" && field.phoneVersionOf && (
+              <CoverPreview
+                main={values[field.phoneVersionOf]}
+                phone={values[field.name]}
+              />
+            )}
+          </Fragment>
         ))}
       </div>
     </InheritedWidth>

@@ -26,7 +26,12 @@ export type Field = Base &
     | { kind: "number"; min?: number; max?: number }
     | { kind: "boolean" }
     | { kind: "select"; options: Option[] }
-    | { kind: "media"; accept: MediaKind }
+    | {
+        kind: "media";
+        accept: MediaKind;
+        /** The field this is the phone version of, previewed together */
+        phoneVersionOf?: string;
+      }
     | { kind: "strings"; max?: number }
     | { kind: "links" | "blocks" | "date" | "project" | "page" | "width" }
   );
@@ -240,6 +245,15 @@ export const collections: Record<AdminCollection, CollectionConfig> = {
         kind: "media",
         accept: "IMAGE",
         optional: true,
+      },
+      {
+        name: "mobileCoverId",
+        label: "Mobile cover (portrait)",
+        kind: "media",
+        accept: "IMAGE",
+        optional: true,
+        phoneVersionOf: "coverId",
+        help: "Shown instead of the cover at the top of the project page on narrow screens. Cards always use the cover above.",
       },
       { name: "tags", label: "Tags", kind: "strings", max: 32 },
       { name: "links", label: "Links", kind: "links" },

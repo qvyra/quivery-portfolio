@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
     "check-types": "next typegen && tsc --noEmit",
+    "test": "vitest run",
     "test:a11y": "node scripts/a11y.mjs",
     "icons": "node scripts/generate-icons.mjs"
   },
@@ -39,6 +40,7 @@
     "eslint": "^9.39.5",
     "playwright": "1.64.1",
     "tailwindcss": "^4",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
   }
 }

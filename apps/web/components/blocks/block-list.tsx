@@ -2,7 +2,7 @@ import { embedPlayer, type ResolvedBlock, type TextWidth } from "@repo/shared";
 import { ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { BenchmarkBlock } from "@/components/benchmarks/benchmark-block";
-import { LinkIcon } from "@/components/ui/link-icon";
+import { ContentLink } from "@/components/ui/content-link";
 import { Stat, StatList } from "@/components/ui/stat";
 import {
   COLUMN_GALLERY_SIZES,
@@ -147,17 +147,11 @@ const registry: { [T in ResolvedBlock["type"]]: Renderer<T> } = {
     <ul className="flex flex-wrap gap-3">
       {block.links.map((link) => (
         <li key={link.url}>
-          <a
-            href={link.url}
-            target="_blank"
-            rel="noreferrer"
+          <ContentLink
+            link={link}
             className="btn btn-secondary btn-md"
-          >
-            <LinkIcon type={link.type} url={link.url} />
-            {link.label}
-            <ArrowUpRight data-icon="end" aria-hidden="true" />
-            <span className="sr-only"> (opens in a new tab)</span>
-          </a>
+            external={<ArrowUpRight data-icon="end" aria-hidden="true" />}
+          />
         </li>
       ))}
     </ul>

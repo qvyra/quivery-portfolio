@@ -2,7 +2,7 @@ import type { ProjectSummary } from "@repo/shared";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { MediaImage } from "@/components/blocks/media-image";
-import { LinkIcon } from "@/components/ui/link-icon";
+import { ContentLink } from "@/components/ui/content-link";
 import { CARD_SIZES, FLAGSHIP_CARD_SIZES } from "@/lib/image-sizes";
 import { ProjectBadges } from "./project-badges";
 
@@ -80,17 +80,11 @@ export function ProjectCard({
             // above the stretched title link so these stay clickable
             <div className="relative z-10 ml-auto flex flex-wrap gap-2">
               {links.map((link) => (
-                <a
+                <ContentLink
                   key={link.url}
-                  href={link.url}
-                  target="_blank"
-                  rel="noreferrer"
+                  link={link}
                   className="btn btn-secondary btn-sm"
-                >
-                  <LinkIcon type={link.type} url={link.url} />
-                  {link.label}
-                  <span className="sr-only"> (opens in a new tab)</span>
-                </a>
+                />
               ))}
             </div>
           )}

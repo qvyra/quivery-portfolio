@@ -7,7 +7,7 @@ import { ProjectBadges } from "@/components/site/project-badges";
 import { ProjectCover } from "@/components/site/project-cover";
 import { Container } from "@/components/ui/container";
 import { GithubIcon } from "@/components/ui/icons";
-import { LinkIcon } from "@/components/ui/link-icon";
+import { ContentLink } from "@/components/ui/content-link";
 import { Reveal } from "@/components/ui/reveal";
 
 const navCard =
@@ -180,16 +180,10 @@ export function ProjectArticle({
             <ul className="flex animate-enter flex-wrap gap-3 [--i:3]">
               {project.links.map((link, linkIndex) => (
                 <li key={link.url}>
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noreferrer"
+                  <ContentLink
+                    link={link}
                     className={`btn btn-md ${linkIndex === 0 ? "btn-primary" : "btn-secondary"}`}
-                  >
-                    <LinkIcon type={link.type} url={link.url} />
-                    {link.label}
-                    <span className="sr-only"> (opens in a new tab)</span>
-                  </a>
+                  />
                 </li>
               ))}
               {hasBenchmarks && (

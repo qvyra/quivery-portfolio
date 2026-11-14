@@ -36,6 +36,9 @@ export const projectInputSchema = z.strictObject({
   robloxPlaceId: robloxIdSchema.nullable().optional(),
   robloxUniverseId: robloxIdSchema.nullable().optional(),
   coverId: z.uuid().nullable().optional(),
+  // portrait, shown instead of the cover at the top of the project page on
+  // phones. Cards and share cards always use the cover
+  mobileCoverId: z.uuid().nullable().optional(),
   ...listItemStateInput,
 });
 export type ProjectInput = z.input<typeof projectInputSchema>;
@@ -61,6 +64,9 @@ export const projectSummarySchema = z.object({
 export type ProjectSummary = z.infer<typeof projectSummarySchema>;
 
 export const projectDetailSchema = projectSummarySchema.extend({
+  // only on the page itself, so a card can't pick it up. An API from before
+  // it reads as none, which means the cover everywhere
+  mobileCover: mediaSchema.nullable().catch(null),
   body: z.array(resolvedBlockSchema),
   benchmarks: z.array(resolvedBlockSchema),
   testimonials: z.array(testimonialSchema),

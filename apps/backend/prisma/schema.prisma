@@ -66,13 +66,14 @@ model Media {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  captionsFor        Media[]       @relation("MediaCaptions")
-  profileAvatars     Profile[]     @relation("ProfileAvatar")
-  profileCvs         Profile[]     @relation("ProfileCv")
-  projectCovers      Project[]
-  skillIcons         Skill[]
-  serviceIcons       Service[]
-  testimonialAvatars Testimonial[]
+  captionsFor         Media[]       @relation("MediaCaptions")
+  profileAvatars      Profile[]     @relation("ProfileAvatar")
+  profileCvs          Profile[]     @relation("ProfileCv")
+  projectCovers       Project[]     @relation("ProjectCover")
+  projectMobileCovers Project[]     @relation("ProjectMobileCover")
+  skillIcons          Skill[]
+  serviceIcons        Service[]
+  testimonialAvatars  Testimonial[]
 }
 
 // singleton, always id 1 (a CHECK constraint in the migration enforces it)
@@ -168,7 +169,10 @@ model Project {
   robloxPlaceId    String?
   robloxUniverseId String?
   coverId          String?
-  cover            Media?        @relation(fields: [coverId], references: [id], onDelete: SetNull)
+  cover            Media?        @relation("ProjectCover", fields: [coverId], references: [id], onDelete: SetNull)
+  // portrait, for the top of the project page on phones only
+  mobileCoverId    String?
+  mobileCover      Media?        @relation("ProjectMobileCover", fields: [mobileCoverId], references: [id], onDelete: SetNull)
   draft            Json?
   publishStatus    PublishStatus @default(DRAFT)
   visible          Boolean       @default(true)

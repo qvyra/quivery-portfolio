@@ -29,7 +29,13 @@ export type AdminMedia = {
 };
 
 // the columns that point at media from typed fields, also checked in drafts
-const mediaIdFields = ['avatarId', 'cvId', 'coverId', 'iconId'];
+const mediaIdFields = [
+  'avatarId',
+  'cvId',
+  'coverId',
+  'mobileCoverId',
+  'iconId',
+];
 
 function invalid(path: string, message: string, input: unknown) {
   return new ZodValidationException(
@@ -131,6 +137,7 @@ export class AdminMediaService {
         select: {
           title: true,
           coverId: true,
+          mobileCoverId: true,
           body: true,
           benchmarks: true,
           draft: true,
@@ -160,6 +167,7 @@ export class AdminMediaService {
         .filter(
           (p) =>
             p.coverId === id ||
+            p.mobileCoverId === id ||
             used(p.body) ||
             used(p.benchmarks) ||
             used(p.draft),

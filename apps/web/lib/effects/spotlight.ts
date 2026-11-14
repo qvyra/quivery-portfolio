@@ -1,24 +1,40 @@
 // A soft light following the mouse across buttons and cards, on the surface
-// and brighter along the border. The layer is added on first hover, so pages
-// ship no markup for it. Styles are .spotlight in globals.css
+// and brighter along the border. CMS images (.image-frame) only get the
+// border light, nothing is laid over the picture. The layers are added on
+// first hover, so pages ship no markup for them. Styles are .spotlight in
+// globals.css
 import { brand, effectsConfig } from "./config";
 
-const TARGETS = ".btn, [data-spotlight]";
+const SURFACE = ".btn, [data-spotlight]";
+const TARGETS = `${SURFACE}, .image-frame`;
 const { size, strength, edge } = effectsConfig.spotlight;
 
-// one light for the surface and one masked to the border, both moved by
-// transform
+const EDGE = ":scope > .spotlight-edge";
+const FILL = ":scope > .spotlight:not(.spotlight-edge)";
+
+function layer(element: HTMLElement, selector: string, className: string) {
+  const found = element.querySelector<HTMLElement>(selector);
+  if (found) return found;
+  const span = document.createElement("span");
+  span.className = className;
+  span.setAttribute("aria-hidden", "true");
+  span.innerHTML = '<span class="spotlight-light"></span>';
+  element.append(span);
+  return span;
+}
+
+// the surface light under the content and the border light over it, both
+// moved by transform
 function lightsOf(element: HTMLElement) {
-  let layer = element.querySelector<HTMLElement>(":scope > .spotlight");
-  if (!layer) {
-    layer = document.createElement("span");
-    layer.className = "spotlight";
-    layer.setAttribute("aria-hidden", "true");
-    layer.innerHTML =
-      '<span class="spotlight-light"></span><span class="spotlight-edge"><span class="spotlight-light"></span></span>';
-    element.append(layer);
-  }
-  return [...layer.querySelectorAll<HTMLElement>(".spotlight-light")];
+  const layers = [layer(element, EDGE, "spotlight spotlight-edge")];
+  if (element.matches(SURFACE)) layers.push(layer(element, FILL, "spotlight"));
+  return layers.map((l) => l.firstElementChild as HTMLElement);
+}
+
+// a card's cover, which the surface light stays below so it never tints the
+// picture, even a transparent one or one still loading
+function clearOf(element: HTMLElement) {
+  return element.querySelector<HTMLElement>(":scope > [data-spot-clear]");
 }
 
 /** Starts the spotlight. Returns a function that stops it */
@@ -36,6 +52,7 @@ export function startSpotlight(): () => void {
 
   let current: HTMLElement | null = null;
   let lights: HTMLElement[] = [];
+  let clear: HTMLElement | null = null;
   let frame = 0;
   let point = { x: 0, y: 0 };
   const place = () => {
@@ -44,6 +61,11 @@ export function startSpotlight(): () => void {
     const box = current.getBoundingClientRect();
     const transform = `translate3d(${point.x - box.left - size / 2}px, ${point.y - box.top - size / 2}px, 0)`;
     for (const light of lights) light.style.transform = transform;
+    if (clear) {
+      const below = clear.getBoundingClientRect().bottom - box.top;
+      const surface = current.querySelector<HTMLElement>(FILL);
+      if (surface) surface.style.clipPath = `inset(${below}px 0 0 0)`;
+    }
     // shown after the first placement, so it never flashes at a corner
     current.setAttribute("data-spot", "");
   };
@@ -56,6 +78,7 @@ export function startSpotlight(): () => void {
       current?.removeAttribute("data-spot");
       current = target ?? null;
       lights = current ? lightsOf(current) : [];
+      clear = current ? clearOf(current) : null;
     }
     if (!current) return;
     point = { x: event.clientX, y: event.clientY };

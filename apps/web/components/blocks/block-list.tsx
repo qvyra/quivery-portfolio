@@ -86,13 +86,16 @@ const registry: { [T in ResolvedBlock["type"]]: Renderer<T> } = {
           item.image.media && (
             <li key={`${item.image.mediaId}-${index}`}>
               <figure>
-                <MediaImage
-                  media={item.image.media}
-                  sizes={
-                    context.inColumn ? COLUMN_GALLERY_SIZES : PAGE_GALLERY_SIZES
-                  }
-                  className="rounded-xl ring-1 ring-white/10"
-                />
+                <div className="image-frame overflow-hidden">
+                  <MediaImage
+                    media={item.image.media}
+                    sizes={
+                      context.inColumn
+                        ? COLUMN_GALLERY_SIZES
+                        : PAGE_GALLERY_SIZES
+                    }
+                  />
+                </div>
                 <Caption>{item.caption}</Caption>
               </figure>
             </li>

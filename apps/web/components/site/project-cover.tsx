@@ -19,7 +19,7 @@ export function ProjectCover({
   if (cover?.kind !== "IMAGE") return null;
   const phone = mobileCover?.kind === "IMAGE" ? mobileCover : null;
   return (
-    <div className="mt-12 overflow-hidden rounded-xl ring-1 ring-white/10">
+    <div className="image-frame mt-12 overflow-hidden">
       {phone ? (
         <ArtPicture
           main={cover}

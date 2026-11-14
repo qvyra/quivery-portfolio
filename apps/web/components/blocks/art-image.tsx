@@ -42,7 +42,7 @@ export function ArtImage({
         phone={phone}
         sizes={sizes}
         phoneSizes={PHONE_SIZES}
-        className="h-auto w-full rounded-xl ring-1 ring-white/10"
+        className="h-auto w-full rounded-xl"
       />
     </ImageZoom>
   );

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { blocksSchema, resolvedBlockSchema } from "./blocks.js";
+import { linkSchema } from "./common.js";
 import { contactLinkInputSchema, testimonialInputSchema } from "./entities.js";
 import { projectInputSchema } from "./project.js";
 import { sectionInputSchema } from "./section.js";
@@ -114,6 +115,59 @@ describe("blocksSchema", () => {
         id: "b",
         type: "image",
         image: { mediaId, media: null },
+      }).success,
+    ).toBe(true);
+  });
+});
+
+describe("links on this site", () => {
+  const link = (url: string) =>
+    linkSchema.safeParse({ label: "Architecture", url, type: "internal" });
+  const problem = (url: string) => link(url).error?.issues[0];
+
+  it("takes a path from the root, with or without an anchor", () => {
+    for (const url of [
+      "/",
+      "/projects/geode",
+      "/architecture",
+      "/architecture#guards",
+      "/#works",
+    ]) {
+      expect(link(url).success, url).toBe(true);
+    }
+  });
+
+  it("turns away full URLs with a hint to use another link type", () => {
+    const issue = problem("https://quivery.dev/projects/geode");
+    expect(issue?.path).toEqual(["url"]);
+    expect(issue?.message).toMatch(/full URL\. Pick another link type/);
+  });
+
+  it("turns away anything a browser would read as another site", () => {
+    for (const url of [
+      "//evil.example",
+      "/\\evil.example",
+      "projects/geode",
+      "javascript:alert(1)",
+      "/a b",
+    ]) {
+      expect(link(url).success, url).toBe(false);
+    }
+  });
+
+  it("still needs an http URL for every other type", () => {
+    expect(
+      linkSchema.safeParse({
+        label: "x",
+        url: "/projects/geode",
+        type: "website",
+      }).success,
+    ).toBe(false);
+    expect(
+      linkSchema.safeParse({
+        label: "x",
+        url: "https://example.com",
+        type: "website",
       }).success,
     ).toBe(true);
   });

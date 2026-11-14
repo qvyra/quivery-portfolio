@@ -129,6 +129,47 @@ describe("parseProject", () => {
     expect(project.body).toHaveLength(1);
     expect(skipped).toHaveLength(1);
   });
+
+  const geode = {
+    id: uuid(1),
+    slug: "geode",
+    title: "Geode",
+    summary: "Summary",
+    tags: [],
+    links: [],
+    releaseStatus: "RELEASED",
+    version: null,
+    featured: false,
+    openSource: false,
+    isPlaceholder: false,
+    benchmarkUrl: null,
+    robloxPlaceId: null,
+    robloxUniverseId: null,
+    cover: null,
+    updatedAt: "2026-10-23T00:00:00.000Z",
+    body: [],
+    testimonials: [],
+  };
+
+  it("reads a mobile cover an older API doesn't send as none", () => {
+    expect(parseProject(ok(geode)).mobileCover).toBeNull();
+  });
+
+  it("keeps a mobile cover the API sends", () => {
+    const mobileCover = {
+      id: uuid(2),
+      kind: "IMAGE",
+      url: "/uploads/geode-portrait.png",
+      mimeType: "image/png",
+      width: 900,
+      height: 1600,
+      alt: "Geode",
+    };
+    expect(parseProject(ok({ ...geode, mobileCover })).mobileCover).toEqual({
+      ...mobileCover,
+      captionsUrl: null,
+    });
+  });
 });
 
 describe("sectionInputSchema titleHighlight", () => {

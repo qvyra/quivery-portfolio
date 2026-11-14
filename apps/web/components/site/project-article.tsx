@@ -2,9 +2,9 @@ import type { ProjectDetail, ProjectSummary } from "@repo/shared";
 import { ArrowLeft, ArrowRight, ChartBar, FlaskConical } from "lucide-react";
 import Link from "next/link";
 import { BlockList } from "@/components/blocks/block-list";
-import { MediaImage } from "@/components/blocks/media-image";
 import { TestimonialCard } from "@/components/sections/testimonials-section";
 import { ProjectBadges } from "@/components/site/project-badges";
+import { ProjectCover } from "@/components/site/project-cover";
 import { Container } from "@/components/ui/container";
 import { GithubIcon } from "@/components/ui/icons";
 import { LinkIcon } from "@/components/ui/link-icon";
@@ -233,16 +233,7 @@ export function ProjectArticle({
           )}
         </header>
 
-        {project.cover && (
-          <div className="mt-12 overflow-hidden rounded-xl ring-1 ring-white/10">
-            {/* the page's main image, so it loads first */}
-            <MediaImage
-              media={project.cover}
-              sizes="(min-width: 1280px) 76rem, 100vw"
-              priority
-            />
-          </div>
-        )}
+        <ProjectCover cover={project.cover} mobileCover={project.mobileCover} />
 
         <BlockList
           blocks={project.body}

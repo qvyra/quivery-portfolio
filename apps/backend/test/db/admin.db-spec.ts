@@ -308,6 +308,34 @@ describe('admin content (database)', () => {
     expect(deleted.body.data.storageKey).toBe('media/cover.png');
   });
 
+  it('refuses to delete a mobile cover a project uses', async () => {
+    const media = await admin('post', '/admin/media')
+      .send({
+        kind: 'IMAGE',
+        url: '/uploads/portrait.png',
+        mimeType: 'image/png',
+        sizeBytes: 10,
+        width: 900,
+        height: 1600,
+        storageKey: 'media/portrait.png',
+      })
+      .expect(201);
+    const mediaId = media.body.data.id as string;
+    const geode = await create('projects', {
+      ...project('geode'),
+      mobileCoverId: mediaId,
+    });
+    await admin(
+      'post',
+      `/admin/collections/projects/${geode.id}/publish`,
+    ).expect(200);
+
+    const refused = await admin('delete', `/admin/media/${mediaId}`).expect(
+      409,
+    );
+    expect(refused.body.message).toContain('project "Geode"');
+  });
+
   it("only takes a WebVTT file as a video's captions", async () => {
     const add = (body: object) =>
       admin('post', '/admin/media').send(body).expect(201);

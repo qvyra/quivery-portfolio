@@ -257,6 +257,7 @@ export class PublicContentService {
       where,
       include: {
         cover: true,
+        mobileCover: true,
         testimonials: {
           where: preview ? previewed : live,
           orderBy: [...ordered],
@@ -266,8 +267,12 @@ export class PublicContentService {
     });
     const [project] = row
       ? await this.previewMedia(
-          [preview ? withDraft(row) : row],
-          'cover',
+          await this.previewMedia(
+            [preview ? withDraft(row) : row],
+            'cover',
+            preview,
+          ),
+          'mobileCover',
           preview,
         )
       : [];
@@ -293,6 +298,7 @@ export class PublicContentService {
 
     return {
       ...toProjectSummary(project),
+      mobileCover: toMedia(project.mobileCover),
       body: attachMedia(body, media) as ResolvedBlock[],
       benchmarks: attachMedia(benchmarks, media) as ResolvedBlock[],
       testimonials: (
@@ -310,7 +316,7 @@ export class PublicContentService {
   // id. Live rows have no draft applied and are returned as they are
   private async previewMedia<R extends Record<string, unknown>>(
     rows: R[],
-    relation: 'cover' | 'icon' | 'avatar',
+    relation: 'cover' | 'mobileCover' | 'icon' | 'avatar',
     preview: boolean,
   ): Promise<R[]> {
     if (!preview || rows.length === 0) return rows;

@@ -57,6 +57,8 @@ const project = (n: number, overrides: object = {}) => ({
   robloxUniverseId: null,
   coverId: null,
   cover: null,
+  mobileCoverId: null,
+  mobileCover: null,
   createdAt: now,
   updatedAt: now,
   testimonials: [],
@@ -210,6 +212,59 @@ describe('PublicContentService', () => {
     await expect(service.getProject('nope')).rejects.toBeInstanceOf(
       NotFoundException,
     );
+  });
+
+  describe('mobile cover', () => {
+    const image = (n: number, width: number, height: number) => ({
+      id: id(n),
+      kind: 'IMAGE',
+      url: `/uploads/${n}.png`,
+      storageKey: null,
+      mimeType: 'image/png',
+      sizeBytes: null,
+      width,
+      height,
+      alt: 'Geode',
+      captionsId: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    const cover = image(910, 1600, 900);
+    const portrait = image(911, 900, 1600);
+
+    it('serves it on the project page only, never on the cards', async () => {
+      const row = project(1, {
+        coverId: cover.id,
+        cover,
+        mobileCoverId: portrait.id,
+        mobileCover: portrait,
+      });
+      const { service } = setup({ projects: [row] });
+      const page = await service.getProject('project-1');
+      expect(page.cover).toMatchObject({ url: cover.url });
+      expect(page.mobileCover).toMatchObject({
+        url: portrait.url,
+        width: 900,
+        height: 1600,
+      });
+      const [card] = await service.getProjects();
+      expect(card!.cover).toMatchObject({ url: cover.url });
+      expect(card).not.toHaveProperty('mobileCover');
+    });
+
+    it('is null when none is set', async () => {
+      const { service } = setup({ projects: [project(1)] });
+      expect((await service.getProject('project-1')).mobileCover).toBeNull();
+    });
+
+    it('previews the one a draft picks', async () => {
+      const row = project(1, {
+        draft: { mobileCoverId: portrait.id },
+      });
+      const { service } = setup({ projects: [row], media: [portrait] });
+      const preview = await service.getProjectPreview(row.id);
+      expect(preview.mobileCover).toMatchObject({ url: portrait.url });
+    });
   });
 
   describe('pages', () => {

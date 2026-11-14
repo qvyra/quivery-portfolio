@@ -1,8 +1,7 @@
 import type { Media } from "@repo/shared";
 import { ArtPicture } from "@/components/blocks/art-picture";
 import { MediaImage } from "@/components/blocks/media-image";
-
-const sizes = "(min-width: 1280px) 76rem, 100vw";
+import { PAGE_SIZES, PHONE_SIZES } from "@/lib/image-sizes";
 
 /**
  * The image at the top of a project page, its main (LCP) image. A portrait
@@ -25,13 +24,13 @@ export function ProjectCover({
         <ArtPicture
           main={cover}
           phone={phone}
-          sizes={sizes}
-          phoneSizes="100vw"
+          sizes={PAGE_SIZES}
+          phoneSizes={PHONE_SIZES}
           priority
           className="h-auto w-full"
         />
       ) : (
-        <MediaImage media={cover} sizes={sizes} priority />
+        <MediaImage media={cover} sizes={PAGE_SIZES} priority />
       )}
     </div>
   );

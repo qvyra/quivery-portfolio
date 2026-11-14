@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { MediaImage } from "@/components/blocks/media-image";
 import { LinkIcon } from "@/components/ui/link-icon";
+import { CARD_SIZES, FLAGSHIP_CARD_SIZES } from "@/lib/image-sizes";
 import { ProjectBadges } from "./project-badges";
 
 /**
@@ -35,11 +36,7 @@ export function ProjectCard({
       {project.cover && (
         <MediaImage
           media={project.cover}
-          sizes={
-            flagship
-              ? "(min-width: 1024px) 40rem, 100vw"
-              : "(min-width: 1024px) 26rem, (min-width: 640px) 45vw, 100vw"
-          }
+          sizes={flagship ? FLAGSHIP_CARD_SIZES : CARD_SIZES}
           className="border-b border-white/10"
         />
       )}

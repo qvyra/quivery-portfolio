@@ -47,7 +47,9 @@ const options = (values: readonly string[]): Option[] =>
       .replace(/^./, (c) => c.toUpperCase()),
   }));
 
-export const linkTypes = options(linkTypeSchema.options);
+export const linkTypes = options(linkTypeSchema.options).map((option) =>
+  option.value === "internal" ? { ...option, label: "On this site" } : option,
+);
 
 export type CollectionConfig = {
   title: string;

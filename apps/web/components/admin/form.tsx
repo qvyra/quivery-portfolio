@@ -423,6 +423,37 @@ function StringList({
 
 type Link = { label: string; url: string; type: string };
 
+/**
+ * Paths to the site's own pages, suggested for a link on this site: the
+ * homepage, each project and each Page. Loaded once a list has such a link
+ */
+function useSitePaths(wanted: boolean) {
+  const [paths, setPaths] = useState<{ path: string; title: string }[]>([]);
+  useEffect(() => {
+    if (!wanted) return;
+    type Listed = { content: { title: string; slug: string } }[];
+    Promise.all([
+      adminFetch<Listed>("/collections/projects"),
+      adminFetch<Listed>("/collections/pages"),
+    ])
+      .then(([projects, pages]) =>
+        setPaths([
+          { path: "/", title: "Homepage" },
+          ...projects.map((p) => ({
+            path: `/projects/${p.content.slug}`,
+            title: p.content.title,
+          })),
+          ...pages.map((p) => ({
+            path: `/${p.content.slug}`,
+            title: p.content.title,
+          })),
+        ]),
+      )
+      .catch(() => setPaths([]));
+  }, [wanted]);
+  return paths;
+}
+
 export function LinkList({
   label,
   links,
@@ -440,75 +471,101 @@ export function LinkList({
     onChange(
       links.map((link, i) => (i === index ? { ...link, ...patch } : link)),
     );
+  const id = useId();
+  const sitePaths = useSitePaths(links.some((l) => l.type === "internal"));
   return (
     <fieldset>
+      <datalist id={`${id}-paths`}>
+        {sitePaths.map((page) => (
+          <option key={page.path} value={page.path}>
+            {page.title}
+          </option>
+        ))}
+      </datalist>
       <legend className="mb-1.5 text-sm font-medium">{label}</legend>
       <ul className="space-y-3">
-        {links.map((link, index) => (
-          <li
-            key={index}
-            className="grid gap-2 rounded-lg p-3 ring-1 ring-white/10 ring-inset sm:grid-cols-[1fr_1.4fr_10rem_auto]"
-          >
-            <input
-              aria-label="Link label"
-              placeholder="Label"
-              className="field-input"
-              value={link.label}
-              onChange={(e) => set(index, { label: e.target.value })}
-              aria-invalid={errors[`${path}.${index}.label`] ? true : undefined}
-            />
-            <input
-              aria-label="Link URL"
-              placeholder="https://"
-              type="url"
-              className="field-input"
-              value={link.url}
-              onChange={(e) => set(index, { url: e.target.value })}
-              aria-invalid={errors[`${path}.${index}.url`] ? true : undefined}
-            />
-            <select
-              aria-label="Link type"
-              className="field-input"
-              value={link.type}
-              onChange={(e) => set(index, { type: e.target.value })}
+        {links.map((link, index) => {
+          const internal = link.type === "internal";
+          const urlError = errors[`${path}.${index}.url`];
+          return (
+            <li
+              key={index}
+              className="grid gap-2 rounded-lg p-3 ring-1 ring-white/10 ring-inset sm:grid-cols-[1fr_1.4fr_10rem_auto]"
             >
-              {linkTypes.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <div className="flex gap-1">
-              <IconButton
-                label="Move link up"
-                disabled={index === 0}
-                onClick={() => onChange(move(links, index, -1))}
+              <input
+                aria-label="Link label"
+                placeholder="Label"
+                className="field-input"
+                value={link.label}
+                onChange={(e) => set(index, { label: e.target.value })}
+                aria-invalid={
+                  errors[`${path}.${index}.label`] ? true : undefined
+                }
+              />
+              <input
+                aria-label={internal ? "Path on this site" : "Link URL"}
+                placeholder={internal ? "/projects/geode" : "https://"}
+                type={internal ? "text" : "url"}
+                list={internal ? `${id}-paths` : undefined}
+                autoComplete="off"
+                spellCheck={false}
+                className="field-input"
+                value={link.url}
+                onChange={(e) => set(index, { url: e.target.value })}
+                aria-invalid={urlError ? true : undefined}
+                aria-describedby={internal ? `${id}-${index}-path` : undefined}
+              />
+              <select
+                aria-label="Link type"
+                className="field-input"
+                value={link.type}
+                onChange={(e) => set(index, { type: e.target.value })}
               >
-                <ArrowUp className="size-4" aria-hidden="true" />
-              </IconButton>
-              <IconButton
-                label="Move link down"
-                disabled={index === links.length - 1}
-                onClick={() => onChange(move(links, index, 1))}
-              >
-                <ArrowDown className="size-4" aria-hidden="true" />
-              </IconButton>
-              <IconButton
-                label="Remove link"
-                onClick={() => onChange(links.filter((_, i) => i !== index))}
-              >
-                <X className="size-4" aria-hidden="true" />
-              </IconButton>
-            </div>
-            {(errors[`${path}.${index}.label`] ??
-              errors[`${path}.${index}.url`]) && (
-              <p className="text-sm text-(--color-error) sm:col-span-4">
-                {errors[`${path}.${index}.label`] ??
-                  errors[`${path}.${index}.url`]}
-              </p>
-            )}
-          </li>
-        ))}
+                {linkTypes.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <div className="flex gap-1">
+                <IconButton
+                  label="Move link up"
+                  disabled={index === 0}
+                  onClick={() => onChange(move(links, index, -1))}
+                >
+                  <ArrowUp className="size-4" aria-hidden="true" />
+                </IconButton>
+                <IconButton
+                  label="Move link down"
+                  disabled={index === links.length - 1}
+                  onClick={() => onChange(move(links, index, 1))}
+                >
+                  <ArrowDown className="size-4" aria-hidden="true" />
+                </IconButton>
+                <IconButton
+                  label="Remove link"
+                  onClick={() => onChange(links.filter((_, i) => i !== index))}
+                >
+                  <X className="size-4" aria-hidden="true" />
+                </IconButton>
+              </div>
+              {internal && (
+                <p
+                  id={`${id}-${index}-path`}
+                  className="text-sm text-white/55 sm:col-span-4"
+                >
+                  A page on this site, opened in the same tab: a path like
+                  /projects/geode, /architecture or /architecture#guards
+                </p>
+              )}
+              {(errors[`${path}.${index}.label`] ?? urlError) && (
+                <p className="text-sm text-(--color-error) sm:col-span-4">
+                  {errors[`${path}.${index}.label`] ?? urlError}
+                </p>
+              )}
+            </li>
+          );
+        })}
       </ul>
       <button
         type="button"

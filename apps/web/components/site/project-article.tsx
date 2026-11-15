@@ -4,11 +4,13 @@ import Link from "next/link";
 import { BlockList } from "@/components/blocks/block-list";
 import { TestimonialCard } from "@/components/sections/testimonials-section";
 import { ProjectBadges } from "@/components/site/project-badges";
+import { PageTocRail } from "@/components/site/page-toc";
 import { ProjectCover } from "@/components/site/project-cover";
 import { Container } from "@/components/ui/container";
 import { GithubIcon } from "@/components/ui/icons";
 import { ContentLink } from "@/components/ui/content-link";
 import { Reveal } from "@/components/ui/reveal";
+import { pageOutline } from "@/lib/outline";
 
 const navCard =
   "group relative isolate flex min-h-24 flex-col justify-center gap-1 overflow-hidden rounded-xl bg-white/[0.03] px-5 py-4 ring-1 ring-white/10 transition-transform duration-(--motion-base) ease-out-quart ring-inset hover:ring-white/25 motion-safe:active:scale-[0.99]";
@@ -153,6 +155,7 @@ export function ProjectArticle({
   navigation?: ProjectNavigation | undefined;
 }) {
   const hasBenchmarks = project.benchmarks.length > 0;
+  const { entries, anchors, topDepth } = pageOutline(project.body);
   return (
     <article>
       <Container className="pt-[clamp(1.5rem,5svh,3.5rem)] pb-section">
@@ -229,12 +232,14 @@ export function ProjectArticle({
 
         <ProjectCover cover={project.cover} mobileCover={project.mobileCover} />
 
-        <BlockList
-          blocks={project.body}
-          context={{ headingLevel: 2 }}
-          className="mt-14"
-          measure="max-w-[60rem]"
-        />
+        <div data-page-body="" className="relative mt-14">
+          <PageTocRail entries={entries} />
+          <BlockList
+            blocks={project.body}
+            context={{ headingLevel: 2, anchors, topDepth }}
+            measure="max-w-[60rem]"
+          />
+        </div>
 
         {project.testimonials.length > 0 && (
           <section

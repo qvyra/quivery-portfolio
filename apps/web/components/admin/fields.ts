@@ -197,7 +197,7 @@ export const collections: Record<AdminCollection, CollectionConfig> = {
         name: "blocks",
         label: "Blocks",
         kind: "blocks",
-        help: "The top headings of rich text blocks (### in a block) make the On this page list beside the text on wide screens",
+        help: "The page's top heading level across all text blocks (# before ##, ## before ###) makes the On this page list beside the text on screens 1280px and up, with two headings at least. A # renders one level below the page title",
       },
     ],
   },
@@ -280,7 +280,12 @@ export const collections: Record<AdminCollection, CollectionConfig> = {
         kind: "text",
         optional: true,
       },
-      { name: "body", label: "Page", kind: "blocks" },
+      {
+        name: "body",
+        label: "Page",
+        kind: "blocks",
+        help: "The page's top heading level across all text blocks (# before ##, ## before ###) makes the On this page list beside the text on screens 1280px and up, with two headings at least. A # renders one level below the page title",
+      },
       {
         name: "benchmarks",
         label: "Benchmarks page",

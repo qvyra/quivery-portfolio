@@ -26,6 +26,9 @@ export type BlockContext = {
   benchmarkRunsPath?: string;
   /** Heading ids by block, for a page's "On this page" rail (lib/outline) */
   anchors?: HeadingAnchors;
+  /** The page's shallowest heading depth, so every text block lifts it to
+   *  headingLevel alike (lib/outline) */
+  topDepth?: number | undefined;
   /** The section or page default for text blocks without their own, narrow
    *  when unset */
   textWidth?: TextWidth | null | undefined;
@@ -62,6 +65,7 @@ const registry: { [T in ResolvedBlock["type"]]: Renderer<T> } = {
     <RichText
       markdown={block.markdown}
       headingLevel={context.headingLevel}
+      topDepth={context.topDepth}
       anchors={context.anchors?.[block.id]}
     />
   ),

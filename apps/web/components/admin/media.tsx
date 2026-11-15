@@ -9,7 +9,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { AdminError, adminFetch } from "./api";
 import { FieldError } from "./form";
 
@@ -208,6 +208,8 @@ export function MediaPicker({
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  // a page can hold several pickers (the profile has two), so ids are per picker
+  const titleId = useId();
   const items = useMediaLibrary();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -236,11 +238,11 @@ export function MediaPicker({
     <dialog
       ref={dialog}
       onClose={onClose}
-      aria-labelledby="media-picker-title"
+      aria-labelledby={titleId}
       className="m-auto w-[min(48rem,calc(100vw-2rem))] rounded-xl bg-ink-raised p-6 text-white ring-1 ring-white/15 backdrop:bg-black/70"
     >
       <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 id="media-picker-title" className="text-h3 font-semibold">
+        <h2 id={titleId} className="text-h3 font-semibold">
           Choose {accept === "FILE" ? "a file" : `an ${accept.toLowerCase()}`}
         </h2>
         <button

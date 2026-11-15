@@ -15,6 +15,7 @@ import {
   type Site,
 } from "@repo/shared";
 import { cacheLife, cacheTag } from "next/cache";
+import { cvFile, type CvFile } from "./cv";
 import { env } from "./env";
 
 /** Cache tags the API revalidates after content changes */
@@ -29,6 +30,8 @@ export const tags = {
   pages: "pages",
   /** One standalone page */
   page: (slug: string) => `page:${slug}`,
+  /** What /cv serves. Expired outright whenever the site is refreshed */
+  cv: "cv",
 } as const;
 
 // unknown section and block types get skipped, so say so while developing
@@ -91,6 +94,21 @@ export async function getSite(): Promise<Site> {
     throw unexpected("/public/site", status, "no published sections");
   }
   return site;
+}
+
+/**
+ * The CV /cv serves. Cached apart from the site because a site refresh only
+ * marks pages stale (the next visit still gets the old one), while a new CV
+ * has to reach /cv on the very next request: links to it are already out
+ */
+export async function getCv(): Promise<CvFile | null> {
+  "use cache";
+  cacheLife("max");
+  cacheTag(tags.cv);
+
+  const { status, json } = await request("/public/site");
+  if (status !== 200) throw unexpected("/public/site", status, json);
+  return cvFile(parsed(() => parseSite(json, reportSkip)).profile);
 }
 
 export async function getProjects(): Promise<ProjectSummary[]> {

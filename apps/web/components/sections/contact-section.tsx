@@ -2,6 +2,7 @@ import type { ContactLink, Site, SiteSection } from "@repo/shared";
 import { ArrowUpRight, Mail } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import { DiscordIcon, GithubIcon, KofiIcon } from "@/components/ui/icons";
+import { CvButton } from "@/components/site/cv-button";
 import { Reveal } from "@/components/ui/reveal";
 import { isExternal, primaryContact } from "@/lib/contact";
 import { SectionShell } from "./section-shell";
@@ -66,22 +67,28 @@ export function ContactSection({
     <SectionShell section={section}>
       <div className={form ? "grid gap-10 lg:grid-cols-2" : undefined}>
         <div className="space-y-8">
-          {cta?.link.url && (
-            <a
-              href={cta.link.url}
-              className="btn btn-primary btn-lg"
-              {...(isExternal(cta.link.url) && {
-                target: "_blank",
-                rel: "noreferrer",
-              })}
-            >
-              {cta.label}
-              <ArrowUpRight data-icon="end" aria-hidden="true" />
-              {isExternal(cta.link.url) && (
-                <span className="sr-only"> (opens in a new tab)</span>
-              )}
-            </a>
-          )}
+          <div className="flex flex-wrap gap-3 empty:hidden">
+            {cta?.link.url && (
+              <a
+                href={cta.link.url}
+                className="btn btn-primary btn-lg"
+                {...(isExternal(cta.link.url) && {
+                  target: "_blank",
+                  rel: "noreferrer",
+                })}
+              >
+                {cta.label}
+                <ArrowUpRight data-icon="end" aria-hidden="true" />
+                {isExternal(cta.link.url) && (
+                  <span className="sr-only"> (opens in a new tab)</span>
+                )}
+              </a>
+            )}
+            <CvButton
+              profile={site.profile}
+              className="btn btn-secondary btn-lg"
+            />
+          </div>
           <Reveal
             as="ul"
             stagger

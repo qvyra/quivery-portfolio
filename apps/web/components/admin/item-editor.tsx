@@ -323,7 +323,10 @@ function Editor({
               : "The site as it will look once published. Text widths change as you pick them, everything else on save."}
           </p>
           {!creating && (
-            <div className="h-[70vh] min-h-0 rounded-xl bg-white/[0.02] p-2 ring-1 ring-white/10 xl:h-auto xl:flex-1">
+            // the space the preview may use, not a box of its own: the
+            // scaled page draws its own frame at the screen's shape, so a
+            // wide screen ends where its page does
+            <div className="h-[70vh] min-h-0 xl:h-auto xl:flex-1">
               <ScaledFrame
                 key={previewKey}
                 src={previewUrl}

@@ -31,6 +31,7 @@ export const reservedPageSlugs = [
   "not-found",
   // the current CV, a link that has to keep working
   "cv",
+  "og",
 ] as const;
 
 const reserved = new Set<string>(reservedPageSlugs);

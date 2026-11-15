@@ -4,22 +4,21 @@
 import "server-only";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { cacheLife, cacheTag } from "next/cache";
 import { ImageResponse } from "next/og";
 import { env } from "@/lib/env";
-
-export const ogSize = { width: 1200, height: 630 };
-export const ogContentType = "image/png";
+import { ogSize } from "./size";
 
 export type OgBadge = { label: string; dot?: "released" | "progress" };
 
 const dots = { released: "#34d399", progress: "#fbbf24" };
 
-// files are read relative to the app, so the deploy traces them in
-const file = (path: string) => readFile(join(process.cwd(), path));
+// files are read relative to the app, each by a literal path so the deploy
+// traces just those files in (a path built at runtime traces the whole app)
 
 async function qMark(): Promise<string> {
-  const svg = (await file("icons/q.svg")).toString("utf8");
+  const svg = (await readFile(join(process.cwd(), "icons/q.svg"))).toString(
+    "utf8",
+  );
   // the accent gradient instead of the flat pink
   const filled = svg
     .replace(
@@ -44,24 +43,10 @@ export type OgCard = {
   badges: OgBadge[];
 };
 
-/**
- * The card as a PNG response. It's rendered once and kept until one of
- * `tags` is refreshed, like the page it belongs to
- */
-export async function ogCard(card: OgCard, tags: string[]): Promise<Response> {
-  const png = await cachedPng(card, tags);
-  return new Response(png, { headers: { "Content-Type": ogContentType } });
-}
-
-// Reading the fonts and rendering are uncached work, which would turn the
-// image into a request-time function. Cached, it prerenders with the page
-async function cachedPng(
+/** The card as PNG bytes. Caching is up to the caller, see previews.ts */
+export async function renderCard(
   card: OgCard,
-  tags: string[],
 ): Promise<Uint8Array<ArrayBuffer>> {
-  "use cache";
-  cacheLife("max");
-  cacheTag(...tags);
   const response = await render(card);
   return new Uint8Array(await response.arrayBuffer());
 }
@@ -73,8 +58,8 @@ async function render({
   badges,
 }: OgCard): Promise<ImageResponse> {
   const [regular, semibold, q] = await Promise.all([
-    file("lib/og/fonts/poppins-400.ttf"),
-    file("lib/og/fonts/poppins-600.ttf"),
+    readFile(join(process.cwd(), "lib/og/fonts/poppins-400.ttf")),
+    readFile(join(process.cwd(), "lib/og/fonts/poppins-600.ttf")),
     qMark(),
   ]);
   const host = new URL(env().siteUrl).host;

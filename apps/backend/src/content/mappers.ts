@@ -2,8 +2,8 @@ import { Logger } from '@nestjs/common';
 import { z } from 'zod';
 import {
   contactLinkTypeSchema,
+  iconKeySchema,
   linkSchema,
-  navIconSchema,
   textWidthSchema,
   type ContactLink,
   type Media,
@@ -13,8 +13,8 @@ import {
   type Service,
   type Skill,
   type Stat,
+  type ResolvedLink,
   type Testimonial,
-  type NavIcon,
   type TextWidth,
 } from '@repo/shared';
 import type { Prisma } from '../generated/prisma/client.js';
@@ -84,6 +84,7 @@ export const toSkill = (
   category: row.category,
   tier: row.tier,
   description: row.description,
+  iconKey: toIconKey(row.iconKey),
   icon: toMedia(row.icon),
 });
 
@@ -94,6 +95,7 @@ export const toService = (
   title: row.title,
   summary: row.summary,
   highlights: row.highlights,
+  iconKey: toIconKey(row.iconKey),
   icon: toMedia(row.icon),
 });
 
@@ -111,7 +113,9 @@ export const toTestimonial = (
   givenAt: row.givenAt?.toISOString().slice(0, 10) ?? null,
 });
 
-export const toContactLink = (row: Prisma.ContactLinkModel): ContactLink => ({
+export const toContactLink = (
+  row: Prisma.ContactLinkGetPayload<{ include: { icon: true } }>,
+): ContactLink => ({
   id: row.id,
   // free text in the database, so unknown values fall back to "other"
   type: contactLinkTypeSchema.catch('other').parse(row.type),
@@ -119,13 +123,31 @@ export const toContactLink = (row: Prisma.ContactLinkModel): ContactLink => ({
   value: row.value,
   url: row.url,
   featured: row.featured,
+  iconKey: toIconKey(row.iconKey),
+  icon: toMedia(row.icon),
 });
 
-/** A stored text width, null when unset (narrow) or not one this API knows */
-export const toNavIcon = (value: string | null): NavIcon | null => {
-  const parsed = navIconSchema.safeParse(value);
+/**
+ * A stored icon library key, null when unset or malformed. Whether the site's
+ * library has it is the site's call: a key it doesn't know shows no icon
+ */
+export const toIconKey = (value: string | null): string | null => {
+  const parsed = iconKeySchema.safeParse(value);
   return parsed.success ? parsed.data : null;
 };
+
+/**
+ * Stored links, with an uploaded icon's file still to come: the service
+ * attaches it (see attachMedia), null until then or once it's deleted
+ */
+export const toLinks = (value: unknown, label: string): ResolvedLink[] =>
+  parseJsonList(linkSchema, value, label).map((link) =>
+    link.icon?.kind === 'media'
+      ? { ...link, icon: { ...link.icon, media: null } }
+      : (link as ResolvedLink),
+  );
+
+/** A stored text width, null when unset (narrow) or not one this API knows */
 
 export const toTextWidth = (value: string | null): TextWidth | null => {
   const parsed = textWidthSchema.safeParse(value);
@@ -156,7 +178,7 @@ export const toProjectSummary = (
   title: row.title,
   summary: row.summary,
   tags: row.tags,
-  links: parseJsonList(linkSchema, row.links, `Project(${row.slug}).links`),
+  links: toLinks(row.links, `Project(${row.slug}).links`),
   releaseStatus: row.releaseStatus,
   version: row.version,
   featured: row.featured,

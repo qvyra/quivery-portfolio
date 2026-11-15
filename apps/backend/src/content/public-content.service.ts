@@ -16,6 +16,7 @@ import {
   type Skill,
   type Stat,
   type Testimonial,
+  type NavIcon,
   type TextWidth,
 } from '@repo/shared';
 import type { Prisma } from '../generated/prisma/client.js';
@@ -34,6 +35,7 @@ import {
   toSkill,
   toStat,
   toTestimonial,
+  toNavIcon,
   toTextWidth,
 } from './mappers.js';
 
@@ -162,6 +164,7 @@ export class PublicContentService {
         titleHighlight: section.titleHighlight,
         eyebrow: section.eyebrow,
         navLabel: section.navLabel,
+        navIcon: toNavIcon(section.navIcon),
         blocks: attachMedia(blocks, media) as ResolvedBlock[],
         // a link to a page that isn't live is left out, never a dead button
         link:
@@ -361,6 +364,7 @@ type SectionBase = {
   titleHighlight: string | null;
   eyebrow: string | null;
   navLabel: string | null;
+  navIcon: NavIcon | null;
   blocks: ResolvedBlock[];
   link: { label: string; href: string } | null;
   textWidth: TextWidth | null;

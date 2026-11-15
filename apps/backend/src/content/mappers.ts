@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   contactLinkTypeSchema,
   linkSchema,
+  navIconSchema,
   textWidthSchema,
   type ContactLink,
   type Media,
@@ -13,6 +14,7 @@ import {
   type Skill,
   type Stat,
   type Testimonial,
+  type NavIcon,
   type TextWidth,
 } from '@repo/shared';
 import type { Prisma } from '../generated/prisma/client.js';
@@ -120,6 +122,11 @@ export const toContactLink = (row: Prisma.ContactLinkModel): ContactLink => ({
 });
 
 /** A stored text width, null when unset (narrow) or not one this API knows */
+export const toNavIcon = (value: string | null): NavIcon | null => {
+  const parsed = navIconSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+};
+
 export const toTextWidth = (value: string | null): TextWidth | null => {
   const parsed = textWidthSchema.safeParse(value);
   return parsed.success ? parsed.data : null;

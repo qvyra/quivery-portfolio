@@ -106,6 +106,8 @@ model Section {
   eyebrow        String?
   // short label for the site nav, null falls back to the title
   navLabel       String?
+  // the nav link's icon by name (Zod checks it), null follows the type
+  navIcon        String?
   // Zod-validated array of content blocks
   blocks         Json          @default("[]")
   // a button to a standalone page, by the page's slug. Shown only while that

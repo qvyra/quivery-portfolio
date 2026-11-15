@@ -1,6 +1,7 @@
 import {
   contactLinkTypeSchema,
   linkTypeSchema,
+  navIconSchema,
   releaseStatusSchema,
   sectionTypeSchema,
   skillTierSchema,
@@ -100,6 +101,21 @@ export const collections: Record<AdminCollection, CollectionConfig> = {
         optional: true,
         max: 24,
         help: "Shorter name for the site nav",
+      },
+      {
+        name: "navIcon",
+        label: "Nav icon",
+        kind: "select",
+        optional: true,
+        options: [
+          { value: "", label: "From the type (custom: stacked layers)" },
+          ...options(navIconSchema.options).map((option) =>
+            option.value === "drafting-compass"
+              ? { ...option, label: "Blueprint (drafting compass)" }
+              : option,
+          ),
+        ],
+        help: "The icon beside the nav link in the phone menu",
       },
       {
         name: "slug",

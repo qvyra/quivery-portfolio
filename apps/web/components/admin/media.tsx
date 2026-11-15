@@ -199,11 +199,14 @@ export const fileName = (media: AdminMedia) =>
 export function MediaPicker({
   open,
   accept,
+  only,
   onPick,
   onClose,
 }: {
   open: boolean;
   accept: MediaKind;
+  /** One type of the kind, e.g. application/pdf */
+  only?: "application/pdf" | undefined;
   onPick: (media: AdminMedia) => void;
   onClose: () => void;
 }) {
@@ -233,7 +236,9 @@ export function MediaPicker({
     }
   }
 
-  const matching = (items ?? []).filter((m) => m.kind === accept);
+  const matching = (items ?? []).filter(
+    (m) => m.kind === accept && (!only || m.mimeType === only),
+  );
   return (
     <dialog
       ref={dialog}
@@ -243,7 +248,12 @@ export function MediaPicker({
     >
       <div className="mb-4 flex items-center justify-between gap-4">
         <h2 id={titleId} className="text-h3 font-semibold">
-          Choose {accept === "FILE" ? "a file" : `an ${accept.toLowerCase()}`}
+          Choose{" "}
+          {only
+            ? "a PDF"
+            : accept === "FILE"
+              ? "a file"
+              : `an ${accept.toLowerCase()}`}
         </h2>
         <button
           type="button"
@@ -269,11 +279,13 @@ export function MediaPicker({
           className="sr-only"
           disabled={busy}
           accept={
-            accept === "IMAGE"
-              ? "image/png,image/jpeg,image/webp,image/avif,image/gif"
-              : accept === "VIDEO"
-                ? "video/mp4,video/webm"
-                : ".pdf,.vtt,application/pdf,text/vtt"
+            only
+              ? ".pdf,application/pdf"
+              : accept === "IMAGE"
+                ? "image/png,image/jpeg,image/webp,image/avif,image/gif"
+                : accept === "VIDEO"
+                  ? "video/mp4,video/webm"
+                  : ".pdf,.vtt,application/pdf,text/vtt"
           }
           onChange={(e) => void upload(e.target.files?.[0])}
         />
@@ -318,6 +330,7 @@ export function MediaField({
   help,
   error,
   accept,
+  only,
   value,
   onChange,
 }: {
@@ -326,6 +339,7 @@ export function MediaField({
   help?: string;
   error?: string;
   accept: MediaKind;
+  only?: "application/pdf" | undefined;
   value: string | null;
   onChange: (value: string | null) => void;
 }) {
@@ -369,6 +383,7 @@ export function MediaField({
       <MediaPicker
         open={picking}
         accept={accept}
+        only={only}
         onClose={() => setPicking(false)}
         onPick={(media) => {
           onChange(media.id);

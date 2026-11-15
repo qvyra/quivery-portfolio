@@ -188,7 +188,7 @@ export function ProfileEditor() {
     <div className="max-w-3xl">
       <h1 className="mb-2 text-h2 font-semibold">Profile</h1>
       <p className="mb-6 text-white/60">
-        Your name and headline across the site. Saving puts it live straight
+        Your name, headline and CV across the site. Saving puts it live straight
         away.
       </p>
       {values && (

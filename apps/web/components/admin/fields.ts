@@ -29,6 +29,8 @@ export type Field = Base &
     | {
         kind: "media";
         accept: MediaKind;
+        /** Narrows the kind to one type, e.g. only PDFs for the CV */
+        only?: "application/pdf";
         /** The field this is the phone version of, previewed together */
         phoneVersionOf?: string;
       }
@@ -459,10 +461,20 @@ export const profileFields: Field[] = [
   },
   {
     name: "cvId",
-    label: "CV (PDF)",
+    label: "CV",
     kind: "media",
     accept: "FILE",
+    only: "application/pdf",
     optional: true,
+    help: "A PDF from Media, served at /cv with a Download CV button in the contact section and the footer. Picking another PDF changes what /cv serves, so links already sent keep working. Empty hides every CV button",
+  },
+  {
+    name: "cvFileName",
+    label: "Download file name",
+    kind: "text",
+    optional: true,
+    max: 100,
+    help: "The name the CV saves under, e.g. Badreddine-Zitouni-CV.pdf. Empty uses the display name, e.g. Quivery-CV.pdf",
   },
 ];
 

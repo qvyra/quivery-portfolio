@@ -2,8 +2,14 @@ import { embedPlayer, type ResolvedBlock, type TextWidth } from "@repo/shared";
 import { ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { BenchmarkBlock } from "@/components/benchmarks/benchmark-block";
-import { LinkIcon } from "@/components/ui/link-icon";
+import { ContentLink } from "@/components/ui/content-link";
 import { Stat, StatList } from "@/components/ui/stat";
+import {
+  COLUMN_GALLERY_SIZES,
+  COLUMN_SIZES,
+  PAGE_GALLERY_SIZES,
+  PAGE_SIZES,
+} from "@/lib/image-sizes";
 import type { HeadingAnchors } from "@/lib/outline";
 import { ArtImage } from "./art-image";
 import { CopyButton } from "./copy-button";
@@ -23,6 +29,9 @@ export type BlockContext = {
   /** The section or page default for text blocks without their own, narrow
    *  when unset */
   textWidth?: TextWidth | null | undefined;
+  /** Set by BlockList when blocks are capped at the 60rem column, so images
+   *  ask for files that size and not the page's width */
+  inColumn?: boolean;
 };
 
 type BlockOf<T extends ResolvedBlock["type"]> = Extract<
@@ -33,11 +42,6 @@ type Renderer<T extends ResolvedBlock["type"]> = (
   block: BlockOf<T>,
   context: BlockContext,
 ) => ReactNode;
-
-const CONTENT_SIZES =
-  "(min-width: 1280px) 60rem, (min-width: 768px) 85vw, 100vw";
-// the page's full width, for a wide image
-const WIDE_SIZES = "(min-width: 1280px) 76rem, 100vw";
 
 function Caption({ children }: { children?: string }) {
   return children ? (
@@ -62,31 +66,36 @@ const registry: { [T in ResolvedBlock["type"]]: Renderer<T> } = {
     />
   ),
 
-  image: (block) =>
+  image: (block, context) =>
     block.image.media?.kind === "IMAGE" && (
       <figure>
         <ArtImage
           image={block.image.media}
           mobileImage={block.mobileImage?.media}
-          sizes={block.wide ? WIDE_SIZES : CONTENT_SIZES}
+          sizes={!block.wide && context.inColumn ? COLUMN_SIZES : PAGE_SIZES}
           caption={block.caption}
         />
         <Caption>{block.caption}</Caption>
       </figure>
     ),
 
-  gallery: (block) => (
+  gallery: (block, context) => (
     <ul className="grid gap-4 sm:grid-cols-2">
       {block.items.map(
         (item, index) =>
           item.image.media && (
             <li key={`${item.image.mediaId}-${index}`}>
               <figure>
-                <MediaImage
-                  media={item.image.media}
-                  sizes="(min-width: 640px) 45vw, 100vw"
-                  className="rounded-xl ring-1 ring-white/10"
-                />
+                <div className="image-frame overflow-hidden">
+                  <MediaImage
+                    media={item.image.media}
+                    sizes={
+                      context.inColumn
+                        ? COLUMN_GALLERY_SIZES
+                        : PAGE_GALLERY_SIZES
+                    }
+                  />
+                </div>
                 <Caption>{item.caption}</Caption>
               </figure>
             </li>
@@ -138,17 +147,11 @@ const registry: { [T in ResolvedBlock["type"]]: Renderer<T> } = {
     <ul className="flex flex-wrap gap-3">
       {block.links.map((link) => (
         <li key={link.url}>
-          <a
-            href={link.url}
-            target="_blank"
-            rel="noreferrer"
+          <ContentLink
+            link={link}
             className="btn btn-secondary btn-md"
-          >
-            <LinkIcon type={link.type} url={link.url} />
-            {link.label}
-            <ArrowUpRight data-icon="end" aria-hidden="true" />
-            <span className="sr-only"> (opens in a new tab)</span>
-          </a>
+            external={<ArrowUpRight data-icon="end" aria-hidden="true" />}
+          />
         </li>
       ))}
     </ul>
@@ -247,7 +250,10 @@ export function BlockList({
             className={wide ? undefined : measure}
             data-wide={wide ? "" : undefined}
           >
-            {render(block as never, context)}
+            {render(block as never, {
+              ...context,
+              inColumn: !wide && !!measure,
+            })}
           </div>
         );
       })}

@@ -2,7 +2,8 @@ import type { ProjectSummary } from "@repo/shared";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { MediaImage } from "@/components/blocks/media-image";
-import { LinkIcon } from "@/components/ui/link-icon";
+import { ContentLink } from "@/components/ui/content-link";
+import { CARD_SIZES, FLAGSHIP_CARD_SIZES } from "@/lib/image-sizes";
 import { ProjectBadges } from "./project-badges";
 
 /**
@@ -25,23 +26,22 @@ export function ProjectCard({
   return (
     <article
       data-spotlight=""
-      className="group relative isolate flex h-full flex-col overflow-hidden rounded-xl bg-white/[0.03] ring-1 ring-white/10 transition-transform duration-(--motion-base) ease-out-quart ring-inset motion-safe:hover:-translate-y-1"
+      className="group image-frame flex h-full flex-col overflow-hidden bg-white/[0.03] transition-transform duration-(--motion-base) ease-out-quart motion-safe:hover:-translate-y-1"
     >
-      {/* hover wash and brighter edge, animating opacity only */}
+      {/* hover wash under the content, animating opacity only. The outline
+          is .image-frame's, drawn over the cover */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 rounded-[inherit] bg-[linear-gradient(135deg,rgb(121_1_140/0.18),transparent_55%)] opacity-0 ring-1 ring-orchid/40 transition-opacity duration-(--motion-base) ring-inset group-focus-within:opacity-100 group-hover:opacity-100"
+        className="pointer-events-none absolute inset-0 -z-10 rounded-[inherit] bg-[linear-gradient(135deg,rgb(121_1_140/0.18),transparent_55%)] opacity-0 transition-opacity duration-(--motion-base) group-focus-within:opacity-100 group-hover:opacity-100"
       />
       {project.cover && (
-        <MediaImage
-          media={project.cover}
-          sizes={
-            flagship
-              ? "(min-width: 1024px) 40rem, 100vw"
-              : "(min-width: 1024px) 26rem, (min-width: 640px) 45vw, 100vw"
-          }
-          className="border-b border-white/10"
-        />
+        // the spotlight's round light stays below this
+        <div data-spot-clear="" className="border-b border-white/10">
+          <MediaImage
+            media={project.cover}
+            sizes={flagship ? FLAGSHIP_CARD_SIZES : CARD_SIZES}
+          />
+        </div>
       )}
       <div className="flex flex-1 flex-col gap-5 p-6 sm:p-7">
         <ProjectBadges project={project} />
@@ -80,17 +80,11 @@ export function ProjectCard({
             // above the stretched title link so these stay clickable
             <div className="relative z-10 ml-auto flex flex-wrap gap-2">
               {links.map((link) => (
-                <a
+                <ContentLink
                   key={link.url}
-                  href={link.url}
-                  target="_blank"
-                  rel="noreferrer"
+                  link={link}
                   className="btn btn-secondary btn-sm"
-                >
-                  <LinkIcon type={link.type} url={link.url} />
-                  {link.label}
-                  <span className="sr-only"> (opens in a new tab)</span>
-                </a>
+                />
               ))}
             </div>
           )}

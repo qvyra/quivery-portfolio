@@ -53,7 +53,7 @@ export function ImageZoom({
         aria-haspopup="dialog"
         aria-label={label}
         onClick={() => setOpen(true)}
-        className="image-zoom"
+        className="image-zoom image-frame"
       >
         {children}
         <span className="image-zoom-badge" aria-hidden="true">

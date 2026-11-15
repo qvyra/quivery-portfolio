@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Preview" };
 
 export function PreviewNotice({ children }: { children: React.ReactNode }) {
   return (
-    <p className="sticky top-0 z-50 bg-(--color-plum) px-4 py-2 text-center text-sm font-medium">
+    <p className="bg-(--color-plum) px-4 py-2 text-center text-sm font-medium">
       {children}
     </p>
   );

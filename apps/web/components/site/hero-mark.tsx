@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { heroArt } from "@/lib/brand";
 import { effectsTier, whenIdle } from "@/lib/effects/tier";
+import { HERO_MARK_SIZES } from "@/lib/image-sizes";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import {
   useEffect,
@@ -13,7 +14,6 @@ import {
   type RefObject,
 } from "react";
 
-const SIZES = "(min-width: 1024px) 34rem, 80vw";
 // the image optimizer only re-encodes rasters, SVG artwork is served as-is
 const unoptimizedStill = heroArt.still.src.endsWith(".svg");
 
@@ -99,7 +99,7 @@ function AnimatedLogo({ src }: { src: string }) {
       alt=""
       fill
       unoptimized
-      sizes={SIZES}
+      sizes={HERO_MARK_SIZES}
       onLoad={() => setReady(true)}
       className={`object-contain transition-opacity duration-500 ease-out-quart ${
         ready ? "opacity-100" : "opacity-0"
@@ -178,7 +178,7 @@ export function HeroMark({ className }: { className?: string }) {
             loading="eager"
             fetchPriority="high"
             unoptimized={unoptimizedStill}
-            sizes={SIZES}
+            sizes={HERO_MARK_SIZES}
             className="object-contain"
           />
         </div>
@@ -191,7 +191,7 @@ export function HeroMark({ className }: { className?: string }) {
             loading="eager"
             fetchPriority="high"
             unoptimized={unoptimizedStill}
-            sizes={SIZES}
+            sizes={HERO_MARK_SIZES}
             className="object-contain"
           />
           {heroArt.animated && active && pageLoaded && !savesData && (

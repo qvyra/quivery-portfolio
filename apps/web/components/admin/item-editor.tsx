@@ -3,9 +3,7 @@
 import { adminCollectionSchema, type AdminCollection } from "@repo/shared";
 import {
   ArrowLeft,
-  Check,
   LoaderCircle,
-  Monitor,
   PanelRightClose,
   PanelRightOpen,
 } from "lucide-react";
@@ -22,13 +20,15 @@ import {
   type AdminChange,
   type AdminItem,
 } from "./items";
+import {
+  FullScreenButton,
+  PreviewLightbox,
+  ScaledFrame,
+  ScreenPicker,
+  usePreviewScreen,
+} from "./live-preview";
 import { applyTextWidths } from "./live-widths";
 import { deployNotice, useNotice, useUnsavedGuard } from "./shell";
-
-// the preview's desktop width, scaled down to fit. The site's wide-screen
-// layout (text widths, wide images, the On this page rail) starts at 1280px,
-// wider than the preview pane
-const DESKTOP = 1440;
 
 export function ItemEditor() {
   const params = useParams<{ collection: string; id: string }>();
@@ -73,25 +73,20 @@ function Editor({
   const [previewKey, setPreviewKey] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
-  const paneRef = useRef<HTMLDivElement>(null);
-  const [desktop, setDesktop] = useState(true);
-  const [scale, setScale] = useState(1);
+  const fullFrameRef = useRef<HTMLIFrameElement>(null);
+  const fullButtonRef = useRef<HTMLButtonElement>(null);
+  const [screen, setScreen] = usePreviewScreen();
+  const [fullScreen, setFullScreen] = useState(false);
   const savedSlug = (item?.draft ?? item?.content)?.slug;
   useUnsavedGuard(dirty);
 
+  const liveWidths = (frame: HTMLIFrameElement | null) =>
+    applyTextWidths(frame, collection, savedSlug, values);
   useEffect(() => {
-    applyTextWidths(frameRef.current, collection, savedSlug, values);
-  }, [collection, savedSlug, values, preview, desktop]);
-
-  useEffect(() => {
-    const pane = paneRef.current;
-    if (!pane) return;
-    const observer = new ResizeObserver(([entry]) => {
-      if (entry) setScale(Math.min(1, entry.contentRect.width / DESKTOP));
-    });
-    observer.observe(pane);
-    return () => observer.disconnect();
-  }, [preview, creating]);
+    for (const frame of [frameRef.current, fullFrameRef.current]) {
+      applyTextWidths(frame, collection, savedSlug, values);
+    }
+  }, [collection, savedSlug, values, preview, screen, fullScreen]);
 
   useEffect(() => {
     if (creating) return;
@@ -312,60 +307,46 @@ function Editor({
         )}
       </div>
       {preview && (
-        <div className="min-w-0 xl:sticky xl:top-4 xl:h-[calc(100dvh-2rem)]">
-          <div className="mb-2 flex min-h-10 items-center justify-between gap-3">
-            <p className="text-sm text-white/60">
-              {creating
-                ? "Save first to preview."
-                : "The site as it will look once published. Text widths change as you pick them, everything else on save."}
-            </p>
-            {!creating && (
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm shrink-0"
-                aria-pressed={desktop}
-                onClick={() => setDesktop((d) => !d)}
-              >
-                {desktop ? (
-                  <Check aria-hidden="true" />
-                ) : (
-                  <Monitor aria-hidden="true" />
-                )}
-                Desktop width
-              </button>
-            )}
-          </div>
+        <div className="flex min-w-0 flex-col gap-2 xl:sticky xl:top-4 xl:h-[calc(100dvh-2rem)]">
           {!creating && (
-            <div
-              ref={paneRef}
-              className="relative h-[70vh] overflow-hidden rounded-xl bg-ink ring-1 ring-white/15 xl:h-[calc(100%-3rem)]"
-            >
-              <iframe
-                key={previewKey}
-                ref={frameRef}
-                src={previewUrl}
-                title="Preview"
-                onLoad={() =>
-                  applyTextWidths(
-                    frameRef.current,
-                    collection,
-                    savedSlug,
-                    values,
-                  )
-                }
-                className="absolute top-0 left-0 h-full w-full"
-                style={
-                  desktop
-                    ? {
-                        width: DESKTOP,
-                        height: `${100 / scale}%`,
-                        transform: `scale(${scale})`,
-                        transformOrigin: "0 0",
-                      }
-                    : undefined
-                }
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <ScreenPicker screen={screen} onChange={setScreen} />
+              <FullScreenButton
+                buttonRef={fullButtonRef}
+                onClick={() => setFullScreen(true)}
               />
             </div>
+          )}
+          <p className="text-sm text-white/60">
+            {creating
+              ? "Save first to preview."
+              : "The site as it will look once published. Text widths change as you pick them, everything else on save."}
+          </p>
+          {!creating && (
+            // the space the preview may use, not a box of its own: the
+            // scaled page draws its own frame at the screen's shape, so a
+            // wide screen ends where its page does
+            <div className="h-[70vh] min-h-0 xl:h-auto xl:flex-1">
+              <ScaledFrame
+                key={previewKey}
+                src={previewUrl}
+                screen={screen}
+                frameRef={frameRef}
+                onLoad={() => liveWidths(frameRef.current)}
+              />
+            </div>
+          )}
+          {fullScreen && !creating && (
+            <PreviewLightbox
+              key={previewKey}
+              src={previewUrl}
+              screen={screen}
+              onScreen={setScreen}
+              frameRef={fullFrameRef}
+              onLoad={() => liveWidths(fullFrameRef.current)}
+              opener={fullButtonRef}
+              onClose={() => setFullScreen(false)}
+            />
           )}
         </div>
       )}

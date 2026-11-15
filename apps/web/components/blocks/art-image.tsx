@@ -1,4 +1,5 @@
 import type { Media } from "@repo/shared";
+import { PHONE_SIZES } from "@/lib/image-sizes";
 import { ArtPicture } from "./art-picture";
 import { ImageZoom } from "./image-zoom";
 
@@ -15,7 +16,7 @@ export function ArtImage({
 }: {
   image: Media | null;
   mobileImage?: Media | null | undefined;
-  /** The `sizes` hint for the main image, the phone one fills the screen */
+  /** The `sizes` hint for the main image, the phone one is the content width */
   sizes: string;
   caption?: string | undefined;
 }) {
@@ -40,8 +41,8 @@ export function ArtImage({
         main={image}
         phone={phone}
         sizes={sizes}
-        phoneSizes="100vw"
-        className="h-auto w-full rounded-xl ring-1 ring-white/10"
+        phoneSizes={PHONE_SIZES}
+        className="h-auto w-full rounded-xl"
       />
     </ImageZoom>
   );

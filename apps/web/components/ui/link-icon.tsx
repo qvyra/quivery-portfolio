@@ -1,5 +1,6 @@
 import type { LinkType } from "@repo/shared";
 import {
+  ArrowRight,
   BookOpen,
   ExternalLink,
   FolderGit2,
@@ -13,6 +14,7 @@ import {
 import { GithubIcon } from "./icons";
 
 const icons = {
+  internal: ArrowRight,
   repository: FolderGit2,
   package: Package,
   devforum: MessagesSquare,

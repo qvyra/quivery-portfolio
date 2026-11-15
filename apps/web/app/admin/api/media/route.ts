@@ -10,7 +10,7 @@ import {
   sessionToken,
   signedOut,
 } from "@/lib/admin/server";
-import { mediaStorage, uploadRules } from "@/lib/admin/storage";
+import { contentMatches, mediaStorage, uploadRules } from "@/lib/admin/storage";
 
 export const maxDuration = 100;
 
@@ -60,6 +60,18 @@ export async function POST(request: Request) {
       400,
       "UPLOAD_REFUSED",
       `A ${body.data.kind.toLowerCase()} has to be ${rules.types.join(", ")}, up to ${Math.round(rules.maxBytes / 1024 / 1024)} MB.`,
+    );
+  }
+
+  if (!(await contentMatches(storage, file))) {
+    // named .pdf but something else inside
+    await storage
+      .remove({ url: file.url, storageKey: file.key })
+      .catch(() => {});
+    return reply(
+      400,
+      "UPLOAD_REFUSED",
+      `That file isn't really a ${file.contentType === "application/pdf" ? "PDF" : file.contentType}.`,
     );
   }
 

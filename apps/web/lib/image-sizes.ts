@@ -55,5 +55,19 @@ export const CARD_SIZES = [
   "calc(94vw - 0.8rem)",
 ].join(", ");
 
+/**
+ * The hero's logo, 82% of the hero mark (inset 9%). The mark is the content
+ * width up to 26rem, then from 1024px 0.9 of 1.1fr + 0.9fr columns 4rem apart,
+ * at most 34rem. Its height cap (62svh) only matters on short screens and is
+ * left out
+ */
+export const HERO_MARK_SIZES = [
+  "(min-width: 1280px) 26.2rem",
+  "(min-width: 1120px) calc(36.9vw - 3.32rem)",
+  "(min-width: 1024px) calc(34.69vw - 1.77rem)",
+  "(min-width: 457px) 21.32rem",
+  "calc(77.08vw - 0.66rem)",
+].join(", ");
+
 /** A phone version below 640px, where every image box is the content width */
 export const PHONE_SIZES = "calc(94vw - 0.8rem)";

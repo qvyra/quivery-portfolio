@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { iconRefSchema } from "./icons.js";
 
 export const slugSchema = z
   .string()
@@ -65,20 +66,31 @@ export function sitePathProblem(path: string): string | null {
   return null;
 }
 
+export const linkFields = {
+  label: z.string().trim().min(1).max(60),
+  url: z.string().trim().min(1).max(2048),
+  type: linkTypeSchema,
+};
+
 // the URL's rule depends on the type, so it's checked on the whole link and
 // reported on url
+export function checkLinkUrl(
+  link: { type: LinkType; url: string },
+  ctx: z.RefinementCtx,
+) {
+  const problem =
+    link.type === "internal"
+      ? sitePathProblem(link.url)
+      : (httpUrlSchema.safeParse(link.url).error?.issues[0]?.message ?? null);
+  if (problem)
+    ctx.addIssue({ code: "custom", path: ["url"], message: problem });
+}
+
 export const linkSchema = z
   .strictObject({
-    label: z.string().trim().min(1).max(60),
-    url: z.string().trim().min(1).max(2048),
-    type: linkTypeSchema,
+    ...linkFields,
+    // the button's icon. Absent shows the type's own, see LinkIcon on the site
+    icon: iconRefSchema.optional(),
   })
-  .superRefine((link, ctx) => {
-    const problem =
-      link.type === "internal"
-        ? sitePathProblem(link.url)
-        : (httpUrlSchema.safeParse(link.url).error?.issues[0]?.message ?? null);
-    if (problem)
-      ctx.addIssue({ code: "custom", path: ["url"], message: problem });
-  });
+  .superRefine(checkLinkUrl);
 export type Link = z.infer<typeof linkSchema>;

@@ -8,6 +8,7 @@ import {
   statInputSchema,
   testimonialInputSchema,
 } from "./content/entities.js";
+import { checkOneIcon } from "./content/icons.js";
 import { mediaKindSchema, mediaUrlSchema } from "./content/media.js";
 import { pageInputBaseSchema } from "./content/page.js";
 import { projectInputSchema } from "./content/project.js";
@@ -51,14 +52,21 @@ export const adminContentSchemas = {
   sections: sectionInputBaseSchema
     .omit(stateFields)
     .superRefine(checkTitleHighlight)
-    .superRefine(checkSectionLink),
+    .superRefine(checkSectionLink)
+    .superRefine(checkOneIcon("navIcon", "navIconId")),
   projects: projectInputSchema.omit(stateFields),
   pages: pageInputBaseSchema.omit(stateFields).superRefine(checkTitleHighlight),
   stats: statInputSchema.omit(stateFields),
-  skills: skillInputSchema.omit(stateFields),
-  services: serviceInputSchema.omit(stateFields),
+  skills: skillInputSchema
+    .omit(stateFields)
+    .superRefine(checkOneIcon("iconKey", "iconId")),
+  services: serviceInputSchema
+    .omit(stateFields)
+    .superRefine(checkOneIcon("iconKey", "iconId")),
   testimonials: testimonialInputSchema.omit(stateFields),
-  contactLinks: contactLinkInputSchema.omit(stateFields),
+  contactLinks: contactLinkInputSchema
+    .omit(stateFields)
+    .superRefine(checkOneIcon("iconKey", "iconId")),
 } as const satisfies Record<AdminCollection, z.ZodType>;
 
 export type AdminContent<C extends AdminCollection> = z.output<

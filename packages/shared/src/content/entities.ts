@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { httpUrlSchema, listItemStateInput, optionalText } from "./common.js";
+import { iconKeySchema } from "./icons.js";
 import { mediaSchema } from "./media.js";
 
 // Input schemas are strict whitelists: unknown keys are rejected, so a request
@@ -75,6 +76,8 @@ export const skillInputSchema = z.strictObject({
   category: optionalText(40),
   tier: skillTierSchema.default("PRIMARY"),
   description: optionalText(300),
+  // a built-in icon, or an uploaded one in iconId, never both
+  iconKey: iconKeySchema.nullable().optional(),
   iconId: mediaId,
   ...listItemStateInput,
 });
@@ -86,6 +89,8 @@ export const skillSchema = z.object({
   category: z.string().nullable(),
   tier: skillTierSchema,
   description: z.string().nullable(),
+  // a library key, or null. Older APIs don't send it
+  iconKey: z.string().nullable().catch(null),
   icon: mediaSchema.nullable(),
 });
 export type Skill = z.infer<typeof skillSchema>;
@@ -96,6 +101,8 @@ export const serviceInputSchema = z.strictObject({
   title: z.string().trim().min(1).max(80),
   summary: z.string().trim().min(1).max(400),
   highlights: z.array(z.string().trim().min(1).max(120)).max(8).default([]),
+  // a built-in icon, or an uploaded one in iconId, never both
+  iconKey: iconKeySchema.nullable().optional(),
   iconId: mediaId,
   ...listItemStateInput,
 });
@@ -106,6 +113,8 @@ export const serviceSchema = z.object({
   title: z.string(),
   summary: z.string(),
   highlights: z.array(z.string()),
+  // a library key, or null. Older APIs don't send it
+  iconKey: z.string().nullable().catch(null),
   icon: mediaSchema.nullable(),
 });
 export type Service = z.infer<typeof serviceSchema>;
@@ -169,6 +178,9 @@ export const contactLinkInputSchema = z.strictObject({
   url: contactUrlSchema.nullable().optional(),
   // shown prominently, meant for the Discord handle
   featured: z.boolean().default(false),
+  // overrides the type's icon: a built-in one, or an upload in iconId
+  iconKey: iconKeySchema.nullable().optional(),
+  iconId: mediaId,
   ...listItemStateInput,
 });
 export type ContactLinkInput = z.input<typeof contactLinkInputSchema>;
@@ -180,5 +192,8 @@ export const contactLinkSchema = z.object({
   value: z.string(),
   url: z.string().nullable(),
   featured: z.boolean(),
+  // null shows the type's icon. Older APIs send neither
+  iconKey: z.string().nullable().catch(null),
+  icon: mediaSchema.nullable().catch(null),
 });
 export type ContactLink = z.infer<typeof contactLinkSchema>;

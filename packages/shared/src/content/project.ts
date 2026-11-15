@@ -8,7 +8,7 @@ import {
 } from "./common.js";
 import { blocksSchema, resolvedBlockSchema } from "./blocks.js";
 import { testimonialSchema } from "./entities.js";
-import { mediaSchema } from "./media.js";
+import { mediaSchema, resolvedLinkSchema } from "./media.js";
 
 export const releaseStatusSchema = z.enum(["RELEASED", "IN_DEVELOPMENT"]);
 export type ReleaseStatus = z.infer<typeof releaseStatusSchema>;
@@ -49,7 +49,7 @@ export const projectSummarySchema = z.object({
   title: z.string(),
   summary: z.string(),
   tags: z.array(z.string()),
-  links: z.array(linkSchema),
+  links: z.array(resolvedLinkSchema),
   releaseStatus: releaseStatusSchema,
   version: z.string().nullable(),
   featured: z.boolean(),

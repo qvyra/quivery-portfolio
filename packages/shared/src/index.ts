@@ -5,6 +5,7 @@ export * from "./admin.js";
 export * from "./api.js";
 export * from "./contact.js";
 export * from "./content/common.js";
+export * from "./content/icons.js";
 export * from "./content/media.js";
 export * from "./content/blocks.js";
 export * from "./content/entities.js";

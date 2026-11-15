@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { benchmarkDataUrlSchema } from "../benchmarks/parse.js";
 import { httpUrlSchema, linkSchema } from "./common.js";
-import { mediaSchema } from "./media.js";
+import { mediaSchema, resolvedLinkSchema } from "./media.js";
 
 // Content blocks, stored as a JSON array on Section.blocks and Project.body. A
 // new block type is one schema in `defineBlocks` plus a web renderer, no
@@ -42,7 +42,10 @@ const embedProviderSchema = z.enum(
   Object.keys(embedProviderHosts) as [EmbedProvider, ...EmbedProvider[]],
 );
 
-function defineBlocks<MediaRef extends z.ZodType>(mediaRef: MediaRef) {
+function defineBlocks<MediaRef extends z.ZodType, LinkRef extends z.ZodType>(
+  mediaRef: MediaRef,
+  link: LinkRef,
+) {
   return z.discriminatedUnion("type", [
     z.strictObject({
       id: blockId,
@@ -85,7 +88,7 @@ function defineBlocks<MediaRef extends z.ZodType>(mediaRef: MediaRef) {
     z.strictObject({
       id: blockId,
       type: z.literal("linkList"),
-      links: z.array(linkSchema).min(1).max(20),
+      links: z.array(link).min(1).max(20),
     }),
     z.strictObject({
       id: blockId,
@@ -171,7 +174,7 @@ export const blockTypeSchema = z.enum([
   "benchmark",
 ]);
 
-export const blockSchema = defineBlocks(storedMediaRef);
+export const blockSchema = defineBlocks(storedMediaRef, linkSchema);
 export type Block = z.infer<typeof blockSchema>;
 export type BlockInput = z.input<typeof blockSchema>;
 export type BlockType = Block["type"];
@@ -181,5 +184,8 @@ export const blocksSchema = z
   .max(100)
   .superRefine(uniqueBlockIds);
 
-export const resolvedBlockSchema = defineBlocks(resolvedMediaRef);
+export const resolvedBlockSchema = defineBlocks(
+  resolvedMediaRef,
+  resolvedLinkSchema,
+);
 export type ResolvedBlock = z.infer<typeof resolvedBlockSchema>;

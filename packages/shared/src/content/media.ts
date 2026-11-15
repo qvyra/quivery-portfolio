@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { httpUrlSchema } from "./common.js";
+import { checkLinkUrl, httpUrlSchema, linkFields } from "./common.js";
 
 export const mediaKindSchema = z.enum(["IMAGE", "VIDEO", "FILE"]);
 export type MediaKind = z.infer<typeof mediaKindSchema>;
@@ -37,3 +37,25 @@ export const mediaSchema = z.object({
   captionsUrl: mediaUrlSchema.nullable().default(null),
 });
 export type Media = z.infer<typeof mediaSchema>;
+
+// An icon as the public API returns it: an upload comes with its file, null
+// once the file is deleted
+export const resolvedIconRefSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("icon"), key: z.string() }),
+  z.object({
+    kind: z.literal("media"),
+    id: z.string(),
+    media: mediaSchema.nullable(),
+  }),
+]);
+export type ResolvedIconRef = z.infer<typeof resolvedIconRefSchema>;
+
+/** A link as the public API returns it, its icon resolved */
+export const resolvedLinkSchema = z
+  .object({
+    ...linkFields,
+    // a kind this site doesn't know yet shows the type's own icon
+    icon: resolvedIconRefSchema.optional().catch(undefined),
+  })
+  .superRefine(checkLinkUrl);
+export type ResolvedLink = z.infer<typeof resolvedLinkSchema>;

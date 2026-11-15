@@ -65,6 +65,7 @@ export const toProfile = (
   tagline: row.tagline,
   avatar: toMedia(row.avatar),
   cv: toMedia(row.cv),
+  cvFileName: row.cvFileName,
 });
 
 export const toStat = (row: Prisma.StatModel): Stat => ({

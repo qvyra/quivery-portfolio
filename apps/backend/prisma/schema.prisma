@@ -87,6 +87,9 @@ model Profile {
   avatar      Media?   @relation("ProfileAvatar", fields: [avatarId], references: [id], onDelete: SetNull)
   cvId        String?
   cv          Media?   @relation("ProfileCv", fields: [cvId], references: [id], onDelete: SetNull)
+  // the name the CV downloads under, null is one the site makes from
+  // displayName
+  cvFileName  String?
   updatedAt   DateTime @updatedAt
 }
 

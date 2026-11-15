@@ -19,6 +19,7 @@ import {
 import { PublicContentService } from '../../content/public-content.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { createZodDto } from '../../validation/zod-dto.js';
+import { ZodValidationException } from '../../validation/zod-validation.exception.js';
 import { AdminSecretGuard, AdminSessionGuard } from '../auth/admin-guards.js';
 import { SiteUpdates } from '../site-updates.js';
 
@@ -57,6 +58,7 @@ export class AdminSiteController {
         tagline: row.tagline,
         avatarId: row.avatarId,
         cvId: row.cvId,
+        cvFileName: row.cvFileName,
       },
       message: 'Fetched.',
       code: 'ADMIN_PROFILE',
@@ -66,6 +68,22 @@ export class AdminSiteController {
   // the profile has no publish state, so a save goes live straight away
   @Put('profile')
   async saveProfile(@Body() body: ProfileDto): Promise<ApiSuccess<null>> {
+    if (body.cvId) {
+      // the CV slot takes files, and captions are files too
+      const cv = await this.db.media.findUnique({ where: { id: body.cvId } });
+      if (cv?.mimeType !== 'application/pdf') {
+        throw new ZodValidationException(
+          new z.ZodError([
+            {
+              code: 'custom',
+              path: ['cvId'],
+              message: 'The CV has to be a PDF from the media library',
+              input: body.cvId,
+            },
+          ]),
+        );
+      }
+    }
     await this.db.profile.update({ where: { id: 1 }, data: body });
     this.site.refresh();
     return {

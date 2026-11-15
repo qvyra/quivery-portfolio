@@ -1,10 +1,13 @@
 "use client";
 
+import type { IconRef, LinkType } from "@repo/shared";
 import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
 import { Fragment, useEffect, useId, useState, type ReactNode } from "react";
 import { adminFetch } from "./api";
 import { BlocksEditor } from "./blocks-editor";
 import { linkTypes, type Field } from "./fields";
+import { linkTypeIcon } from "@/lib/icons/defaults";
+import { IconField, LinkIconButton } from "./icon-picker";
 import { CoverPreview, MediaField } from "./media";
 import { InheritedWidth, toTextWidth, WidthControl } from "./width-control";
 
@@ -113,9 +116,11 @@ export function FieldsForm({
             <FieldInput
               field={field}
               value={values[field.name]}
+              values={values}
               errors={errors}
               path={`${prefix}${field.name}`}
               onChange={(value) => onChange(field.name, value)}
+              onChangeOther={onChange}
             />
             {field.kind === "media" && field.phoneVersionOf && (
               <CoverPreview
@@ -133,15 +138,20 @@ export function FieldsForm({
 function FieldInput({
   field,
   value,
+  values,
   errors,
   path,
   onChange,
+  onChangeOther,
 }: {
   field: Field;
   value: unknown;
+  /** The whole form, for fields that read or write their neighbours */
+  values: Values;
   errors: Errors;
   path: string;
   onChange: (value: unknown) => void;
+  onChangeOther: (name: string, value: unknown) => void;
 }) {
   const id = useId();
   const error = errors[path];
@@ -271,6 +281,36 @@ function FieldInput({
           onChange={onChange}
         />
       );
+    case "icon": {
+      const uploadId = values[field.mediaName];
+      const fallback = field.fallback(values);
+      const mediaPath = path.slice(0, -field.name.length) + field.mediaName;
+      return (
+        <IconField
+          id={id}
+          label={label}
+          help={field.help}
+          error={error ?? errors[mediaPath]}
+          value={
+            typeof value === "string" && value
+              ? { kind: "icon", key: value }
+              : typeof uploadId === "string"
+                ? { kind: "media", id: uploadId }
+                : null
+          }
+          fallback={fallback.key}
+          fallbackLabel={fallback.label}
+          // picking one clears the other, the schema refuses both
+          onChange={(next) => {
+            onChange(next?.kind === "icon" ? next.key : null);
+            onChangeOther(
+              field.mediaName,
+              next?.kind === "media" ? next.id : null,
+            );
+          }}
+        />
+      );
+    }
     case "strings":
       return (
         <StringList
@@ -422,7 +462,7 @@ function StringList({
   );
 }
 
-type Link = { label: string; url: string; type: string };
+type Link = { label: string; url: string; type: string; icon?: IconRef };
 
 /**
  * Paths to the site's own pages, suggested for a link on this site: the
@@ -491,18 +531,25 @@ export function LinkList({
           return (
             <li
               key={index}
-              className="grid gap-2 rounded-lg p-3 ring-1 ring-white/10 ring-inset sm:grid-cols-[1fr_1.4fr_10rem_auto]"
+              className="grid gap-2 rounded-lg p-3 ring-1 ring-white/10 ring-inset sm:grid-cols-[1.2fr_1.4fr_10rem_auto]"
             >
-              <input
-                aria-label="Link label"
-                placeholder="Label"
-                className="field-input"
-                value={link.label}
-                onChange={(e) => set(index, { label: e.target.value })}
-                aria-invalid={
-                  errors[`${path}.${index}.label`] ? true : undefined
-                }
-              />
+              <div className="flex gap-2">
+                <LinkIconButton
+                  value={link.icon}
+                  fallback={linkTypeIcon(link.type as LinkType, link.url)}
+                  onChange={(icon) => set(index, { icon })}
+                />
+                <input
+                  aria-label="Link label"
+                  placeholder="Label"
+                  className="field-input min-w-0"
+                  value={link.label}
+                  onChange={(e) => set(index, { label: e.target.value })}
+                  aria-invalid={
+                    errors[`${path}.${index}.label`] ? true : undefined
+                  }
+                />
+              </div>
               <input
                 aria-label={internal ? "Path on this site" : "Link URL"}
                 placeholder={internal ? "/projects/geode" : "https://"}

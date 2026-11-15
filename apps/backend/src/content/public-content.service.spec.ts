@@ -18,6 +18,7 @@ const profile = {
   avatar: null,
   cvId: null,
   cv: null,
+  cvFileName: null,
   updatedAt: now,
 };
 

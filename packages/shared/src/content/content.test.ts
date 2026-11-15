@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { blocksSchema, resolvedBlockSchema } from "./blocks.js";
 import { linkSchema } from "./common.js";
-import { contactLinkInputSchema, testimonialInputSchema } from "./entities.js";
+import {
+  contactLinkInputSchema,
+  cvFileNameSchema,
+  profileInputSchema,
+  profileSchema,
+  testimonialInputSchema,
+} from "./entities.js";
 import { projectInputSchema } from "./project.js";
 import { sectionInputSchema } from "./section.js";
 
@@ -250,5 +256,40 @@ describe("input schemas are strict whitelists", () => {
       contactLinkInputSchema.safeParse({ ...link, url: "javascript:alert(1)" })
         .success,
     ).toBe(false);
+  });
+});
+
+describe("CV download file name", () => {
+  it.each(["Badreddine-Zitouni-CV.pdf", "CV 2026.PDF", "Zitouni (CV).pdf"])(
+    "accepts %s",
+    (name) => {
+      expect(cvFileNameSchema.safeParse(name).success).toBe(true);
+    },
+  );
+
+  it.each([
+    ["no .pdf ending", "cv.docx"],
+    ["only an extension", ".pdf"],
+    ["a hidden file", ".cv.pdf"],
+    ["a path", "../cv.pdf"],
+    ["a quote, which would break the header", 'my "cv".pdf'],
+    ["a backslash", "a\\cv.pdf"],
+    ["a line break", "cv\n.pdf"],
+    ["too long", `${"a".repeat(97)}.pdf`],
+  ])("refuses %s", (_, name) => {
+    expect(cvFileNameSchema.safeParse(name).success).toBe(false);
+  });
+
+  it("is optional on the profile, so stored profiles stay valid", () => {
+    const profile = {
+      brandName: "Quivery",
+      displayName: "Quivery",
+      headline: "Roblox systems engineer",
+      tagline: "Tagline",
+    };
+    expect(profileInputSchema.parse(profile)).not.toHaveProperty("cvFileName");
+    expect(
+      profileSchema.parse({ ...profile, avatar: null, cv: null }).cvFileName,
+    ).toBeNull();
   });
 });

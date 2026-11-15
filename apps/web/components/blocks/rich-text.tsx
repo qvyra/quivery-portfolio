@@ -2,20 +2,9 @@ import Link from "next/link";
 import type { ComponentProps, ElementType } from "react";
 import Markdown, { type Components, type ExtraProps } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { topDepth as blockTopDepth } from "@/lib/outline";
 
 type Level = 2 | 3 | 4 | 5 | 6;
-
-// shallowest heading level in the markdown, skipping code fences
-function topHeadingDepth(markdown: string): number {
-  let inFence = false;
-  let top = 7;
-  for (const line of markdown.split("\n")) {
-    if (/^\s*(```|~~~)/.test(line)) inFence = !inFence;
-    const match = !inFence && /^ {0,3}(#{1,6})\s/.exec(line);
-    if (match) top = Math.min(top, match[1]!.length);
-  }
-  return top;
-}
 
 const headingClass: Record<Level, string> = {
   2: "text-h2 font-semibold",
@@ -50,16 +39,22 @@ function MarkdownLink({ href = "", children }: ComponentProps<"a">) {
 export function RichText({
   markdown,
   headingLevel,
+  topDepth,
   anchors,
 }: {
   markdown: string;
   headingLevel: Level;
+  /** The shallowest heading depth across the whole page, on a page with an
+   *  outline. Without it the block's own shallowest is used */
+  topDepth?: number | undefined;
   /** Ids for headings, by where each starts in the markdown (lib/outline) */
   anchors?: Record<number, string> | undefined;
 }) {
-  // shift headings so the shallowest becomes headingLevel, keeping the page
-  // outline right wherever the block sits
-  const offset = headingLevel - topHeadingDepth(markdown);
+  // shift headings so the shallowest becomes headingLevel: the page title
+  // stays the only h1, and a # in a block renders one level below it. On a
+  // page the shallowest is the page's own, so every block shifts alike and a
+  // block of ### after another's ## still nests under it
+  const offset = headingLevel - (topDepth ?? blockTopDepth(markdown) ?? 1);
   const heading = (depth: number) => {
     const level = Math.min(6, Math.max(2, depth + offset)) as Level;
     const Tag = `h${level}` as ElementType;

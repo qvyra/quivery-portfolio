@@ -1,6 +1,7 @@
 import {
   contactLinkTypeSchema,
   linkTypeSchema,
+  navIconSchema,
   releaseStatusSchema,
   sectionTypeSchema,
   skillTierSchema,
@@ -29,6 +30,8 @@ export type Field = Base &
     | {
         kind: "media";
         accept: MediaKind;
+        /** Narrows the kind to one type, e.g. only PDFs for the CV */
+        only?: "application/pdf";
         /** The field this is the phone version of, previewed together */
         phoneVersionOf?: string;
       }
@@ -98,6 +101,21 @@ export const collections: Record<AdminCollection, CollectionConfig> = {
         optional: true,
         max: 24,
         help: "Shorter name for the site nav",
+      },
+      {
+        name: "navIcon",
+        label: "Nav icon",
+        kind: "select",
+        optional: true,
+        options: [
+          { value: "", label: "From the type (custom: stacked layers)" },
+          ...options(navIconSchema.options).map((option) =>
+            option.value === "drafting-compass"
+              ? { ...option, label: "Blueprint (drafting compass)" }
+              : option,
+          ),
+        ],
+        help: "The icon beside the nav link in the phone menu",
       },
       {
         name: "slug",
@@ -195,7 +213,7 @@ export const collections: Record<AdminCollection, CollectionConfig> = {
         name: "blocks",
         label: "Blocks",
         kind: "blocks",
-        help: "The top headings of rich text blocks (### in a block) make the On this page list beside the text on wide screens",
+        help: "The page's top heading level across all text blocks (# before ##, ## before ###) makes the On this page list beside the text on screens 1280px and up, with two headings at least. A # renders one level below the page title",
       },
     ],
   },
@@ -278,7 +296,12 @@ export const collections: Record<AdminCollection, CollectionConfig> = {
         kind: "text",
         optional: true,
       },
-      { name: "body", label: "Page", kind: "blocks" },
+      {
+        name: "body",
+        label: "Page",
+        kind: "blocks",
+        help: "The page's top heading level across all text blocks (# before ##, ## before ###) makes the On this page list beside the text on screens 1280px and up, with two headings at least. A # renders one level below the page title",
+      },
       {
         name: "benchmarks",
         label: "Benchmarks page",
@@ -459,10 +482,20 @@ export const profileFields: Field[] = [
   },
   {
     name: "cvId",
-    label: "CV (PDF)",
+    label: "CV",
     kind: "media",
     accept: "FILE",
+    only: "application/pdf",
     optional: true,
+    help: "A PDF from Media, served at /cv with a Download CV button in the contact section and the footer. Picking another PDF changes what /cv serves, so links already sent keep working. Empty hides every CV button",
+  },
+  {
+    name: "cvFileName",
+    label: "Download file name",
+    kind: "text",
+    optional: true,
+    max: 100,
+    help: "The name the CV saves under, e.g. Badreddine-Zitouni-CV.pdf. Empty uses the display name, e.g. Quivery-CV.pdf",
   },
 ];
 

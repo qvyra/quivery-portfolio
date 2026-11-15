@@ -8,6 +8,22 @@ import { mediaSchema } from "./media.js";
 
 const mediaId = z.uuid().nullable().optional();
 
+const cvFileNameHint =
+  "A file name ending in .pdf, e.g. Badreddine-Zitouni-CV.pdf";
+
+// a name the CV downloads under. No path, quote or control characters, which
+// a browser would mangle or a Content-Disposition header couldn't carry
+export const cvFileNameSchema = z
+  .string()
+  .trim()
+  .max(100)
+  .regex(/^(?![.\s])[^\\/:*?"<>|]+\.pdf$/i, cvFileNameHint)
+  .refine(
+    (name) =>
+      [...name].every((c) => c.charCodeAt(0) > 31 && c.charCodeAt(0) !== 127),
+    cvFileNameHint,
+  );
+
 // ── Profile (singleton) ─────────────────────────────────────────────────────
 
 export const profileInputSchema = z.strictObject({
@@ -17,6 +33,7 @@ export const profileInputSchema = z.strictObject({
   tagline: z.string().trim().min(1).max(200),
   avatarId: mediaId,
   cvId: mediaId,
+  cvFileName: cvFileNameSchema.nullable().optional(),
 });
 export type ProfileInput = z.input<typeof profileInputSchema>;
 
@@ -27,6 +44,8 @@ export const profileSchema = z.object({
   tagline: z.string(),
   avatar: mediaSchema.nullable(),
   cv: mediaSchema.nullable(),
+  // defaults to null so this site still parses an API from before it
+  cvFileName: z.string().nullable().default(null),
 });
 export type Profile = z.infer<typeof profileSchema>;
 

@@ -4,6 +4,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { revalidateTag } from "next/cache";
 import { z } from "zod";
+import { tags as cacheTags } from "@/lib/content";
 import { env } from "@/lib/env";
 
 // only tags the site actually uses (see lib/content.ts): site, projects,
@@ -55,5 +56,10 @@ export async function POST(request: Request) {
   const tags = [...new Set(body.data.tags)];
   // "max" serves the cached page while the new one renders in the background
   for (const tag of tags) revalidateTag(tag, "max");
+  // the CV is fetched again on the next request instead, so a replaced file
+  // reaches /cv at once (links already sent point there)
+  if (tags.includes(cacheTags.site)) {
+    revalidateTag(cacheTags.cv, { expire: 0 });
+  }
   return reply(200, "REVALIDATED", "Revalidated.", { tags });
 }

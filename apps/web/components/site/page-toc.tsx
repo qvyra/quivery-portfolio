@@ -92,3 +92,18 @@ export function PageToc({ entries }: { entries: OutlineEntry[] }) {
     </nav>
   );
 }
+
+/**
+ * The rail in the space beside a page's text column, first in the DOM so
+ * keyboard users reach it before the content. Goes inside the page body's
+ * relative box (data-page-body), from 1280px, and only with two headings at
+ * least, or there's nothing to navigate
+ */
+export function PageTocRail({ entries }: { entries: OutlineEntry[] }) {
+  if (entries.length < 2) return null;
+  return (
+    <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-52 xl:block">
+      <PageToc entries={entries} />
+    </div>
+  );
+}

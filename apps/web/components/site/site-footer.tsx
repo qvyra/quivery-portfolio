@@ -7,6 +7,7 @@ import { Container } from "@/components/ui/container";
 import { wordmark } from "@/lib/brand";
 import { socialLinks } from "@/lib/contact";
 import { hasSeparateName } from "@/lib/seo";
+import { CvButton } from "./cv-button";
 import { SocialLinks } from "./social-links";
 
 // cached like the rest of the page, since a shorter lifetime would shorten
@@ -52,7 +53,11 @@ export function SiteFooter({
               : profile.headline}
           </p>
         </div>
-        {socials.length > 0 && <SocialLinks links={socials} />}
+        <div className="flex flex-wrap items-center gap-3 empty:hidden">
+          {socials.length > 0 && <SocialLinks links={socials} />}
+          {/* as tall as the round social links beside it */}
+          <CvButton profile={profile} className="btn btn-secondary min-h-12" />
+        </div>
       </Container>
       <Container className="mt-10 flex flex-wrap items-center justify-between gap-4 text-sm text-white/55">
         <p>

@@ -31,6 +31,17 @@ export const sectionTypeSchema = z.enum([
 ]);
 export type SectionType = z.infer<typeof sectionTypeSchema>;
 
+// icons a section can pick for its nav link, by name. Unset uses its type's
+export const navIconSchema = z.enum([
+  "layers",
+  "network",
+  "workflow",
+  "drafting-compass",
+  "user",
+  "book-open",
+]);
+export type NavIcon = z.infer<typeof navIconSchema>;
+
 // the fields without cross-field checks, for building partial or draft schemas
 export const sectionInputBaseSchema = z.strictObject({
   // also the in-page anchor, e.g. /#works
@@ -44,6 +55,8 @@ export const sectionInputBaseSchema = z.strictObject({
   eyebrow: optionalText(60),
   // short label for the site nav, defaults to the title
   navLabel: optionalText(24),
+  // the nav link's icon, null follows the section type
+  navIcon: navIconSchema.nullable().optional(),
   blocks: blocksSchema.default([]),
   // a button after the blocks to a standalone page (the slug of a Page). The
   // section is then a teaser for that page, so its nav link goes there too
@@ -98,6 +111,8 @@ const sectionBase = {
   titleHighlight: z.string().nullable(),
   eyebrow: z.string().nullable(),
   navLabel: z.string().nullable(),
+  // null (or one this site doesn't know yet) follows the section type
+  navIcon: navIconSchema.nullable().catch(null),
   blocks: z.array(resolvedBlockSchema),
   // set only while the linked page is published. Defaults to null so this
   // site still parses an API from before page links

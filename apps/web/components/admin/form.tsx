@@ -266,6 +266,7 @@ function FieldInput({
           help={field.help}
           error={error}
           accept={field.accept}
+          only={field.only}
           value={typeof value === "string" ? value : null}
           onChange={onChange}
         />

@@ -87,6 +87,9 @@ model Profile {
   avatar      Media?   @relation("ProfileAvatar", fields: [avatarId], references: [id], onDelete: SetNull)
   cvId        String?
   cv          Media?   @relation("ProfileCv", fields: [cvId], references: [id], onDelete: SetNull)
+  // the name the CV downloads under, null is one the site makes from
+  // displayName
+  cvFileName  String?
   updatedAt   DateTime @updatedAt
 }
 
@@ -103,6 +106,8 @@ model Section {
   eyebrow        String?
   // short label for the site nav, null falls back to the title
   navLabel       String?
+  // the nav link's icon by name (Zod checks it), null follows the type
+  navIcon        String?
   // Zod-validated array of content blocks
   blocks         Json          @default("[]")
   // a button to a standalone page, by the page's slug. Shown only while that

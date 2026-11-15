@@ -3,7 +3,7 @@
 // arrived and removes files, behind one interface so the store can change
 import "server-only";
 import { randomBytes } from "node:crypto";
-import { mkdir, stat, unlink, writeFile } from "node:fs/promises";
+import { mkdir, open, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { del, head } from "@vercel/blob";
 import type { MediaKind } from "@repo/shared";
@@ -21,6 +21,8 @@ export type MediaStorage = {
   readonly mode: "blob" | "local";
   /** The file at `url` as the store sees it, or null if it isn't there */
   describe(url: string): Promise<StoredFile | null>;
+  /** The file's first bytes, to check what it really is */
+  head(file: StoredFile, bytes: number): Promise<Uint8Array>;
   remove(file: { url: string; storageKey: string | null }): Promise<void>;
 };
 
@@ -38,6 +40,26 @@ export const uploadRules: Record<
   // the CV, and WebVTT captions for videos
   FILE: { types: ["application/pdf", "text/vtt"], maxBytes: 10 * 1024 * 1024 },
 };
+
+// What a file of a type starts with, read from the stored bytes, since the
+// type the store reports comes from the browser (and the file's extension).
+// Readers accept a PDF whose header sits in its first 1 KB
+const signatures: Record<string, { text: string; within: number }> = {
+  "application/pdf": { text: "%PDF-", within: 1024 },
+};
+
+/** Whether a stored file's bytes match the type it claims, where that's known */
+export async function contentMatches(
+  storage: MediaStorage,
+  file: StoredFile,
+): Promise<boolean> {
+  const signature = signatures[file.contentType];
+  if (!signature) return true;
+  const start = await storage.head(file, signature.within).catch(() => null);
+  return Boolean(
+    start && Buffer.from(start).toString("latin1").includes(signature.text),
+  );
+}
 
 export const allTypes = Object.values(uploadRules).flatMap((r) => r.types);
 export const largestUpload = Math.max(
@@ -63,6 +85,14 @@ function blobStorage(token: string): MediaStorage {
       } catch {
         return null;
       }
+    },
+    async head(file, bytes) {
+      const response = await fetch(file.url, {
+        headers: { Range: `bytes=0-${bytes - 1}` },
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error(`Store answered ${response.status}`);
+      return new Uint8Array(await response.arrayBuffer()).slice(0, bytes);
     },
     async remove({ url }) {
       await del(url, { token });
@@ -111,6 +141,18 @@ const localStorage: MediaStorage = {
       };
     } catch {
       return null;
+    }
+  },
+  async head({ url }, bytes) {
+    const file = localFile(url);
+    if (!file) throw new Error("Not a local upload");
+    const handle = await open(file, "r");
+    try {
+      const buffer = new Uint8Array(bytes);
+      const { bytesRead } = await handle.read(buffer, 0, bytes, 0);
+      return buffer.slice(0, bytesRead);
+    } finally {
+      await handle.close();
     }
   },
   async remove({ url }) {

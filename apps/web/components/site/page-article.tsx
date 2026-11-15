@@ -8,7 +8,7 @@ import { HighlightedText } from "@/components/ui/highlighted-text";
 import { Eyebrow } from "@/components/ui/section-heading";
 import { poppinsFiles } from "@/lib/fonts";
 import { pageOutline } from "@/lib/outline";
-import { PageToc } from "./page-toc";
+import { PageTocRail } from "./page-toc";
 
 /**
  * A standalone page's content. The public page and the admin's preview both
@@ -23,7 +23,7 @@ export function PageArticle({
   backHref: string;
   backLabel?: string;
 }) {
-  const { entries, anchors } = pageOutline(page.blocks);
+  const { entries, anchors, topDepth } = pageOutline(page.blocks);
   // body text and lists sit in the first screen here, unlike the homepage,
   // so their weights load with the page rather than swapping in after it
   for (const weight of [400, 500] as const) {
@@ -59,17 +59,15 @@ export function PageArticle({
         </header>
 
         <div data-page-body="" className="relative mt-14">
-          {/* in the space beside the text column, and first in the DOM so
-              keyboard users reach it before the content. Two headings at
-              least, or there's nothing to navigate */}
-          {entries.length >= 2 && (
-            <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-52 xl:block">
-              <PageToc entries={entries} />
-            </div>
-          )}
+          <PageTocRail entries={entries} />
           <BlockList
             blocks={page.blocks}
-            context={{ headingLevel: 2, anchors, textWidth: page.textWidth }}
+            context={{
+              headingLevel: 2,
+              anchors,
+              topDepth,
+              textWidth: page.textWidth,
+            }}
             measure="max-w-[60rem]"
           />
         </div>

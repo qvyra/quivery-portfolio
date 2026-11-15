@@ -44,11 +44,17 @@ export function Reveal({
 
   useEffect(() => {
     const element = ref.current;
-    if (!element) return;
+    if (!element || element.dataset.reveal === "in") return;
     // the server HTML is fully visible. Only what's below the fold at
     // hydration gets hidden, so nothing on screen flickers and it all stays
-    // visible if JavaScript fails
-    if (element.getBoundingClientRect().top < window.innerHeight) return;
+    // visible if JavaScript fails. Next keeps a page's DOM while another
+    // route shows and runs this again on the way back, so something hidden
+    // on the first visit can be on screen or above it by then: show it, or
+    // it would stay hidden, since nothing observes it any more
+    if (element.getBoundingClientRect().top < window.innerHeight) {
+      if (element.dataset.reveal === "out") element.dataset.reveal = "in";
+      return;
+    }
 
     element.dataset.reveal = "out";
     const io = getObserver();

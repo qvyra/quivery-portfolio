@@ -246,7 +246,7 @@ export function IconPicker({
       ref={dialog}
       onClose={onClose}
       aria-labelledby={`${id}-title`}
-      className="m-auto flex max-h-[min(44rem,calc(100dvh-2rem))] w-[min(52rem,calc(100vw-2rem))] flex-col rounded-xl bg-ink-raised p-0 text-white ring-1 ring-white/15 backdrop:bg-black/70 [&:not([open])]:hidden"
+      className="m-auto flex h-[min(44rem,calc(100dvh-2rem))] w-[min(52rem,calc(100vw-2rem))] flex-col rounded-xl bg-ink-raised p-0 text-white ring-1 ring-white/15 backdrop:bg-black/70 [&:not([open])]:hidden"
     >
       <div className="space-y-4 border-b border-white/10 p-5 sm:p-6">
         <div className="flex items-center justify-between gap-4">

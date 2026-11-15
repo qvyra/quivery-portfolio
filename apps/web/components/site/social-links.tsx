@@ -1,24 +1,16 @@
 "use client";
 
-import type { ContactLink, ContactLinkType } from "@repo/shared";
-import { Check, Mail } from "lucide-react";
-import { useEffect, useState, type ComponentType } from "react";
-import { DiscordIcon, GithubIcon, KofiIcon } from "@/components/ui/icons";
-import { socialLinks } from "@/lib/contact";
+import type { ContactLink } from "@repo/shared";
+import { Check } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 
-const icons: Partial<
-  Record<ContactLinkType, ComponentType<{ className?: string }>>
-> = {
-  discord: DiscordIcon,
-  github: GithubIcon,
-  kofi: KofiIcon,
-  email: Mail,
-};
+/** A link in the row, with its icon already rendered (see social-items.tsx) */
+export type SocialItem = { link: ContactLink; icon: ReactNode };
 
 // 48px round targets. Only the hover overlay's opacity and a slight press
 // scale animate
 const itemClass = [
-  "relative isolate grid size-12 place-items-center rounded-full bg-white/[0.04] text-white/85 ring-1 ring-white/15 ring-inset [&_svg]:size-5",
+  "relative isolate grid size-12 place-items-center rounded-full bg-white/[0.04] text-white/85 ring-1 ring-white/15 ring-inset [&_.site-icon-image]:size-5 [&_svg]:size-5",
   "before:absolute before:inset-0 before:-z-10 before:rounded-full before:bg-white/10 before:opacity-0 before:transition-opacity before:duration-(--motion-base) before:ease-out-quart",
   "transition-[scale] duration-(--motion-fast) ease-out-quart hover:text-white hover:before:opacity-100 motion-safe:active:scale-95",
 ].join(" ");
@@ -28,10 +20,10 @@ const itemClass = [
  * its value instead
  */
 export function SocialLinks({
-  links,
+  items,
   className,
 }: {
-  links: ContactLink[];
+  items: SocialItem[];
   className?: string;
 }) {
   const [copied, setCopied] = useState<string | null>(null);
@@ -58,8 +50,7 @@ export function SocialLinks({
           .filter(Boolean)
           .join(" ")}
       >
-        {socialLinks(links).map((link) => {
-          const Icon = icons[link.type]!;
+        {items.map(({ link, icon }) => {
           const external = link.url?.startsWith("http");
           return (
             <li key={link.id}>
@@ -70,7 +61,7 @@ export function SocialLinks({
                   aria-label={`${link.label}: ${link.value}${external ? " (opens in a new tab)" : ""}`}
                   {...(external && { target: "_blank", rel: "noreferrer" })}
                 >
-                  <Icon />
+                  {icon}
                 </a>
               ) : (
                 <button
@@ -79,7 +70,7 @@ export function SocialLinks({
                   aria-label={`Copy ${link.label} ${link.value}`}
                   onClick={() => copy(link)}
                 >
-                  {copied === link.id ? <Check /> : <Icon />}
+                  {copied === link.id ? <Check /> : icon}
                 </button>
               )}
             </li>

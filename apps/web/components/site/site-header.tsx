@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { wordmark } from "@/lib/brand";
 import { ScrollWatcher } from "./scroll-watcher";
+import { socialItems } from "./social-items";
 import { SiteNav, type NavItem } from "./site-nav";
 
 /**
@@ -57,7 +58,7 @@ export function SiteHeader({
           <SiteNav
             items={items}
             contact={contact}
-            contactLinks={contactLinks}
+            socials={contactLinks && socialItems(contactLinks)}
           />
         </Container>
       </header>

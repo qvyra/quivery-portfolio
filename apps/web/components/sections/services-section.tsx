@@ -1,6 +1,7 @@
 import type { SiteSection } from "@repo/shared";
 import { Check } from "lucide-react";
 import { MediaImage } from "@/components/blocks/media-image";
+import { hasSiteIcon, SiteIcon } from "@/components/ui/site-icon";
 import { Reveal } from "@/components/ui/reveal";
 import { SectionShell } from "./section-shell";
 
@@ -22,10 +23,16 @@ export function ServicesSection({
             key={service.id}
             className="flex flex-col gap-4 rounded-xl bg-white/[0.03] p-6 ring-1 ring-white/10 ring-inset sm:p-7"
           >
-            {service.icon && (
+            {service.icon ? (
               <div className="size-10">
                 <MediaImage media={service.icon} sizes="40px" />
               </div>
+            ) : (
+              hasSiteIcon(service.iconKey, null) && (
+                <span className="grid size-10 place-items-center rounded-md bg-white/[0.05] ring-1 ring-white/10 ring-inset">
+                  <SiteIcon iconKey={service.iconKey} className="size-5" />
+                </span>
+              )
             )}
             <h3 className="text-h3 font-semibold">{service.title}</h3>
             <p className="text-white/75">{service.summary}</p>

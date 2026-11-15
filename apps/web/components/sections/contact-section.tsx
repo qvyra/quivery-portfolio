@@ -1,27 +1,24 @@
 import type { ContactLink, Site, SiteSection } from "@repo/shared";
-import { ArrowUpRight, Mail } from "lucide-react";
-import type { ComponentType, ReactNode } from "react";
-import { DiscordIcon, GithubIcon, KofiIcon } from "@/components/ui/icons";
+import { ArrowUpRight } from "lucide-react";
+import type { ReactNode } from "react";
 import { CvButton } from "@/components/site/cv-button";
 import { Reveal } from "@/components/ui/reveal";
+import { SiteIcon } from "@/components/ui/site-icon";
 import { isExternal, primaryContact } from "@/lib/contact";
+import { contactTypeIcons } from "@/lib/icons/defaults";
 import { SectionShell } from "./section-shell";
 
-const icons: Partial<
-  Record<ContactLink["type"], ComponentType<{ className?: string }>>
-> = {
-  discord: DiscordIcon,
-  github: GithubIcon,
-  kofi: KofiIcon,
-  email: Mail,
-};
-
 function ContactRow({ link }: { link: ContactLink }) {
-  const Icon = icons[link.type] ?? ArrowUpRight;
   const body = (
     <>
       <span className="grid size-11 shrink-0 place-items-center rounded-md bg-white/[0.05] ring-1 ring-white/10 ring-inset">
-        <Icon className="size-5" aria-hidden="true" />
+        <SiteIcon
+          iconKey={link.iconKey}
+          media={link.icon}
+          fallback={contactTypeIcons[link.type]}
+          className="size-5"
+          sizes="20px"
+        />
       </span>
       <span className="min-w-0">
         <span className="block text-sm text-white/60">{link.label}</span>

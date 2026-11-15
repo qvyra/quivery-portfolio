@@ -1,6 +1,5 @@
 "use client";
 
-import type { ContactLink } from "@repo/shared";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -13,8 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { ButtonLink } from "@/components/ui/button";
-import { socialLinks } from "@/lib/contact";
-import { SocialLinks } from "./social-links";
+import { SocialLinks, type SocialItem } from "./social-links";
 
 /**
  * `href` points at a section (`/#id`) or a page (`/architecture`). The icon
@@ -77,12 +75,13 @@ function useActiveSection(hrefs: string[]) {
 export function SiteNav({
   items,
   contact,
-  contactLinks = [],
+  socials = [],
 }: {
   items: NavItem[];
   /** Contact button, null when there's no contact section */
   contact: NavItem | null;
-  contactLinks?: ContactLink[];
+  /** The phone menu's icon links, rendered on the server */
+  socials?: SocialItem[];
 }) {
   const [open, setOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -90,7 +89,6 @@ export function SiteNav({
   const drawerId = useId();
   const active = useActiveSection(items.map((item) => item.href));
   const pathname = usePathname();
-  const socials = socialLinks(contactLinks);
 
   useEffect(() => {
     if (!open) return;
@@ -211,7 +209,7 @@ export function SiteNav({
               <p className="text-eyebrow font-semibold text-white/55 uppercase">
                 Find me
               </p>
-              <SocialLinks links={socials} />
+              <SocialLinks items={socials} />
             </div>
           )}
           {contact && (

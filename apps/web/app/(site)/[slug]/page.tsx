@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PageArticle } from "@/components/site/page-article";
-import { getBuiltPage, getPages, pagesPublishedAtBuild } from "@/lib/content";
+import {
+  getBuiltPage,
+  getPages,
+  getSite,
+  pagesPublishedAtBuild,
+} from "@/lib/content";
+import { pagePreview, previewImages } from "@/lib/og/previews";
 import { pageOpenGraph } from "@/lib/seo";
 
 // every published page prerenders through generateStaticParams, and the proxy
@@ -28,7 +34,7 @@ export async function generateMetadata({
   params,
 }: PageProps<"/[slug]">): Promise<Metadata> {
   const { slug } = await params;
-  const page = await getBuiltPage(slug);
+  const [page, site] = await Promise.all([getBuiltPage(slug), getSite()]);
   if (!page) return { title: "Page not found" };
 
   const url = `/${page.slug}`;
@@ -37,12 +43,12 @@ export async function generateMetadata({
     title,
     description: page.seoDescription,
     alternates: { canonical: url },
-    // the image comes from opengraph-image.tsx next to this page
     openGraph: pageOpenGraph({
       type: "article",
       title,
       description: page.seoDescription,
       url,
+      images: previewImages(pagePreview(page, site)),
     }),
   };
 }

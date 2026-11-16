@@ -23,6 +23,13 @@ export default function nextConfig(phase: string): NextConfig {
     // no AGENTS.md written by next dev
     agentRules: false,
 
+    // Next renders a fresh page on every request from the bots it lists
+    // (LinkedIn, X, Discord, Slack...) instead of serving the prerendered one,
+    // so their metadata can't stream in after the head. Every page's metadata
+    // is static and already in the prerendered head, so they get the same
+    // page browsers do, from the CDN. A pattern that matches no user agent
+    htmlLimitedBots: /(?!)/,
+
     // published project and page slugs, snapshot by scripts/build.mjs and
     // inlined at build time. See app/(site)/projects/[slug]/page.tsx
     env: Object.fromEntries(

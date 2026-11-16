@@ -2,10 +2,12 @@
 // exists the API calls this after edits. Pages keep serving the cached version
 // and rebuild in the background on the next visit
 import { createHash, timingSafeEqual } from "node:crypto";
+import { after } from "next/server";
 import { revalidateTag } from "next/cache";
 import { z } from "zod";
 import { tags as cacheTags } from "@/lib/content";
 import { env } from "@/lib/env";
+import { warmPreviews } from "@/lib/og/images";
 
 // only tags the site actually uses (see lib/content.ts): site, projects,
 // project:<slug>, pages, page:<slug>
@@ -61,5 +63,9 @@ export async function POST(request: Request) {
   if (tags.includes(cacheTags.site)) {
     revalidateTag(cacheTags.cv, { expire: 0 });
   }
+  // link preview images too, so none is rendered from data that's only
+  // marked stale. They render again right after this reply, so no bot waits
+  revalidateTag(cacheTags.og, { expire: 0 });
+  after(warmPreviews);
   return reply(200, "REVALIDATED", "Revalidated.", { tags });
 }

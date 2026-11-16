@@ -32,6 +32,8 @@ export const tags = {
   page: (slug: string) => `page:${slug}`,
   /** What /cv serves. Expired outright whenever the site is refreshed */
   cv: "cv",
+  /** Link preview images. Expired outright too, see lib/og/previews.ts */
+  og: "og",
 } as const;
 
 // unknown section and block types get skipped, so say so while developing
@@ -84,7 +86,16 @@ export async function getSite(): Promise<Site> {
   // the homepage lists project summaries and links pages, so changes to
   // either refresh it too
   cacheTag(tags.site, tags.projects, tags.pages);
+  return loadSite();
+}
 
+/**
+ * The site straight from the API, uncached. Link preview images use the
+ * load* functions: they're expired outright after an edit, and rendering one
+ * from a cached entry that's only marked stale would give the new URL the old
+ * picture, which LinkedIn then keeps
+ */
+export async function loadSite(): Promise<Site> {
   const { status, json } = await request("/public/site");
   if (status !== 200) throw unexpected("/public/site", status, json);
   const site = parsed(() => parseSite(json, reportSkip));
@@ -126,7 +137,11 @@ export async function getProject(slug: string): Promise<ProjectDetail | null> {
   "use cache";
   cacheLife("max");
   cacheTag(tags.projects, tags.project(slug));
+  return loadProject(slug);
+}
 
+/** A published project straight from the API, uncached, see loadSite */
+export async function loadProject(slug: string): Promise<ProjectDetail | null> {
   const path = `/public/projects/${encodeURIComponent(slug)}`;
   const { status, json } = await request(path);
   if (status === 404) return null;
@@ -180,7 +195,11 @@ export async function getPage(slug: string): Promise<PageDetail | null> {
   "use cache";
   cacheLife("max");
   cacheTag(tags.pages, tags.page(slug));
+  return loadPage(slug);
+}
 
+/** A published page straight from the API, uncached, see loadSite */
+export async function loadPage(slug: string): Promise<PageDetail | null> {
   const path = `/public/pages/${encodeURIComponent(slug)}`;
   const { status, json } = await request(path);
   if (status === 404) return null;

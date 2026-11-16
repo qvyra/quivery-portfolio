@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   },
   description:
     "Quivery: Roblox systems engineer focused on data, architecture and tooling for live games.",
-  // the images are generated per page, see opengraph-image.tsx in app/(site)
+  // each page names its own preview image, see lib/og/previews.ts
   openGraph: pageOpenGraph({}),
   twitter: { card: "summary_large_image" },
 };

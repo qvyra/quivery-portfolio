@@ -5,7 +5,8 @@ import { notFound } from "next/navigation";
 import { BlockList } from "@/components/blocks/block-list";
 import { Container } from "@/components/ui/container";
 import { benchmarkSlugs } from "@/lib/benchmarks";
-import { getBuiltProject } from "@/lib/content";
+import { getBuiltProject, getSite } from "@/lib/content";
+import { benchmarksPreview, previewImages } from "@/lib/og/previews";
 import { pageOpenGraph } from "@/lib/seo";
 
 // like the project page: built projects prerender, anything else waits for
@@ -29,7 +30,10 @@ export async function generateMetadata({
   params,
 }: PageProps<"/projects/[slug]/benchmarks">): Promise<Metadata> {
   const { slug } = await params;
-  const project = await benchmarkedProject(slug);
+  const [project, site] = await Promise.all([
+    benchmarkedProject(slug),
+    getSite(),
+  ]);
   if (!project) return { title: "Page not found" };
 
   const url = `/projects/${project.slug}/benchmarks`;
@@ -39,7 +43,12 @@ export async function generateMetadata({
     title,
     description,
     alternates: { canonical: url },
-    openGraph: pageOpenGraph({ title, description, url }),
+    openGraph: pageOpenGraph({
+      title,
+      description,
+      url,
+      images: previewImages(await benchmarksPreview(project, site)),
+    }),
   };
 }
 

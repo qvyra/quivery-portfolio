@@ -162,10 +162,47 @@ const checks = [
   })),
 ];
 
+const LINKEDIN_BOT =
+  "LinkedInBot/1.0 (compatible; Mozilla/5.0; Apache-HttpClient +http://www.linkedin.com)";
+
+// The share image a page names: in the head, where link preview bots read
+// it, and answering with the type and size its tags declare
+async function checkShareImage(html) {
+  const meta = (property) =>
+    html
+      .match(new RegExp(`<meta property="${property}" content="([^"]+)"`))?.[1]
+      ?.replaceAll("&amp;", "&");
+  const image = meta("og:image");
+  if (!image) return "no og:image";
+  if (html.indexOf('property="og:image"') > html.indexOf("</head>")) {
+    return "og:image is after the head";
+  }
+  const type = meta("og:image:type");
+  if (meta("og:image:width") !== "1200" || meta("og:image:height") !== "630") {
+    return "og:image doesn't declare 1200 x 630";
+  }
+  const card = await fetch(image, {
+    headers: { "user-agent": LINKEDIN_BOT },
+    signal: AbortSignal.timeout(60_000),
+  });
+  const bytes = (await card.arrayBuffer()).byteLength;
+  const answered = card.headers.get("content-type");
+  if (card.status !== 200 || answered !== type) {
+    return `og:image answered ${card.status} ${answered}, the page says ${type}`;
+  }
+  if (!["image/png", "image/jpeg"].includes(answered)) {
+    return `og:image is ${answered}, LinkedIn wants PNG or JPEG`;
+  }
+  if (bytes > 1_000_000) return `og:image is ${bytes} bytes, over 1 MB`;
+  return null;
+}
+
 async function run(check) {
   try {
     const response = await fetch(check.url, {
       method: check.method ?? "GET",
+      // pages with a share card are fetched the way LinkedIn does
+      ...(check.ogImage && { headers: { "user-agent": LINKEDIN_BOT } }),
       ...(check.body && {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(check.body),
@@ -190,19 +227,8 @@ async function run(check) {
       }
     }
     if (check.ogImage) {
-      const image = body.match(
-        /<meta property="og:image" content="([^"]+)"/,
-      )?.[1];
-      if (!image) return "no og:image";
-      const card = await fetch(image.replaceAll("&amp;", "&"), {
-        signal: AbortSignal.timeout(60_000),
-      });
-      if (
-        card.status !== 200 ||
-        card.headers.get("content-type") !== "image/png"
-      ) {
-        return `og:image answered ${card.status} ${card.headers.get("content-type")}`;
-      }
+      const problem = await checkShareImage(body);
+      if (problem) return problem;
     }
     if (check.code && !body.includes(`"code":"${check.code}"`)) {
       return `no ${check.code} in the answer`;

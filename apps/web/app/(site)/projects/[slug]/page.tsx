@@ -9,6 +9,7 @@ import {
   orderProjects,
   publishedAtBuild,
 } from "@/lib/content";
+import { previewImages, projectPreview } from "@/lib/og/previews";
 import { pageOpenGraph } from "@/lib/seo";
 import { projectStructuredData } from "@/lib/structured-data";
 
@@ -40,7 +41,7 @@ export async function generateMetadata({
   params,
 }: PageProps<"/projects/[slug]">): Promise<Metadata> {
   const { slug } = await params;
-  const project = await getBuiltProject(slug);
+  const [project, site] = await Promise.all([getBuiltProject(slug), getSite()]);
   if (!project) return { title: "Project not found" };
 
   const url = `/projects/${project.slug}`;
@@ -48,12 +49,12 @@ export async function generateMetadata({
     title: project.title,
     description: project.summary,
     alternates: { canonical: url },
-    // the image comes from opengraph-image.tsx next to this page
     openGraph: pageOpenGraph({
       type: "article",
       title: project.title,
       description: project.summary,
       url,
+      images: previewImages(projectPreview(project, site)),
     }),
   };
 }

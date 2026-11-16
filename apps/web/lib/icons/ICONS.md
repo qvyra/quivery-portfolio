@@ -35,6 +35,19 @@ From [Simple Icons](https://simpleicons.org) 16.38.0 (CC0-1.0), one colour as pu
 | X              | `x`              | Simple Icons: x             | CC0-1.0 | as published |
 | Ko-fi          | `kofi`           | Simple Icons: kofi          | CC0-1.0 | as published |
 
+## LinkedIn
+
+Simple Icons 16.38.0 has no LinkedIn logo, so this one comes from LinkedIn itself.
+
+| Logo     | Key        | Source                                                                                                            | License                                                                                               | How                            |
+| -------- | ---------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------ |
+| LinkedIn | `linkedin` | [brand.linkedin.com/downloads](https://brand.linkedin.com/downloads), file: InBug-Black.png in the [in] Logo pack | LinkedIn brand asset, under the LinkedIn Brand and User Agreements; trademark of LinkedIn Corporation | traced from its one-colour PNG |
+
+Notes:
+
+- LinkedIn publishes the [in] logo as PNGs only, in blue, black and white. This is the black one-colour version traced at full size (overlap 0.998), drawn in currentColor like the rest, so the "in" is cut out of the square.
+- The ® beside the square is left out: at icon size it would be a smudge under a pixel wide.
+
 ## Roblox
 
 Official logos from each project, made one colour: a vector logo is merged into one shape, a raster one is traced from a high resolution render. Every one was compared against its original (overlap 0.99 or better). Traced outlines too detailed for an icon were traced again at 320px, still several times what a 24px icon shows on a 3x screen, which cut them from 5 to 27 KB to 1 to 4 KB (overlap with the full outline 0.97 or better).

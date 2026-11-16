@@ -155,6 +155,7 @@ export const contactLinkTypeSchema = z.enum([
   "discord",
   "email",
   "github",
+  "linkedin",
   "roblox-talent-hub",
   "kofi",
   "website",

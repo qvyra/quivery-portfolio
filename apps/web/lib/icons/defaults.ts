@@ -28,6 +28,7 @@ export function linkTypeIcon(type: LinkType, url: string): string {
 export const contactTypeIcons: Record<ContactLinkType, string> = {
   discord: "discord",
   github: "github",
+  linkedin: "linkedin",
   kofi: "kofi",
   email: "mail",
   "roblox-talent-hub": "arrow-up-right",

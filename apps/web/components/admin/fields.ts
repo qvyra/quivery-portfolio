@@ -490,7 +490,7 @@ export const collections: Record<AdminCollection, CollectionConfig> = {
         optional: true,
         fallback: (values) =>
           typeIcon(contactTypeIcons[values.type as ContactLinkType]),
-        help: "Shown in the contact section, and in the round social links for Discord, GitHub, Ko-fi and email",
+        help: "Shown in the contact section, and in the round social links for Discord, GitHub, LinkedIn, Ko-fi and email",
       },
       {
         name: "featured",

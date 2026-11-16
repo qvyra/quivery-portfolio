@@ -1,4 +1,4 @@
-import type { Link as ContentLinkData } from "@repo/shared";
+import type { ResolvedLink } from "@repo/shared";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { LinkIcon } from "./link-icon";
@@ -13,21 +13,21 @@ export function ContentLink({
   className,
   external,
 }: {
-  link: ContentLinkData;
+  link: ResolvedLink;
   className: string;
   external?: ReactNode;
 }) {
   if (link.type === "internal") {
     return (
       <Link href={link.url} className={className}>
-        <LinkIcon type={link.type} url={link.url} />
+        <LinkIcon link={link} />
         {link.label}
       </Link>
     );
   }
   return (
     <a href={link.url} target="_blank" rel="noreferrer" className={className}>
-      <LinkIcon type={link.type} url={link.url} />
+      <LinkIcon link={link} />
       {link.label}
       {external}
       <span className="sr-only"> (opens in a new tab)</span>

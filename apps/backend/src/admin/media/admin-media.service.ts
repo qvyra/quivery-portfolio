@@ -35,6 +35,7 @@ const mediaIdFields = [
   'coverId',
   'mobileCoverId',
   'iconId',
+  'navIconId',
 ];
 
 function invalid(path: string, message: string, input: unknown) {
@@ -128,6 +129,8 @@ export class AdminMediaService {
       skills,
       services,
       testimonials,
+      contactLinks,
+      pages,
       captionsFor,
     ] = await this.db.$transaction([
       this.db.profile.findMany({
@@ -138,13 +141,14 @@ export class AdminMediaService {
           title: true,
           coverId: true,
           mobileCoverId: true,
+          links: true,
           body: true,
           benchmarks: true,
           draft: true,
         },
       }),
       this.db.section.findMany({
-        select: { title: true, blocks: true, draft: true },
+        select: { title: true, navIconId: true, blocks: true, draft: true },
       }),
       this.db.skill.findMany({
         select: { name: true, iconId: true, draft: true },
@@ -154,6 +158,12 @@ export class AdminMediaService {
       }),
       this.db.testimonial.findMany({
         select: { authorName: true, avatarId: true, draft: true },
+      }),
+      this.db.contactLink.findMany({
+        select: { label: true, iconId: true, draft: true },
+      }),
+      this.db.page.findMany({
+        select: { title: true, blocks: true, draft: true },
       }),
       this.db.media.findMany({
         where: { captionsId: id },
@@ -168,13 +178,14 @@ export class AdminMediaService {
           (p) =>
             p.coverId === id ||
             p.mobileCoverId === id ||
+            used(p.links) ||
             used(p.body) ||
             used(p.benchmarks) ||
             used(p.draft),
         )
         .map((p) => `project "${p.title}"`),
       ...sections
-        .filter((s) => used(s.blocks) || used(s.draft))
+        .filter((s) => s.navIconId === id || used(s.blocks) || used(s.draft))
         .map((s) => `section "${s.title}"`),
       ...skills
         .filter((s) => s.iconId === id || used(s.draft))
@@ -185,6 +196,12 @@ export class AdminMediaService {
       ...testimonials
         .filter((t) => t.avatarId === id || used(t.draft))
         .map((t) => `testimonial from ${t.authorName}`),
+      ...contactLinks
+        .filter((c) => c.iconId === id || used(c.draft))
+        .map((c) => `contact link "${c.label}"`),
+      ...pages
+        .filter((p) => used(p.blocks) || used(p.draft))
+        .map((p) => `page "${p.title}"`),
       ...captionsFor.map(() => 'a video, as its captions'),
     ];
   }

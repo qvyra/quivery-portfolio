@@ -5,9 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { wordmark } from "@/lib/brand";
-import { socialLinks } from "@/lib/contact";
 import { hasSeparateName } from "@/lib/seo";
 import { CvButton } from "./cv-button";
+import { socialItems } from "./social-items";
 import { SocialLinks } from "./social-links";
 
 // cached like the rest of the page, since a shorter lifetime would shorten
@@ -27,7 +27,7 @@ export function SiteFooter({
   profile: Profile;
   contactLinks: ContactLink[];
 }) {
-  const socials = socialLinks(contactLinks);
+  const socials = socialItems(contactLinks);
 
   return (
     <footer className="mt-auto border-t border-white/10 pb-[max(2rem,env(safe-area-inset-bottom))]">
@@ -54,7 +54,7 @@ export function SiteFooter({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3 empty:hidden">
-          {socials.length > 0 && <SocialLinks links={socials} />}
+          {socials.length > 0 && <SocialLinks items={socials} />}
           {/* as tall as the round social links beside it */}
           <CvButton profile={profile} className="btn btn-secondary min-h-12" />
         </div>

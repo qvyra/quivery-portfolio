@@ -57,6 +57,8 @@ const sampleLinks: ContactLink[] = [
   value: value!,
   url,
   featured: false,
+  iconKey: null,
+  icon: null,
 }));
 
 const swatches = [

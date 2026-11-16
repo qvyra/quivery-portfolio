@@ -1,38 +1,10 @@
-import type { NavIcon, SiteSection } from "@repo/shared";
-import {
-  BookOpen,
-  Briefcase,
-  DraftingCompass,
-  FolderGit2,
-  Layers,
-  Network,
-  Star,
-  User,
-  Workflow,
-  Wrench,
-} from "lucide-react";
+import type { SiteSection } from "@repo/shared";
+import { SiteIcon } from "@/components/ui/site-icon";
+import { sectionTypeIcons } from "@/lib/icons/defaults";
 import type { NavItem } from "./site-nav";
 
 // hero and stats are the top of the page, and contact has its own button
 const outsideNav = new Set<SiteSection["type"]>(["hero", "stats", "contact"]);
-
-const icons: Partial<Record<SiteSection["type"], typeof Layers>> = {
-  projects: FolderGit2,
-  skills: Wrench,
-  services: Briefcase,
-  testimonials: Star,
-  custom: Layers,
-};
-
-// what a section can pick instead, so two custom sections can differ
-export const navIcons: Record<NavIcon, typeof Layers> = {
-  layers: Layers,
-  network: Network,
-  workflow: Workflow,
-  "drafting-compass": DraftingCompass,
-  user: User,
-  "book-open": BookOpen,
-};
 
 /**
  * Nav links for rendered sections (the API leaves out empty and unpublished
@@ -43,14 +15,19 @@ export function navItems(sections: SiteSection[]): NavItem[] {
   return sections
     .filter((section) => !outsideNav.has(section.type))
     .map((section) => {
-      const Icon =
-        (section.navIcon && navIcons[section.navIcon]) ??
-        icons[section.type] ??
-        Layers;
       return {
         label: section.navLabel ?? section.title,
         href: section.link?.href ?? `/#${section.slug}`,
-        icon: <Icon />,
+        // the section's pick, or its type's own. Rendered here on the server,
+        // so the icon library never reaches the browser
+        icon: (
+          <SiteIcon
+            iconKey={section.navIcon}
+            media={section.navIconImage}
+            fallback={sectionTypeIcons[section.type] ?? "layers"}
+            sizes="20px"
+          />
+        ),
       };
     });
 }

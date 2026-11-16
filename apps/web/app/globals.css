@@ -1184,3 +1184,28 @@
     }
   }
 }
+
+@layer components {
+  /* An uploaded icon (SiteIcon) takes the box a built-in SVG would: 24px,
+     or what the className or the slot it sits in sizes svgs to */
+  .site-icon-image {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+
+    & img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+  .btn .site-icon-image {
+    width: 1.125em;
+    height: 1.125em;
+  }
+  .nav-link-icon .site-icon-image {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}

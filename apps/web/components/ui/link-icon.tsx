@@ -1,36 +1,21 @@
-import type { LinkType } from "@repo/shared";
-import {
-  ArrowRight,
-  BookOpen,
-  ExternalLink,
-  FolderGit2,
-  Gamepad2,
-  Globe,
-  MessagesSquare,
-  Package,
-  CirclePlay,
-  Store,
-} from "lucide-react";
-import { GithubIcon } from "./icons";
+import type { ResolvedLink } from "@repo/shared";
+import { linkTypeIcon } from "@/lib/icons/defaults";
+import { SiteIcon } from "./site-icon";
 
-const icons = {
-  internal: ArrowRight,
-  repository: FolderGit2,
-  package: Package,
-  devforum: MessagesSquare,
-  "creator-store": Store,
-  "roblox-game": Gamepad2,
-  documentation: BookOpen,
-  website: Globe,
-  video: CirclePlay,
-  other: ExternalLink,
-} satisfies Record<LinkType, unknown>;
-
-/** Icon for a project link. GitHub repos get the GitHub mark */
-export function LinkIcon({ type, url }: { type: LinkType; url: string }) {
-  if (type === "repository" && new URL(url).hostname === "github.com") {
-    return <GithubIcon />;
-  }
-  const Icon = icons[type];
-  return <Icon aria-hidden="true" />;
+/**
+ * A project or block link's icon: the one it picked, or its type's own. An
+ * upload whose file is gone shows the type's icon too
+ */
+export function LinkIcon({ link }: { link: ResolvedLink }) {
+  const { icon } = link;
+  return (
+    <SiteIcon
+      iconKey={icon?.kind === "icon" ? icon.key : null}
+      media={icon?.kind === "media" ? icon.media : null}
+      fallback={
+        icon?.kind === "icon" ? null : linkTypeIcon(link.type, link.url)
+      }
+      sizes="20px"
+    />
+  );
 }

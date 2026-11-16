@@ -16,7 +16,7 @@ import {
   type Skill,
   type Stat,
   type Testimonial,
-  type NavIcon,
+  type ResolvedLink,
   type TextWidth,
 } from '@repo/shared';
 import type { Prisma } from '../generated/prisma/client.js';
@@ -35,7 +35,7 @@ import {
   toSkill,
   toStat,
   toTestimonial,
-  toNavIcon,
+  toIconKey,
   toTextWidth,
 } from './mappers.js';
 
@@ -84,8 +84,16 @@ export class PublicContentService {
         where: { id: 1 },
         include: { avatar: true, cv: true },
       }),
-      this.db.contactLink.findMany({ where, orderBy: [...ordered] }),
-      this.db.section.findMany({ where, orderBy: [...ordered] }),
+      this.db.contactLink.findMany({
+        where,
+        orderBy: [...ordered],
+        include: { icon: true },
+      }),
+      this.db.section.findMany({
+        where,
+        orderBy: [...ordered],
+        include: { navIconImage: true },
+      }),
       this.db.stat.findMany({ where, orderBy: [...ordered] }),
       this.db.service.findMany({
         where,
@@ -126,19 +134,29 @@ export class PublicContentService {
       services: (await this.previewMedia(draft(services), 'icon', preview)).map(
         toService,
       ),
-      projects: (
-        await this.previewMedia(draft(projects), 'cover', preview)
-      ).map(toProjectSummary),
+      projects: await this.withLinkIcons(
+        (await this.previewMedia(draft(projects), 'cover', preview)).map(
+          toProjectSummary,
+        ),
+      ),
       skills: (await this.previewMedia(draft(skills), 'icon', preview)).map(
         toSkill,
       ),
       testimonials: (
         await this.previewMedia(draft(testimonials), 'avatar', preview)
       ).map(toTestimonial),
-      contactLinks: draft(contactLinks).map(toContactLink),
+      contactLinks: (
+        await this.previewMedia(draft(contactLinks), 'icon', preview)
+      ).map(toContactLink),
     };
 
-    const parsed = draft(sections).map((section) => ({
+    const sectionRows = await this.previewMedia(
+      draft(sections),
+      'navIconImage',
+      preview,
+      'navIconId',
+    );
+    const parsed = sectionRows.map((section) => ({
       section,
       blocks: parseJsonList(
         blockSchema,
@@ -164,7 +182,8 @@ export class PublicContentService {
         titleHighlight: section.titleHighlight,
         eyebrow: section.eyebrow,
         navLabel: section.navLabel,
-        navIcon: toNavIcon(section.navIcon),
+        navIcon: toIconKey(section.navIcon),
+        navIconImage: toMedia(section.navIconImage),
         blocks: attachMedia(blocks, media) as ResolvedBlock[],
         // a link to a page that isn't live is left out, never a dead button
         link:
@@ -237,7 +256,7 @@ export class PublicContentService {
       orderBy: [...ordered],
       include: { cover: true },
     });
-    return projects.map(toProjectSummary);
+    return this.withLinkIcons(projects.map(toProjectSummary));
   }
 
   async getProject(slug: string): Promise<ProjectDetail> {
@@ -298,9 +317,10 @@ export class PublicContentService {
       `Project(${project.slug}).benchmarks`,
     );
     const media = await this.findMedia([body, benchmarks]);
+    const [summary] = await this.withLinkIcons([toProjectSummary(project)]);
 
     return {
-      ...toProjectSummary(project),
+      ...summary!,
       mobileCover: toMedia(project.mobileCover),
       body: attachMedia(body, media) as ResolvedBlock[],
       benchmarks: attachMedia(benchmarks, media) as ResolvedBlock[],
@@ -319,11 +339,11 @@ export class PublicContentService {
   // id. Live rows have no draft applied and are returned as they are
   private async previewMedia<R extends Record<string, unknown>>(
     rows: R[],
-    relation: 'cover' | 'mobileCover' | 'icon' | 'avatar',
+    relation: 'cover' | 'mobileCover' | 'icon' | 'avatar' | 'navIconImage',
     preview: boolean,
+    idKey = `${relation}Id`,
   ): Promise<R[]> {
     if (!preview || rows.length === 0) return rows;
-    const idKey = `${relation}Id`;
     const ids = [
       ...new Set(
         rows
@@ -340,6 +360,20 @@ export class PublicContentService {
       ...row,
       [relation]:
         typeof row[idKey] === 'string' ? (byId.get(row[idKey]) ?? null) : null,
+    }));
+  }
+
+  // uploaded link icons, for every project in one query
+  private async withLinkIcons<P extends { links: ResolvedLink[] }>(
+    projects: P[],
+  ): Promise<P[]> {
+    const media = await this.findMedia(
+      projects.map((project) => project.links),
+    );
+    if (media.size === 0) return projects;
+    return projects.map((project) => ({
+      ...project,
+      links: attachMedia(project.links, media) as ResolvedLink[],
     }));
   }
 
@@ -364,7 +398,8 @@ type SectionBase = {
   titleHighlight: string | null;
   eyebrow: string | null;
   navLabel: string | null;
-  navIcon: NavIcon | null;
+  navIcon: string | null;
+  navIconImage: Media | null;
   blocks: ResolvedBlock[];
   link: { label: string; href: string } | null;
   textWidth: TextWidth | null;

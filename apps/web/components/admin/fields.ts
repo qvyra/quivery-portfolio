@@ -1,13 +1,16 @@
 import {
   contactLinkTypeSchema,
   linkTypeSchema,
-  navIconSchema,
   releaseStatusSchema,
   sectionTypeSchema,
   skillTierSchema,
   type AdminCollection,
+  type ContactLinkType,
   type MediaKind,
+  type SectionType,
 } from "@repo/shared";
+import { contactTypeIcons, sectionTypeIcons } from "@/lib/icons/defaults";
+import { libraryIcon } from "@/lib/icons/library";
 
 // How each collection's content is edited. The strict schemas in @repo/shared
 // stay the source of truth for what's valid; this only says how to show it
@@ -34,6 +37,19 @@ export type Field = Base &
         only?: "application/pdf";
         /** The field this is the phone version of, previewed together */
         phoneVersionOf?: string;
+      }
+    | {
+        /**
+         * A built-in icon's key in `name`, or an uploaded image's id in
+         * `mediaName`, never both
+         */
+        kind: "icon";
+        mediaName: string;
+        /** What shows with neither, from the item's other values */
+        fallback: (values: Record<string, unknown>) => {
+          key: string | null;
+          label: string;
+        };
       }
     | { kind: "strings"; max?: number }
     | { kind: "links" | "blocks" | "date" | "project" | "page" | "width" }
@@ -68,6 +84,15 @@ export type CollectionConfig = {
 
 const text = (content: Record<string, unknown>, key: string) =>
   typeof content[key] === "string" ? (content[key] as string) : "";
+
+// a type's own icon, named, for an icon field left empty
+const typeIcon = (key: string | undefined) => ({
+  key: key ?? null,
+  label: key
+    ? `From the type: ${libraryIcon(key)?.label ?? key}`
+    : "None for this type",
+});
+const noIcon = () => ({ key: null, label: "No icon" });
 
 export const collections: Record<AdminCollection, CollectionConfig> = {
   sections: {
@@ -104,17 +129,12 @@ export const collections: Record<AdminCollection, CollectionConfig> = {
       },
       {
         name: "navIcon",
+        mediaName: "navIconId",
         label: "Nav icon",
-        kind: "select",
+        kind: "icon",
         optional: true,
-        options: [
-          { value: "", label: "From the type (custom: stacked layers)" },
-          ...options(navIconSchema.options).map((option) =>
-            option.value === "drafting-compass"
-              ? { ...option, label: "Blueprint (drafting compass)" }
-              : option,
-          ),
-        ],
+        fallback: (values) =>
+          typeIcon(sectionTypeIcons[values.type as SectionType] ?? "layers"),
         help: "The icon beside the nav link in the phone menu",
       },
       {
@@ -350,11 +370,13 @@ export const collections: Record<AdminCollection, CollectionConfig> = {
         max: 300,
       },
       {
-        name: "iconId",
+        name: "iconKey",
+        mediaName: "iconId",
         label: "Icon",
-        kind: "media",
-        accept: "IMAGE",
+        kind: "icon",
         optional: true,
+        fallback: noIcon,
+        help: "Shown on the skill's card, and in its pill when it's secondary",
       },
     ],
   },
@@ -374,11 +396,12 @@ export const collections: Record<AdminCollection, CollectionConfig> = {
       },
       { name: "highlights", label: "Highlights", kind: "strings", max: 120 },
       {
-        name: "iconId",
+        name: "iconKey",
+        mediaName: "iconId",
         label: "Icon",
-        kind: "media",
-        accept: "IMAGE",
+        kind: "icon",
         optional: true,
+        fallback: noIcon,
       },
     ],
   },
@@ -460,6 +483,16 @@ export const collections: Record<AdminCollection, CollectionConfig> = {
         help: "https://... or mailto:...",
       },
       {
+        name: "iconKey",
+        mediaName: "iconId",
+        label: "Icon",
+        kind: "icon",
+        optional: true,
+        fallback: (values) =>
+          typeIcon(contactTypeIcons[values.type as ContactLinkType]),
+        help: "Shown in the contact section, and in the round social links for Discord, GitHub, Ko-fi and email",
+      },
+      {
         name: "featured",
         label: "Featured, the contact section's main button",
         kind: "boolean",
@@ -511,6 +544,7 @@ export function emptyValue(field: Field): unknown {
     case "select":
       return field.options[0]?.value ?? "";
     case "media":
+    case "icon":
     case "number":
     case "date":
     case "project":
@@ -525,13 +559,17 @@ export function emptyValue(field: Field): unknown {
 /** Form values as the schema expects them: empty optional text is null */
 export function toPayload(fields: Field[], values: Record<string, unknown>) {
   return Object.fromEntries(
-    fields.map((field) => {
+    fields.flatMap((field) => {
       const value = values[field.name];
       const empty = value === "" || value === undefined;
-      return [
+      const entry = [
         field.name,
         field.optional && empty ? null : (value ?? emptyValue(field)),
       ];
+      // an icon field is two columns, the built-in key and the upload's id
+      return field.kind === "icon"
+        ? [entry, [field.mediaName, values[field.mediaName] ?? null]]
+        : [entry];
     }),
   );
 }

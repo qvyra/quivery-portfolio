@@ -25,7 +25,7 @@ const ok = (data: unknown) => ({
   data,
 });
 
-const site = (sections: unknown[]) =>
+const site = (sections: unknown[], contactLinks: unknown[] = []) =>
   ok({
     profile: {
       brandName: "Quivery",
@@ -35,7 +35,7 @@ const site = (sections: unknown[]) =>
       avatar: null,
       cv: null,
     },
-    contactLinks: [],
+    contactLinks,
     sections,
   });
 
@@ -75,6 +75,21 @@ describe("parseSite", () => {
     expect(skipped).toHaveLength(2);
     expect(skipped[0]).toContain('"marquee"');
     expect(skipped[1]).toContain('"hologram"');
+  });
+
+  it("reads a contact link type it doesn't know as other", () => {
+    const link = (n: number, type: string) => ({
+      id: uuid(n),
+      type,
+      label: type,
+      value: type,
+      url: "https://example.com",
+      featured: false,
+    });
+    const parsed = parseSite(
+      site([], [link(1, "github"), link(2, "mastodon")]),
+    );
+    expect(parsed.contactLinks.map((l) => l.type)).toEqual(["github", "other"]);
   });
 
   it("skips a custom section left without blocks", () => {

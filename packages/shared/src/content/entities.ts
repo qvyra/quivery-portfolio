@@ -155,6 +155,7 @@ export const contactLinkTypeSchema = z.enum([
   "discord",
   "email",
   "github",
+  "linkedin",
   "roblox-talent-hub",
   "kofi",
   "website",
@@ -187,7 +188,8 @@ export type ContactLinkInput = z.input<typeof contactLinkInputSchema>;
 
 export const contactLinkSchema = z.object({
   id: z.uuid(),
-  type: contactLinkTypeSchema,
+  // a type added after this build still shows, as a plain link
+  type: contactLinkTypeSchema.catch("other"),
   label: z.string(),
   value: z.string(),
   url: z.string().nullable(),

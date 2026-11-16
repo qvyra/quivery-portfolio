@@ -5,6 +5,7 @@ const reachPriority: ContactLinkType[] = [
   "discord",
   "email",
   "roblox-talent-hub",
+  "linkedin",
   "github",
   "website",
   "other",
@@ -14,6 +15,7 @@ const ctaLabel: Partial<Record<ContactLinkType, string>> = {
   discord: "Message me on Discord",
   email: "Email me",
   "roblox-talent-hub": "Hire me on Talent Hub",
+  linkedin: "Connect on LinkedIn",
   github: "Find me on GitHub",
 };
 
@@ -41,6 +43,7 @@ export const isExternal = (url: string) => /^https?:\/\//.test(url);
 const socialTypes = new Set<ContactLinkType>([
   "discord",
   "github",
+  "linkedin",
   "kofi",
   "email",
 ]);

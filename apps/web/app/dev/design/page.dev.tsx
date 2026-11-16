@@ -48,6 +48,7 @@ async function loadContactLinks(): Promise<ContactLink[]> {
 const sampleLinks: ContactLink[] = [
   ["discord", "Discord", "sample-handle", null],
   ["github", "GitHub", "qvyra", "https://github.com/qvyra"],
+  ["linkedin", "LinkedIn", "sample", "https://www.linkedin.com/in/sample"],
   ["kofi", "Ko-fi", "sample", "https://ko-fi.com/sample"],
   ["email", "Email", "hello@example.com", "mailto:hello@example.com"],
 ].map(([type, label, value, url], index) => ({

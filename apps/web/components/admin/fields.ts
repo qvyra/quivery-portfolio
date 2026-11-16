@@ -57,14 +57,27 @@ export type Field = Base &
 
 export type Option = { value: string; label: string };
 
-const options = (values: readonly string[]): Option[] =>
+const options = (
+  values: readonly string[],
+  names: Record<string, string> = {},
+): Option[] =>
   values.map((value) => ({
     value,
-    label: value
-      .toLowerCase()
-      .replace(/[-_]/g, " ")
-      .replace(/^./, (c) => c.toUpperCase()),
+    label:
+      names[value] ??
+      value
+        .toLowerCase()
+        .replace(/[-_]/g, " ")
+        .replace(/^./, (c) => c.toUpperCase()),
   }));
+
+// brands as they write themselves, which the generated label gets wrong
+const contactTypeNames: Record<string, string> = {
+  github: "GitHub",
+  linkedin: "LinkedIn",
+  "roblox-talent-hub": "Roblox Talent Hub",
+  kofi: "Ko-fi",
+};
 
 export const linkTypes = options(linkTypeSchema.options).map((option) =>
   option.value === "internal" ? { ...option, label: "On this site" } : option,
@@ -465,7 +478,7 @@ export const collections: Record<AdminCollection, CollectionConfig> = {
         name: "type",
         label: "Type",
         kind: "select",
-        options: options(contactLinkTypeSchema.options),
+        options: options(contactLinkTypeSchema.options, contactTypeNames),
       },
       { name: "label", label: "Label", kind: "text", max: 40 },
       {
@@ -490,7 +503,7 @@ export const collections: Record<AdminCollection, CollectionConfig> = {
         optional: true,
         fallback: (values) =>
           typeIcon(contactTypeIcons[values.type as ContactLinkType]),
-        help: "Shown in the contact section, and in the round social links for Discord, GitHub, Ko-fi and email",
+        help: "Shown in the contact section, and in the round social links for Discord, GitHub, LinkedIn, Ko-fi and email",
       },
       {
         name: "featured",

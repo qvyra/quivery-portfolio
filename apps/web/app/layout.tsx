@@ -29,13 +29,17 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
-  // semibold sets the h1 and buttons, the largest text on first paint. The
-  // other weights swap in over a fallback sized to match, so nothing moves
-  preload(poppinsFiles[600], {
-    as: "font",
-    type: "font/woff2",
-    crossOrigin: "anonymous",
-  });
+  // Every page sets text in all three weights, so all three files load
+  // anyway, and preloading them gets them in before first paint. A fallback
+  // sized to Poppins still wraps some text differently, and on a phone one
+  // paragraph line more pushes everything under it down when Poppins swaps in
+  for (const file of Object.values(poppinsFiles)) {
+    preload(file, {
+      as: "font",
+      type: "font/woff2",
+      crossOrigin: "anonymous",
+    });
+  }
 
   return (
     <html
